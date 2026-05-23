@@ -1,153 +1,198 @@
 "use client";
-import { useState, useEffect } from "react";
-import { useFinData } from "@/hooks/useFinData";
-import QuickCommandBar from "@/components/QuickCommandBar";
-import { Moon, Sun, ArrowUpCircle, ArrowDownCircle, Coffee, ShoppingBag, Receipt, Layers } from "lucide-react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Moon, Sun, ArrowUpCircle, ArrowDownCircle, Coffee, ShoppingBag, Receipt, Layers, Trash2, Edit3, Home as HomeIcon, PieChart, CreditCard, Settings } from "lucide-react";
+import QuickCommandBar from "@/components/QuickCommandBar";
+import { useFinData } from "@/hooks/useFinData";
 
 export default function Home() {
-  const [isDark, setIsDark] = useState(false);
-  const [mounted, setMounted] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState("Semua"); // <-- State Filter Baru
-  const { balance, transactions, addTransaction } = useFinData("mock-user-1", "mock-wallet-1");
+  const [isDarkMode, setIsDarkMode] = useState(true);
+  const [filter, setFilter] = useState("Semua");
+  const [activeTab, setActiveTab] = useState("home"); // STATE BARU: Penentu Kamar Aktif
+  
+  const { balance, transactions, addTransaction, deleteTransaction, updateTransaction } = useFinData("mock-user-1", "mock-wallet-1");
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  useEffect(() => {
-    if (!mounted) return;
-    if (isDark) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, [isDark, mounted]);
+  const existingCategories = [...new Set(transactions.map(t => t.category))];
+  const dynamicCategories = ["Semua", ...existingCategories];
+  const totalExpense = transactions.reduce((acc, curr) => acc + Number(curr.amount), 0);
+  const totalIncome = 5000000; 
 
   const getIcon = (category) => {
-    const cat = category.toLowerCase();
-    if (cat.includes('jajan') || cat.includes('makan')) return <Coffee size={18} />;
-    if (cat.includes('belanja') || cat.includes('kebutuhan')) return <ShoppingBag size={18} />;
-    return <Receipt size={18} />;
+    switch (category) {
+      case 'Makan': return <Coffee size={18} />;
+      case 'Belanja': return <ShoppingBag size={18} />;
+      case 'Tagihan': return <Receipt size={18} />;
+      default: return <Layers size={18} />;
+    }
   };
 
-  if (!mounted) {
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex justify-center items-center">
-        <p className="text-sm text-gray-400 animate-pulse">Memuat ArtaKita...</p>
+  const handleEdit = (trx) => {
+    const newNote = prompt("Ubah Catatan:", trx.note);
+    const newCategory = prompt("Ubah Kategori:", trx.category);
+    if (newNote && newCategory) updateTransaction(trx.id, newNote, newCategory);
+  };
+
+  const filteredTransactions = filter === "Semua" ? transactions : transactions.filter(t => t.category === filter);
+
+  // --- KOMPONEN KAMAR 1: DASHBOARD UTAMA (Kode Lama Kita) ---
+  const HomeTab = () => (
+    <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="pt-8 px-4">
+      {/* Header */}
+      <div className="flex justify-between items-center mb-8">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">ArtaKita.</h1>
+          <p className="text-xs font-bold text-blue-600 dark:text-blue-400 tracking-[0.2em] uppercase mt-1">Sistem Ledger AI</p>
+        </div>
+        <button onClick={() => setIsDarkMode(!isDarkMode)} className="p-2.5 rounded-2xl bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700 text-gray-600 dark:text-gray-300">
+          {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+        </button>
       </div>
-    );
-  }
 
-  const safeBalance = balance || 0;
+      {/* Balance Card */}
+      <div className="bg-white dark:bg-[#121827] rounded-[32px] p-7 shadow-2xl shadow-blue-500/10 border border-gray-100 dark:border-gray-800/60 mb-8">
+        <p className="text-[10px] font-black text-gray-400 dark:text-gray-600 uppercase tracking-[0.3em] mb-3">Total Saldo Tersedia</p>
+        <div className="flex items-baseline gap-2 mb-8">
+          <span className="text-2xl font-bold text-gray-300 dark:text-gray-700">Rp</span>
+          <span className="text-5xl font-black text-gray-900 dark:text-white tracking-tighter">
+            {balance.toLocaleString('id-ID')}
+          </span>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="bg-gray-50 dark:bg-gray-900/40 p-4 rounded-2xl border border-gray-100 dark:border-gray-800/50">
+            <div className="flex items-center gap-1.5 text-green-600 dark:text-green-500 mb-1">
+              <ArrowDownCircle size={14} />
+              <span className="text-[9px] font-black uppercase tracking-wider">In</span>
+            </div>
+            <p className="font-bold text-gray-800 dark:text-gray-200 text-sm">Rp {totalIncome.toLocaleString('id-ID')}</p>
+          </div>
+          <div className="bg-gray-50 dark:bg-gray-900/40 p-4 rounded-2xl border border-gray-100 dark:border-gray-800/50">
+            <div className="flex items-center gap-1.5 text-red-600 dark:text-red-500 mb-1">
+              <ArrowUpCircle size={14} />
+              <span className="text-[9px] font-black uppercase tracking-wider">Out</span>
+            </div>
+            <p className="font-bold text-gray-800 dark:text-gray-200 text-sm">Rp {totalExpense.toLocaleString('id-ID')}</p>
+          </div>
+        </div>
+      </div>
 
-  // 1. Dapatkan daftar kategori unik secara dinamis dari data transaksi yang ada
-  const availableCategories = ["Semua", ...new Set(transactions.map(trx => trx.category))];
+      {/* Dynamic Filter List */}
+      <div className="flex gap-2.5 mb-8 overflow-x-auto pb-1 no-scrollbar cursor-grab">
+        {dynamicCategories.map((cat) => (
+          <button key={cat} onClick={() => setFilter(cat)}
+            className={`px-5 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all ${
+              filter === cat ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30 scale-105' : 'bg-white dark:bg-gray-800 text-gray-400 dark:text-gray-500 border border-gray-100 dark:border-gray-700'
+            }`}>
+            {cat}
+          </button>
+        ))}
+      </div>
 
-  // 2. Filter data transaksi berdasarkan kategori yang sedang dipilih pengguna
-  const filteredTransactions = selectedCategory === "Semua" 
-    ? transactions 
-    : transactions.filter(trx => trx.category === selectedCategory);
+      {/* Transactions List */}
+      <div className="mb-24">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-[10px] font-black text-gray-400 dark:text-gray-600 tracking-[0.3em] uppercase">Log Aktivitas</h2>
+          <span className="text-[10px] font-bold text-blue-500 bg-blue-50 dark:bg-blue-900/20 px-2 py-0.5 rounded-md">{filteredTransactions.length} Item</span>
+        </div>
+        <div className="space-y-4">
+          <AnimatePresence mode="popLayout">
+            {filteredTransactions.map((trx) => (
+              <motion.div key={trx.id} layout initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, scale: 0.95 }}
+                className="flex items-center justify-between p-4 rounded-[24px] bg-white dark:bg-gray-900/20 border border-gray-100 dark:border-gray-800/40 hover:border-blue-500/30 transition-all"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-gray-50 dark:bg-gray-800 flex items-center justify-center text-gray-600 dark:text-gray-400 shadow-inner">
+                    {getIcon(trx.category)}
+                  </div>
+                  <div>
+                    <p className="font-bold text-sm text-gray-800 dark:text-gray-100 tracking-tight">{trx.note}</p>
+                    <p className="text-[10px] font-black text-blue-500/60 dark:text-blue-400/40 uppercase tracking-widest">{trx.category}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <p className="font-black text-sm text-red-500 dark:text-red-400 mr-1">{trx.amount.toLocaleString('id-ID')}</p>
+                  <div className="flex gap-1 opacity-40 hover:opacity-100 transition-opacity">
+                    <button onClick={() => handleEdit(trx)} className="p-2 text-gray-400 hover:text-blue-500 rounded-xl transition-all"><Edit3 size={14} /></button>
+                    <button onClick={() => deleteTransaction(trx.id, trx.amount)} className="p-2 text-gray-400 hover:text-red-500 rounded-xl transition-all"><Trash2 size={14} /></button>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+          {filteredTransactions.length === 0 && (
+            <div className="text-center py-20 bg-gray-50/50 dark:bg-gray-900/10 rounded-[32px] border border-dashed border-gray-200 dark:border-gray-800">
+              <p className="text-[10px] font-black text-gray-300 dark:text-gray-700 uppercase tracking-[0.4em]">Data Nihil</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </motion.div>
+  );
+
+  // --- KOMPONEN KAMAR LAINNYA (Placeholder untuk Fase Selanjutnya) ---
+  const AnalyticsTab = () => (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="pt-12 px-4 text-center h-screen">
+      <PieChart className="w-16 h-16 mx-auto mb-4 text-blue-500 opacity-50" />
+      <h2 className="text-lg font-bold text-gray-800 dark:text-white">Ruang Analitik</h2>
+      <p className="text-sm text-gray-500 mt-2">Segera Hadir: Grafik Donat Pengeluaran Keluarga</p>
+    </motion.div>
+  );
+
+  const WalletTab = () => (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="pt-12 px-4 text-center h-screen">
+      <CreditCard className="w-16 h-16 mx-auto mb-4 text-green-500 opacity-50" />
+      <h2 className="text-lg font-bold text-gray-800 dark:text-white">Multi-Dompet</h2>
+      <p className="text-sm text-gray-500 mt-2">Segera Hadir: Sinkronisasi Rekening Suami & Istri</p>
+    </motion.div>
+  );
 
   return (
-    <div className={`min-h-screen transition-colors duration-300 ${isDark ? 'dark bg-gray-950 text-white' : 'bg-gray-100 text-gray-900'} flex justify-center items-center p-0 md:p-4`}>
-      <main className="w-full max-w-md bg-white dark:bg-gray-900 min-h-screen md:min-h-[855px] md:rounded-3xl relative shadow-2xl flex flex-col p-6 pb-24 overflow-y-auto border border-gray-100 dark:border-gray-800/50 transition-colors duration-300">
+    <div className={`min-h-screen transition-colors duration-300 ${isDarkMode ? 'dark bg-[#0a0f1c]' : 'bg-gray-50'}`}>
+      <style jsx global>{`
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      `}</style>
+
+      {/* Kontainer Utama yang Membungkus View */}
+      <main className="max-w-md mx-auto relative min-h-screen">
         
-        {/* Header */}
-        <header className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">ArtaKita.</h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400">Keuangan Rumah Tangga</p>
+        <AnimatePresence mode="wait">
+          {activeTab === 'home' && <HomeTab key="home" />}
+          {activeTab === 'analytics' && <AnalyticsTab key="analytics" />}
+          {activeTab === 'wallets' && <WalletTab key="wallets" />}
+        </AnimatePresence>
+
+        {/* NLP Input Bar HANYA muncul di Tab Home */}
+        {activeTab === 'home' && <QuickCommandBar onProcessTransaction={addTransaction} />}
+        
+        {/* ========================================================= */}
+        {/* MAGIC BARU: BOTTOM NAVIGATION (Gaya Aplikasi Mobile Asli) */}
+        {/* ========================================================= */}
+        <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/80 dark:bg-[#0a0f1c]/80 backdrop-blur-xl border-t border-gray-200 dark:border-gray-800 pb-safe">
+          <div className="max-w-md mx-auto flex justify-between items-center px-6 py-4">
+            
+            <button onClick={() => setActiveTab('home')} className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'home' ? 'text-blue-600 dark:text-blue-400 scale-110' : 'text-gray-400 dark:text-gray-600 hover:text-gray-600 dark:hover:text-gray-400'}`}>
+              <HomeIcon size={22} className={activeTab === 'home' ? "fill-blue-100 dark:fill-blue-900/30" : ""} />
+              <span className="text-[9px] font-bold uppercase tracking-widest">Home</span>
+            </button>
+
+            <button onClick={() => setActiveTab('analytics')} className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'analytics' ? 'text-blue-600 dark:text-blue-400 scale-110' : 'text-gray-400 dark:text-gray-600 hover:text-gray-600 dark:hover:text-gray-400'}`}>
+              <PieChart size={22} className={activeTab === 'analytics' ? "fill-blue-100 dark:fill-blue-900/30" : ""} />
+              <span className="text-[9px] font-bold uppercase tracking-widest">Stats</span>
+            </button>
+
+            <button onClick={() => setActiveTab('wallets')} className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'wallets' ? 'text-blue-600 dark:text-blue-400 scale-110' : 'text-gray-400 dark:text-gray-600 hover:text-gray-600 dark:hover:text-gray-400'}`}>
+              <CreditCard size={22} className={activeTab === 'wallets' ? "fill-blue-100 dark:fill-blue-900/30" : ""} />
+              <span className="text-[9px] font-bold uppercase tracking-widest">Wallets</span>
+            </button>
+
+            <button onClick={() => alert("Menu Pengaturan akan segera hadir!")} className="flex flex-col items-center gap-1 text-gray-400 dark:text-gray-600 hover:text-gray-600 dark:hover:text-gray-400 transition-all">
+              <Settings size={22} />
+              <span className="text-[9px] font-bold uppercase tracking-widest">Set</span>
+            </button>
+
           </div>
-          <button onClick={() => setIsDark(!isDark)} className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center transition-colors hover:bg-gray-200 dark:hover:bg-gray-700">
-            {isDark ? <Sun size={20} className="text-yellow-400" /> : <Moon size={20} className="text-gray-600" />}
-          </button>
-        </header>
+        </nav>
 
-        {/* Balance Card */}
-        <div className="mb-6">
-          <p className="text-sm font-medium text-gray-400 dark:text-gray-500 mb-1">Total Saldo</p>
-          <h2 className="text-5xl font-bold tracking-tighter flex items-center text-gray-900 dark:text-white">
-            <span className="text-2xl mr-1 font-semibold text-gray-300 dark:text-gray-600">Rp</span>
-            {safeBalance.toLocaleString('id-ID')}
-          </h2>
-          
-          <div className="flex gap-4 mt-6">
-            <div className="flex-1 bg-green-50/60 dark:bg-green-900/10 p-4 rounded-2xl border border-green-100/50 dark:border-green-800/20">
-              <p className="text-xs flex items-center text-green-600 dark:text-green-400 mb-1 font-medium"><ArrowDownCircle size={14} className="mr-1"/> Pemasukan</p>
-              <p className="font-bold text-green-700 dark:text-green-400 text-lg">Rp 8.500.000</p>
-            </div>
-            <div className="flex-1 bg-red-50/60 dark:bg-red-900/10 p-4 rounded-2xl border border-red-100/50 dark:border-red-800/20">
-              <p className="text-xs flex items-center text-red-600 dark:text-red-400 mb-1 font-medium"><ArrowUpCircle size={14} className="mr-1"/> Pengeluaran</p>
-              <p className="font-bold text-red-700 dark:text-red-400 text-lg">Rp {(5000000 - safeBalance + 3500000).toLocaleString('id-ID')}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* KOMPONEN BARU: Dynamic Category Filter Pills */}
-        <div className="mb-6 overflow-x-auto -mx-6 px-6 scrollbar-none flex gap-2 py-1">
-          {availableCategories.map((cat) => {
-            const isSelected = selectedCategory === cat;
-            return (
-              <button
-                key={cat}
-                onClick={() => setSelectedCategory(cat)}
-                className={`text-xs font-semibold px-4 py-2 rounded-full border whitespace-nowrap transition-all duration-200 ${
-                  isSelected
-                    ? "bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-600/20 scale-105"
-                    : "bg-gray-50/80 dark:bg-gray-800/40 border-gray-100 dark:border-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
-                }`}
-              >
-                {cat === "Semua" && <Layers size={12} className="inline mr-1 -mt-0.5" />}
-                {cat}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Transactions List */}
-        <div className="flex-1">
-          <h3 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-4">
-            {selectedCategory === "Semua" ? "Transaksi Terakhir" : `Kategori: ${selectedCategory}`}
-          </h3>
-          
-          <div className="space-y-3">
-            <AnimatePresence mode="popLayout">
-              {filteredTransactions.map((trx) => (
-                <motion.div 
-                  key={trx.id} 
-                  layout // Menangani transisi perpindahan posisi card secara otomatis
-                  initial={{ opacity: 0, scale: 0.9 }} 
-                  animate={{ opacity: 1, scale: 1 }} 
-                  exit={{ opacity: 0, scale: 0.9, y: 10 }}
-                  transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                  className="flex items-center justify-between p-3.5 rounded-2xl bg-gray-50/80 dark:bg-gray-800/40 border border-gray-100/70 dark:border-gray-800/60 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-blue-50 dark:bg-blue-950/40 flex items-center justify-center text-blue-600 dark:text-blue-400">
-                      {getIcon(trx.category)}
-                    </div>
-                    <div>
-                      <p className="font-semibold text-sm text-gray-800 dark:text-gray-200">{trx.note}</p>
-                      <p className="text-xs text-gray-400 dark:text-gray-500">{trx.category}</p>
-                    </div>
-                  </div>
-                  <p className="font-bold text-sm text-red-600 dark:text-red-400">- Rp {trx.amount.toLocaleString('id-ID')}</p>
-                </motion.div>
-              ))}
-            </AnimatePresence>
-
-            {/* State jika hasil filter kosong */}
-            {filteredTransactions.length === 0 && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-12">
-                <p className="text-sm text-gray-400 dark:text-gray-500">Belum ada transaksi di kategori ini.</p>
-              </motion.div>
-            )}
-          </div>
-        </div>
-
-        {/* The Magic FAB */}
-        <QuickCommandBar onProcessTransaction={addTransaction} />
       </main>
     </div>
   );

@@ -1,71 +1,85 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabaseClient';
+"use client";
+import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabaseClient";
 
-export const useFinData = (userId, defaultWalletId) => {
-    const [balance, setBalance] = useState(0);
-    const [transactions, setTransactions] = useState([]);
-    const [isLoading, setIsLoading] = useState(true);
+export function useFinData(userId = "mock-user-1", walletId = "mock-wallet-1") {
+  const [balance, setBalance] = useState(0);
+  const [transactions, setTransactions] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        // PERBAIKAN: Jika klien Supabase tidak aktif/null, langsung gunakan data bayangan lokal
-        if (!supabase) {
-            setBalance(5000000);
-            setTransactions([
-                { id: "mock-1", amount: 25000, note: 'Kopi Susu', category: 'Jajan', type: 'expense' },
-                { id: "mock-2", amount: 150000, note: 'Belanja Bulanan', category: 'Kebutuhan', type: 'expense' }
-            ]);
-            setIsLoading(false);
-            return;
-        }
+  const fetchClientData = async () => {
+    if (!supabase) return;
+    setLoading(true);
+    try {
+      const { data: walletData, error: walletErr } = await supabase
+        .from("wallets").select("balance").eq("id", walletId).single();
 
-        const fetchInitialData = async () => {
-            try {
-                const { data: walletData } = await supabase.from('wallets').select('balance').eq('id', defaultWalletId).single();
-                if (walletData) setBalance(walletData.balance);
+      if (walletErr && walletErr.code === "PGRST116") {
+        await supabase.from("wallets").insert([{ id: walletId, user_id: userId, name: "Dompet Utama", balance: 5000000 }]);
+        setBalance(5000000);
+      } else if (walletData) {
+        setBalance(Number(walletData.balance));
+      }
 
-                const { data: trxData } = await supabase.from('transactions').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(10);
-                if (trxData) setTransactions(trxData);
-            } catch (error) {
-                console.error("Gagal memuat data awal:", error);
-            } finally {
-                setIsLoading(false);
-            }
-        };
+      const { data: trxData } = await supabase
+        .from("transactions").select("*").eq("wallet_id", walletId)
+        .order("created_at", { ascending: false }).limit(20);
 
-        fetchInitialData();
+      if (trxData) setTransactions(trxData);
+    } catch (error) {
+      console.error("Sync Error:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-        const channel = supabase.channel('artakita-realtime')
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'transactions' }, (payload) => {
-                setTransactions((current) => [payload.new, ...current].slice(0, 10));
-            })
-            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'wallets' }, (payload) => {
-                setBalance(payload.new.balance);
-            }).subscribe();
+  useEffect(() => { fetchClientData(); }, [walletId]);
 
-        return () => {
-            supabase.removeChannel(channel);
-        };
-    }, [userId, defaultWalletId]);
+  const addTransaction = async (parsedData) => {
+    const { amount, note, category } = parsedData;
+    const newTransaction = { user_id: userId, wallet_id: walletId, amount, type: "expense", category, note };
+    const tempId = crypto.randomUUID();
+    
+    setTransactions((prev) => [{ id: tempId, ...newTransaction, created_at: new Date().toISOString() }, ...prev]);
+    setBalance((prev) => prev - amount);
 
-    const addTransaction = async (parsedData) => {
-        const tempId = typeof window !== 'undefined' ? crypto.randomUUID() : Math.random().toString();
-        const newTrx = { 
-            id: tempId, 
-            amount: parsedData.amount, 
-            note: parsedData.note, 
-            category: parsedData.category, 
-            type: 'expense' 
-        };
-        
-        // Optimistic Update UI (Selalu berjalan di mode lokal maupun live)
-        setTransactions((curr) => [newTrx, ...curr]);
-        setBalance((prev) => prev - parsedData.amount);
+    if (!supabase) return;
+    const { data, error } = await supabase.from("transactions").insert([newTransaction]).select().single();
+    if (error) { fetchClientData(); } 
+    else {
+      setTransactions((prev) => prev.map((trx) => (trx.id === tempId ? data : trx)));
+      await supabase.rpc("decrement_balance", { target_wallet_id: walletId, deduct_amount: amount });
+    }
+  };
 
-        // Hanya tembak ke server jika klien Supabase aktif
-        if (supabase) {
-            await supabase.from('transactions').insert([{ user_id: userId, wallet_id: defaultWalletId, ...newTrx }]);
-        }
-    };
+  const deleteTransaction = async (trxId, amount) => {
+    setTransactions((prev) => prev.filter((trx) => trx.id !== trxId));
+    setBalance((prev) => prev + Number(amount));
 
-    return { balance, transactions, isLoading, addTransaction };
-};
+    if (!supabase) return;
+    const { error } = await supabase.from("transactions").delete().eq("id", trxId);
+    if (error) fetchClientData();
+    else await supabase.rpc("increment_balance", { target_wallet_id: walletId, refund_amount: amount });
+  };
+
+  // FUNGSI BARU: Update Transaksi (Note & Category)
+  const updateTransaction = async (trxId, newNote, newCategory) => {
+    // Update lokal (Optimistic)
+    setTransactions((prev) => 
+      prev.map(t => t.id === trxId ? { ...t, note: newNote, category: newCategory } : t)
+    );
+
+    if (!supabase) return;
+    const { error } = await supabase
+      .from("transactions")
+      .update({ note: newNote, category: newCategory })
+      .eq("id", trxId);
+
+    if (error) {
+      console.error("Update Error:", error);
+      fetchClientData();
+    }
+  };
+
+  return { balance, transactions, loading, addTransaction, deleteTransaction, updateTransaction, refresh: fetchClientData };
+}
