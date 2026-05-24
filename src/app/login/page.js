@@ -9,7 +9,6 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   
   const router = useRouter(); // <-- Deklarasi Router di sini
-  console.log("SUPABASE:", supabase);
 
   const handleLogin = async (e) => {
 
