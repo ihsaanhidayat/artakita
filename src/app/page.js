@@ -16,6 +16,7 @@ import ShareWallet from "@/components/ShareWallet";
 import EditWalletModal from "@/components/EditWalletModal";
 import BudgetProgress from "@/components/BudgetProgress";
 import ManageBudgets from "@/components/ManageBudgets";
+import BudgetAlert from "@/components/BudgetAlert";
 
 // === FUNGSI HELPER GLOBAL ===
 const formatDateTime = (isoString) => {
@@ -76,6 +77,15 @@ export default function Home() {
   const [walletToEdit, setWalletToEdit] = useState(null);
   const [isShareWalletOpen, setIsShareWalletOpen] = useState(false);
   const [walletToShare, setWalletToShare] = useState(null);
+  const [allBudgets, setAllBudgets] = useState([]);
+
+useEffect(() => {
+  const fetchAllBudgets = async () => {
+    const { data } = await supabase.from('budgets').select('*').eq('month_year', selectedMonth);
+    if (data) setAllBudgets(data);
+  };
+  fetchAllBudgets();
+  }, [selectedMonth]);
 
   // === 5. EFEK & FUNGSI ===
   useEffect(() => {
@@ -195,7 +205,7 @@ export default function Home() {
 
   return (
     <div className={`min-h-screen transition-colors duration-300 ${isDarkMode ? 'dark bg-[#0a0f1c]' : 'bg-gray-50'}`}>
-      <main className="max-w-md mx-auto relative min-h-screen overflow-x-hidden">
+      <main className="max-w-md mx-auto relative min-h-screen overflow-x-hidden bg-white dark:bg-black">
         
         {/* ======================================= */}
         {/* AREA TABS (DI RENDER SECARA CONDITIONAL)*/}
@@ -204,104 +214,113 @@ export default function Home() {
           
           {/* TAB 1: HOME DASHBOARD */}
           {activeTab === 'home' && (
-            <motion.div key="home" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="pt-8 px-4 pb-32 min-h-screen w-full flex flex-col">
-              <div className="flex-none">
-                <div className="flex justify-between items-center mb-6">
-                  <div>
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">ArtaKita.</h1>
-                    <p className="text-xs font-bold text-blue-600 dark:text-blue-400 tracking-[0.2em] uppercase mt-1">{activeWallet.name}</p>
-                  </div>
-                  <button onClick={() => setIsDarkMode(!isDarkMode)} className="p-2.5 rounded-2xl bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700 text-gray-600 dark:text-gray-300 transition-all active:scale-90">
-                    {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
-                  </button>
-                </div>
+  <motion.div 
+    key="home" 
+    initial={{ opacity: 0 }} 
+    animate={{ opacity: 1 }} 
+    exit={{ opacity: 0 }} 
+    transition={{ duration: 0.15 }} 
+    className="pt-8 px-4 h-[100dvh] w-full flex flex-col overflow-hidden" 
+  >
+    {/* SECTION: HEADER (FLEX-NONE = TIDAK AKAN BISA SCROLL) */}
+    <div className="flex-none">
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">ArtaKita.</h1>
+          <p className="text-xs font-bold text-blue-600 dark:text-blue-400 tracking-[0.2em] uppercase mt-1">{activeWallet.name}</p>
+        </div>
+        <button onClick={() => setIsDarkMode(!isDarkMode)} className="p-2.5 rounded-2xl bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700 text-gray-600 dark:text-gray-300 transition-all active:scale-90">
+          {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+        </button>
+      </div>
 
-                <div className="bg-white dark:bg-[#121827] rounded-[32px] p-7 shadow-2xl shadow-blue-500/10 border border-gray-100 dark:border-gray-800/60 mb-6">
-                  <p className="text-[10px] font-black text-gray-400 dark:text-gray-600 uppercase tracking-[0.3em] mb-3">Total Saldo (Semua Waktu)</p>
-                  <div className="flex items-baseline gap-2 mb-8">
-                    <span className="text-2xl font-bold text-gray-300 dark:text-gray-700">Rp</span>
-                    <span className="text-5xl font-black text-gray-900 dark:text-white tracking-tighter">{balance.toLocaleString('id-ID')}</span>
-                  </div>
-                  
-                  <p className="text-[9px] font-black text-blue-500/60 dark:text-blue-400/60 uppercase tracking-widest mb-2 border-t border-gray-100 dark:border-gray-800 pt-3">Sirkulasi Bulan Ini</p>
-                  <div className="grid grid-cols-2 gap-4">
-                    <button onClick={() => setTypeFilter(typeFilter === 'income' ? 'all' : 'income')} className={`p-4 rounded-2xl border transition-all ${typeFilter === 'income' ? 'bg-green-500/10 border-green-500 shadow-lg shadow-green-500/20' : 'bg-gray-50 dark:bg-gray-900/40 border-gray-100 dark:border-gray-800/50'}`}>
-                      <div className="flex items-center gap-1.5 text-green-600 dark:text-green-500 mb-1"><ArrowDownCircle size={14} /><span className="text-[9px] font-black uppercase tracking-wider">In</span></div>
-                      <p className="font-bold text-gray-800 dark:text-gray-200 text-sm">Rp {incomeThisMonth.toLocaleString('id-ID')}</p>
-                    </button>
-                    <button onClick={() => setTypeFilter(typeFilter === 'expense' ? 'all' : 'expense')} className={`p-4 rounded-2xl border transition-all ${typeFilter === 'expense' ? 'bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20' : 'bg-gray-50 dark:bg-gray-900/40 border-gray-100 dark:border-gray-800/50'}`}>
-                      <div className="flex items-center gap-1.5 text-red-600 dark:text-red-500 mb-1"><ArrowUpCircle size={14} /><span className="text-[9px] font-black uppercase tracking-wider">Out</span></div>
-                      <p className="font-bold text-gray-800 dark:text-gray-200 text-sm">Rp {expenseThisMonth.toLocaleString('id-ID')}</p>
-                    </button>
-                  </div>
-                </div>
+      <div className="bg-white dark:bg-[#121827] rounded-[32px] p-7 shadow-2xl shadow-blue-500/10 border border-gray-100 dark:border-gray-800/60 mb-6">
+        <p className="text-[10px] font-black text-gray-400 dark:text-gray-600 uppercase tracking-[0.3em] mb-3">Total Saldo (Semua Waktu)</p>
+        <div className="flex items-baseline gap-2 mb-8">
+          <span className="text-2xl font-bold text-gray-300 dark:text-gray-700">Rp</span>
+          <span className="text-5xl font-black text-gray-900 dark:text-white tracking-tighter">{balance.toLocaleString('id-ID')}</span>
+        </div>
 
-                <div className="flex gap-2 mb-6 overflow-x-auto pb-2 no-scrollbar cursor-grab snap-x">
-                  {dynamicCategories.map((cat) => (
-                    <button key={cat} onClick={() => setCategoryFilter(cat)}
-                      className={`snap-center shrink-0 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${
-                        categoryFilter === cat ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30' : 'bg-transparent text-gray-500 border border-gray-200 dark:border-gray-800'
-                      }`}>
-                      {cat}
-                    </button>
-                  ))}
-                </div>
+        <BudgetAlert budgets={allBudgets} transactions={transactionsThisMonth} />
+        
+        <p className="text-[9px] font-black text-blue-500/60 dark:text-blue-400/60 uppercase tracking-widest mb-2 border-t border-gray-100 dark:border-gray-800 pt-3">Sirkulasi Bulan Ini</p>
+        <div className="grid grid-cols-2 gap-4">
+          <button onClick={() => setTypeFilter(typeFilter === 'income' ? 'all' : 'income')} className={`p-4 rounded-2xl border transition-all ${typeFilter === 'income' ? 'bg-green-500/10 border-green-500 shadow-lg shadow-green-500/20' : 'bg-gray-50 dark:bg-gray-900/40 border-gray-100 dark:border-gray-800/50'}`}>
+            <div className="flex items-center gap-1.5 text-green-600 dark:text-green-500 mb-1"><ArrowDownCircle size={14} /><span className="text-[9px] font-black uppercase tracking-wider">In</span></div>
+            <p className="font-bold text-gray-800 dark:text-gray-200 text-sm">Rp {incomeThisMonth.toLocaleString('id-ID')}</p>
+          </button>
+          <button onClick={() => setTypeFilter(typeFilter === 'expense' ? 'all' : 'expense')} className={`p-4 rounded-2xl border transition-all ${typeFilter === 'expense' ? 'bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20' : 'bg-gray-50 dark:bg-gray-900/40 border-gray-100 dark:border-gray-800/50'}`}>
+            <div className="flex items-center gap-1.5 text-red-600 dark:text-red-500 mb-1"><ArrowUpCircle size={14} /><span className="text-[9px] font-black uppercase tracking-wider">Out</span></div>
+            <p className="font-bold text-gray-800 dark:text-gray-200 text-sm">Rp {expenseThisMonth.toLocaleString('id-ID')}</p>
+          </button>
+        </div>
+      </div>
 
-                <div className="flex justify-between items-center mb-4">
-                  <div className="flex items-center gap-2.5">
-                    <h2 className="text-[10px] font-black text-gray-400 dark:text-gray-600 tracking-[0.3em] uppercase">Log Aktivitas</h2>
-                    <span className="text-[9px] font-black text-blue-600 dark:text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded-md uppercase tracking-wider">
-                      {filteredTransactions.length} Item
-                    </span>
-                  </div>
-                  
-                  <div className="relative group">
-                    <select value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} className="appearance-none bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300 hover:border-blue-500/50 rounded-xl pl-3 pr-8 py-1.5 text-[9px] font-black uppercase tracking-widest outline-none cursor-pointer transition-all shadow-sm">
-                      {recentMonths.map(m => <option key={m.value} value={m.value} className="bg-white dark:bg-[#121827] text-gray-900 dark:text-white font-bold">{m.label}</option>)}
-                    </select>
-                    <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 group-hover:text-blue-500 transition-colors">
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-                    </div>
-                  </div>
-                </div>
+      <div className="flex gap-2 mb-6 overflow-x-auto pb-2 no-scrollbar cursor-grab snap-x">
+        {dynamicCategories.map((cat) => (
+          <button key={cat} onClick={() => setCategoryFilter(cat)}
+            className={`snap-center shrink-0 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${
+              categoryFilter === cat ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30' : 'bg-transparent text-gray-500 border border-gray-200 dark:border-gray-800'
+            }`}>
+            {cat}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex justify-between items-center mb-4">
+        <div className="flex items-center gap-2.5">
+          <h2 className="text-[10px] font-black text-gray-400 dark:text-gray-600 tracking-[0.3em] uppercase">Log Aktivitas</h2>
+          <span className="text-[9px] font-black text-blue-600 dark:text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded-md uppercase tracking-wider">
+            {filteredTransactions.length} Item
+          </span>
+        </div>
+        
+        <div className="relative group">
+          <select value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} className="appearance-none bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300 hover:border-blue-500/50 rounded-xl pl-3 pr-8 py-1.5 text-[9px] font-black uppercase tracking-widest outline-none cursor-pointer transition-all shadow-sm">
+            {recentMonths.map(m => <option key={m.value} value={m.value} className="bg-white dark:bg-[#121827] text-gray-900 dark:text-white font-bold">{m.label}</option>)}
+          </select>
+        </div>
+      </div>
+    </div>
+
+    {/* SECTION: LIST (FLEX-1 = AREA YANG SCROLLING) */}
+    {/* min-h-0 sangat krusial untuk mencegah container meluber */}
+    <div className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar pb-32 min-h-0">
+      <AnimatePresence mode="popLayout">
+        {filteredTransactions.map((trx) => (
+          <motion.div key={trx.id} layout initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, scale: 0.95 }}
+            className="flex items-center justify-between p-4 rounded-[24px] bg-white dark:bg-gray-900/20 border border-gray-100 dark:border-gray-800/40 hover:border-blue-500/30 transition-all mb-3"
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-gray-50 dark:bg-gray-800 flex items-center justify-center text-gray-600 dark:text-gray-400 shadow-inner">
+                {getIcon(trx.category)}
               </div>
-
-              <div className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar pb-32 space-y-4">
-                <AnimatePresence mode="popLayout">
-                  {filteredTransactions.map((trx) => (
-                    <motion.div key={trx.id} layout initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, scale: 0.95 }}
-                      className="flex items-center justify-between p-4 rounded-[24px] bg-white dark:bg-gray-900/20 border border-gray-100 dark:border-gray-800/40 hover:border-blue-500/30 transition-all"
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-2xl bg-gray-50 dark:bg-gray-800 flex items-center justify-center text-gray-600 dark:text-gray-400 shadow-inner">
-                          {getIcon(trx.category)}
-                        </div>
-                        <div>
-                          <p className="font-bold text-sm text-gray-800 dark:text-gray-100 tracking-tight">{trx.note}</p>
-                          <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">{trx.category}</p>
-                          <p className={`text-[8px] mt-0.5 ${trx.type === 'income' ? 'text-green-500' : 'text-red-500'}`}>{formatDateTime(trx.created_at)}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <p className={`font-black text-sm mr-1 ${trx.type === 'income' ? 'text-green-500' : 'text-red-500'}`}>
-                          {trx.type === 'income' ? '+' : '-'} {trx.amount.toLocaleString('id-ID')}
-                        </p>
-                        <div className="flex gap-1 opacity-40 hover:opacity-100 transition-opacity">
-                          <button onClick={() => setEditTrxModal({ isOpen: true, data: { ...trx } })} className="p-2 text-gray-400 hover:text-blue-500 rounded-xl transition-all"><Edit3 size={14} /></button>
-                          <button onClick={() => deleteTransaction(trx.id, trx.amount)} className="p-2 text-gray-400 hover:text-red-500 rounded-xl transition-all"><Trash2 size={14} /></button>
-                        </div>
-                      </div>
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
-                {filteredTransactions.length === 0 && (
-                  <div className="text-center py-20 bg-gray-50/50 dark:bg-gray-900/10 rounded-[32px] border border-dashed border-gray-200 dark:border-gray-800">
-                    <p className="text-[10px] font-black text-gray-300 dark:text-gray-700 uppercase tracking-[0.4em]">Kosong</p>
-                  </div>
-                )}
+              <div>
+                <p className="font-bold text-sm text-gray-800 dark:text-gray-100 tracking-tight">{trx.note}</p>
+                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">{trx.category}</p>
+                <p className={`text-[8px] mt-0.5 ${trx.type === 'income' ? 'text-green-500' : 'text-red-500'}`}>{formatDateTime(trx.created_at)}</p>
               </div>
-            </motion.div>
-          )}
+            </div>
+            <div className="flex items-center gap-2">
+              <p className={`font-black text-sm mr-1 ${trx.type === 'income' ? 'text-green-500' : 'text-red-500'}`}>
+                {trx.type === 'income' ? '+' : '-'} {trx.amount.toLocaleString('id-ID')}
+              </p>
+              <div className="flex gap-1 opacity-40 hover:opacity-100 transition-opacity">
+                <button onClick={() => setEditTrxModal({ isOpen: true, data: { ...trx } })} className="p-2 text-gray-400 hover:text-blue-500 rounded-xl transition-all"><Edit3 size={14} /></button>
+                <button onClick={() => deleteTransaction(trx.id, trx.amount)} className="p-2 text-gray-400 hover:text-red-500 rounded-xl transition-all"><Trash2 size={14} /></button>
+              </div>
+            </div>
+          </motion.div>
+        ))}
+      </AnimatePresence>
+      {filteredTransactions.length === 0 && (
+        <div className="text-center py-20 bg-gray-50/50 dark:bg-gray-900/10 rounded-[32px] border border-dashed border-gray-200 dark:border-gray-800">
+          <p className="text-[10px] font-black text-gray-300 dark:text-gray-700 uppercase tracking-[0.4em]">Kosong</p>
+        </div>
+      )}
+    </div>
+  </motion.div>
+)}
 
           {/* TAB 2: ANALYTICS (STATS) */}
           {activeTab === 'analytics' && (
@@ -403,9 +422,12 @@ export default function Home() {
               <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6 tracking-tight">Pengaturan</h2>
               <div className="mb-6"><ManageCategories /></div>
               <div className="mb-8"><ManageBudgets selectedMonth={selectedMonth} /></div>
-              <button onClick={handleLogout} className="w-full p-6 rounded-[32px] bg-red-500/10 border border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center gap-3 font-black uppercase tracking-widest text-xs">
-                Keluar dari Akun
-              </button>
+              <button 
+              onClick={handleLogout} 
+              className="relative z-[9999] w-full p-6 rounded-[32px] bg-red-500/10 border border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center gap-3 font-black uppercase tracking-widest text-xs pointer-events-auto"
+            >
+              Keluar dari Akun
+            </button>
             </motion.div>
           )}
 
