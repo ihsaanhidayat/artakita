@@ -1,85 +1,117 @@
-"use client";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
 
-export function useFinData(userId = "mock-user-1", walletId = "mock-wallet-1") {
-  const [balance, setBalance] = useState(0);
+export const useFinData = (walletId) => {
   const [transactions, setTransactions] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [balance, setBalance] = useState(0);
+  const [totalIncome, setTotalIncome] = useState(0);
+  const [totalExpense, setTotalExpense] = useState(0);
 
-  const fetchClientData = async () => {
-    if (!supabase) return;
-    setLoading(true);
+  // --- 1. AMBIL DATA TRANSAKSI RIIL ---
+  useEffect(() => {
+    const fetchTransactions = async () => {
+      if (!walletId) return;
+
+      const { data, error } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('wallet_id', walletId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error("Gagal menarik data transaksi:", error.message);
+      } else {
+        setTransactions(data || []);
+      }
+    };
+
+    fetchTransactions();
+  }, [walletId]);
+
+  // --- 2. KALKULASI SALDO ---
+  useEffect(() => {
+    let calcExpense = 0;
+    let calcIncome = 0;
+
+    transactions.forEach(t => {
+      if (t.type === 'income') {
+        calcIncome += Number(t.amount);
+      } else if (t.type === 'expense' || !t.type) {
+        calcExpense += Number(t.amount);
+      }
+    });
+
+    setTotalIncome(calcIncome);
+    setTotalExpense(calcExpense);
+    setBalance(calcIncome - calcExpense);
+  }, [transactions]);
+
+  // --- 3. SIMPAN TRANSAKSI KE SUPABASE ---
+  const addTransaction = async (note, amount, category, trxType = "expense") => {
     try {
-      const { data: walletData, error: walletErr } = await supabase
-        .from("wallets").select("balance").eq("id", walletId).single();
-
-      if (walletErr && walletErr.code === "PGRST116") {
-        await supabase.from("wallets").insert([{ id: walletId, user_id: userId, name: "Dompet Utama", balance: 5000000 }]);
-        setBalance(5000000);
-      } else if (walletData) {
-        setBalance(Number(walletData.balance));
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session) {
+        alert("Sesi login kedaluwarsa. Silakan login kembali.");
+        return;
       }
 
-      const { data: trxData } = await supabase
-        .from("transactions").select("*").eq("wallet_id", walletId)
-        .order("created_at", { ascending: false }).limit(20);
+      const realUserId = session.user.id; 
 
-      if (trxData) setTransactions(trxData);
+      const newTrx = {
+        user_id: realUserId,
+        wallet_id: walletId,
+        note: note,
+        amount: Number(amount),
+        category: category,
+        type: trxType
+      };
+
+      const { data, error } = await supabase
+        .from('transactions')
+        .insert([newTrx])
+        .select();
+
+      if (error) throw error;
+
+      if (data) {
+        setTransactions(prev => [data[0], ...prev]);
+      }
     } catch (error) {
-      console.error("Sync Error:", error);
-    } finally {
-      setLoading(false);
+      alert("Gagal menyimpan ke database: " + error.message);
     }
   };
 
-  useEffect(() => { fetchClientData(); }, [walletId]);
+  // --- 4. HAPUS TRANSAKSI ---
+  const deleteTransaction = async (id) => {
+    try {
+      const { error } = await supabase
+        .from('transactions')
+        .delete()
+        .eq('id', id);
 
-  const addTransaction = async (parsedData) => {
-    const { amount, note, category } = parsedData;
-    const newTransaction = { user_id: userId, wallet_id: walletId, amount, type: "expense", category, note };
-    const tempId = crypto.randomUUID();
-    
-    setTransactions((prev) => [{ id: tempId, ...newTransaction, created_at: new Date().toISOString() }, ...prev]);
-    setBalance((prev) => prev - amount);
-
-    if (!supabase) return;
-    const { data, error } = await supabase.from("transactions").insert([newTransaction]).select().single();
-    if (error) { fetchClientData(); } 
-    else {
-      setTransactions((prev) => prev.map((trx) => (trx.id === tempId ? data : trx)));
-      await supabase.rpc("decrement_balance", { target_wallet_id: walletId, deduct_amount: amount });
+      if (error) throw error;
+      setTransactions(prev => prev.filter(t => t.id !== id));
+    } catch (error) {
+      alert("Gagal menghapus data: " + error.message);
     }
   };
 
-  const deleteTransaction = async (trxId, amount) => {
-    setTransactions((prev) => prev.filter((trx) => trx.id !== trxId));
-    setBalance((prev) => prev + Number(amount));
+  // --- 5. UPDATE TRANSAKSI (Sudah Mendukung Edit Nominal) ---
+  const updateTransaction = async (id, note, category, amount) => {
+    try {
+      const { error } = await supabase
+        .from('transactions')
+        .update({ note, category, amount: Number(amount) })
+        .eq('id', id);
 
-    if (!supabase) return;
-    const { error } = await supabase.from("transactions").delete().eq("id", trxId);
-    if (error) fetchClientData();
-    else await supabase.rpc("increment_balance", { target_wallet_id: walletId, refund_amount: amount });
-  };
-
-  // FUNGSI BARU: Update Transaksi (Note & Category)
-  const updateTransaction = async (trxId, newNote, newCategory) => {
-    // Update lokal (Optimistic)
-    setTransactions((prev) => 
-      prev.map(t => t.id === trxId ? { ...t, note: newNote, category: newCategory } : t)
-    );
-
-    if (!supabase) return;
-    const { error } = await supabase
-      .from("transactions")
-      .update({ note: newNote, category: newCategory })
-      .eq("id", trxId);
-
-    if (error) {
-      console.error("Update Error:", error);
-      fetchClientData();
+      if (error) throw error;
+      setTransactions(prev => prev.map(t => t.id === id ? { ...t, note, category, amount: Number(amount) } : t));
+    } catch (error) {
+      alert("Gagal mengubah: " + error.message);
     }
   };
 
-  return { balance, transactions, loading, addTransaction, deleteTransaction, updateTransaction, refresh: fetchClientData };
-}
+  // Baris return ini yang kemungkinan besar terhapus sebelumnya
+  return { balance, totalIncome, totalExpense, transactions, addTransaction, deleteTransaction, updateTransaction };
+};

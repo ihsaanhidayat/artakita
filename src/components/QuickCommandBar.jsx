@@ -1,127 +1,128 @@
 "use client";
-import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Send } from 'lucide-react';
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Mic, Send, X, TerminalSquare } from "lucide-react";
 
 export default function QuickCommandBar({ onProcessTransaction }) {
-    const [isActive, setIsActive] = useState(false);
-    const [inputValue, setInputValue] = useState("");
-    const [parsedPreview, setParsedPreview] = useState(null);
+  const [isActive, setIsActive] = useState(false);
+  const [inputText, setInputText] = useState("");
 
-    // Mesin Parser NLP Utama ArtaKita
-    const handleInput = (e) => {
-        const text = e.target.value;
-        setInputValue(text);
+  // ==========================================
+  // 🧠 CORE AI LOGIC: TEXT PARSER
+  // ==========================================
+  const parseNLP = (text) => {
+    let amount = 0;
+    
+    // 1. Deteksi Tipe (in/out) - TAMBAHAN BARU
+    let type = "expense"; // Default
+    if (text.toLowerCase().startsWith("in ")) type = "income";
+    if (text.toLowerCase().startsWith("out ")) type = "expense";
+    
+    // Hapus tag 'in ' atau 'out ' untuk proses selanjutnya
+    const cleanText = text.replace(/^(in|out)\s+/i, "");
 
-        if (text.length > 0) {
-            let amount = 0; 
-            let note = text; 
-            let category = 'Umum';
+    // 2. Regex untuk Nominal
+    const amountRegex = /(\d+[\d\.,]*)\s*(ribu|rb|juta|jt|k|m)?/i;
+    const match = cleanText.match(amountRegex);
 
-            // 1. Deteksi Angka Nominal (Mendukung akhiran 'k' dan 'm')
-            const amountMatch = text.match(/(\d+)(k|m)?/i);
-            if (amountMatch) {
-                let base = parseInt(amountMatch[1]);
-                if (amountMatch[2]?.toLowerCase() === 'k') base *= 1000;
-                if (amountMatch[2]?.toLowerCase() === 'm') base *= 1000000;
-                amount = base;
-                note = note.replace(amountMatch[0], '').trim();
-            }
+    if (match) {
+      let rawNumber = parseFloat(match[1].replace(/[^\d]/g, ""));
+      let multiplier = match[2] ? match[2].toLowerCase() : "";
 
-            // 2. Deteksi Kategori Menggunakan Tag Pagar (#)
-            const catMatch = note.match(/#(\w+)/);
-            if (catMatch) { 
-                category = catMatch[1]; 
-                note = note.replace(catMatch[0], '').trim(); 
-            }
+      if (multiplier === "ribu" || multiplier === "rb" || multiplier === "k") rawNumber *= 1000;
+      if (multiplier === "juta" || multiplier === "jt" || multiplier === "m") rawNumber *= 1000000;
+      amount = rawNumber;
+    }
 
-            // Atur huruf kapital di awal kategori agar rapi
-            category = category.charAt(0).toUpperCase() + category.slice(1);
+    // 3. LOGIKA PEMBERSIH JUDUL
+    let cleanNote = cleanText.replace(amountRegex, "").trim();
+    const note = cleanNote.charAt(0).toUpperCase() + cleanNote.slice(1);
 
-            setParsedPreview({ 
-                amount, 
-                note: note || 'Pengeluaran', 
-                category 
-            });
-        } else {
-            setParsedPreview(null);
-        }
+    // 4. Kategorisasi
+    const lowerText = cleanText.toLowerCase();
+    let category = "Sembarang";
+
+    const categoryDictionary = {
+      "Makan": ["kopi", "makan", "minum", "roti", "soto", "warteg", "nasi", "cafe", "gojek", "grabfood"],
+      "Belanja": ["belanja", "beli", "baju", "sepatu", "indomaret", "alfamart", "supermarket"],
+      "Tagihan": ["listrik", "air", "internet", "wifi", "bpjs", "kuota", "pulsa"],
+      "Pendidikan": ["kursus", "kelas", "buku", "ebook", "webinar", "tutorial", "aset edukasi"],
+      "Marketing": ["iklan", "ads", "meta", "domain", "hosting", "scalev", "kampanye", "campaign"]
     };
 
-    const submitData = (e) => {
-        if (e) e.stopPropagation();
-        
-        // Jika input kosong atau nominal 0, cukup tutup bar tanpa memproses
-        if (!parsedPreview || parsedPreview.amount === 0) {
-            setIsActive(false);
-            return;
-        }
+    for (const [cat, keywords] of Object.entries(categoryDictionary)) {
+      if (keywords.some(kw => lowerText.includes(kw))) {
+        category = cat;
+        break;
+      }
+    }
 
-        // Kirim data ke fungsi utama di page.js
-        onProcessTransaction(parsedPreview);
+    return { amount, category, note, type }; // Mengembalikan type baru
+  };
 
-        // Reset semua state input ke kondisi awal
-        setInputValue(""); 
-        setParsedPreview(null); 
-        setIsActive(false);
-    };
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!inputText.trim()) return;
 
-    return (
-        <>
-            {/* Latar Belakang Blur saat Input Aktif */}
-            <AnimatePresence>
-                {isActive && (
-                    <motion.div 
-                        initial={{ opacity: 0 }} 
-                        animate={{ opacity: 1 }} 
-                        exit={{ opacity: 0 }} 
-                        className="fixed inset-0 bg-gray-950/40 backdrop-blur-sm z-40" 
-                        onClick={() => setIsActive(false)} 
-                    />
-                )}
-            </AnimatePresence>
+    // Masukkan kalimat ke dalam "Otak AI"
+    const { amount, category, note, type } = parseNLP(inputText);
 
-            {/* Kotak Melayang (FAB) Dinamis */}
-            <motion.div 
-                layout 
-                transition={{ type: "spring", stiffness: 300, damping: 26 }} 
-                className={`fixed z-50 flex items-center bg-blue-600 text-white shadow-xl shadow-blue-600/30 overflow-hidden ${
-                    isActive ? 'bottom-6 left-6 right-6 h-16 rounded-2xl' : 'bottom-6 right-6 w-14 h-14 rounded-full cursor-pointer'
-                }`} 
-                onClick={() => !isActive && setIsActive(true)}
-            >
-                {isActive ? (
-                    <div className="flex-1 flex items-center px-4 w-full h-full relative" onClick={(e) => e.stopPropagation()}>
-                        <input 
-                            autoFocus 
-                            type="text" 
-                            value={inputValue} 
-                            onChange={handleInput} 
-                            onKeyDown={(e) => e.key === 'Enter' && submitData()} 
-                            placeholder="Contoh: 50k makan siang #jajan" 
-                            className="w-full bg-transparent outline-none text-white placeholder-blue-300 pr-10 text-base" 
-                        />
-                        <button onClick={submitData} className="absolute right-4 bg-white/20 p-2 rounded-full hover:bg-white/30 transition-colors">
-                            <Send size={16} />
-                        </button>
-                        
-                        {/* Balon Pratinjau Teks (Live Preview) */}
-                        {parsedPreview && parsedPreview.amount > 0 && (
-                            <motion.div 
-                                initial={{ y: 10, opacity: 0 }} 
-                                animate={{ y: 0, opacity: 1 }} 
-                                className="absolute -top-12 left-0 bg-gray-900 text-white text-xs px-3 py-2 rounded-xl shadow-lg border border-gray-800 whitespace-nowrap"
-                            >
-                                Mencatat: <span className="font-bold text-red-400">Rp {parsedPreview.amount.toLocaleString('id-ID')}</span> untuk <span className="font-medium">{parsedPreview.note}</span>
-                            </motion.div>
-                        )}
-                    </div>
-                ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                        <Plus size={24} />
-                    </div>
-                )}
-            </motion.div>
-        </>
-    );
+    if (amount === 0) {
+      alert("⚠️ ArtaKita: Maaf, saya tidak mendeteksi jumlah nominal transaksinya.");
+      return;
+    }
+
+    // Eksekusi transaksi ke database dengan tipe yang terdeteksi
+    onProcessTransaction(note, amount, category, type);
+    
+    setInputText("");
+    setIsActive(false);
+  };
+
+  return (
+    <>
+      {/* Latar Belakang Gelap saat Aktif */}
+      <AnimatePresence>
+        {isActive && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40"
+            onClick={() => setIsActive(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Kotak Melayang (FAB) / Command Bar */}
+      <motion.form 
+        layout 
+        onSubmit={handleSubmit}
+        transition={{ type: "spring", stiffness: 300, damping: 26 }} 
+        className={`fixed z-50 flex items-center bg-blue-600 text-white shadow-2xl shadow-blue-600/40 overflow-hidden ${
+          isActive ? 'bottom-28 left-6 right-6 h-16 rounded-2xl px-2' : 'bottom-28 right-6 w-14 h-14 rounded-full cursor-pointer justify-center'
+        }`} 
+        onClick={() => !isActive && setIsActive(true)}
+      >
+        {!isActive ? (
+          <TerminalSquare size={24} className="text-white" />
+        ) : (
+          <>
+            <button type="button" onClick={(e) => { e.stopPropagation(); setIsActive(false); }} className="p-3 text-white/70 hover:text-white transition-colors">
+              <X size={20} />
+            </button>
+            <input 
+              autoFocus
+              type="text" 
+              value={inputText}
+              onChange={(e) => setInputText(e.target.value)}
+              placeholder="Cth: in 5jt Gaji atau out 25k Kopi" 
+              className="flex-1 bg-transparent border-none outline-none text-white placeholder-white/50 text-sm px-2"
+            />
+            <button type="submit" className="p-3 text-white/70 hover:text-white hover:scale-110 transition-all active:scale-95">
+              <Send size={20} />
+            </button>
+          </>
+        )}
+      </motion.form>
+    </>
+  );
 }
