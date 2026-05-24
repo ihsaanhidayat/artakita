@@ -12,8 +12,7 @@ export default function LoginPage() {
 
   const handleLogin = async (e) => {
 
-    e.preventDefault();
-    setLoading(true);
+    e.preventDefault(); setLoading(true);
 
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
