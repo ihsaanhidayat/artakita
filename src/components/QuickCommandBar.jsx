@@ -8,7 +8,6 @@ export default function QuickCommandBar({ onProcessTransaction }) {
   const [inputText, setInputText] = useState("");
   const [isListening, setIsListening] = useState(false);
   
-  // Ref untuk menyimpan instance mikrofon agar bisa dihentikan kapan saja
   const recognitionRef = useRef(null); 
 
   // ==========================================
@@ -47,45 +46,67 @@ export default function QuickCommandBar({ onProcessTransaction }) {
   };
 
   // ==========================================
-  // ⚙️ CORE AI LOGIC: TEXT PARSER
+  // ⚙️ CORE AI LOGIC: TEXT PARSER V3 (SUPER SMART)
   // ==========================================
   const parseNLP = (text) => {
     let amount = 0;
     let type = "expense"; 
-    let category = "Sembarang";
+    let category = "Lainnya";
     let shouldLearn = false; 
 
-    if (text.toLowerCase().startsWith("in ") || text.toLowerCase().includes("masuk")) type = "income";
-    if (text.toLowerCase().startsWith("out ") || text.toLowerCase().includes("keluar")) type = "expense";
+    // Cek apakah ini uang masuk
+    if (/^(in\s|masuk\s)/i.test(text)) type = "income";
     
+    // Bersihkan command awal (in/out)
     let cleanText = text.replace(/^(in|out|masuk|keluar)\s+/i, "");
 
-    const posRegex = /pos\s+([a-zA-Z0-9]+)/i;
-    const posMatch = cleanText.match(posRegex);
-    
-    if (posMatch) {
-      category = posMatch[1].charAt(0).toUpperCase() + posMatch[1].slice(1).toLowerCase();
-      cleanText = cleanText.replace(posMatch[0], "").trim();
+    // 1. PISAHKAN KATEGORI DENGAN "POS" UTUH
+    const posSplit = cleanText.toLowerCase().split(/\s+pos\s+/);
+    if (posSplit.length > 1) {
+      const rawCategory = posSplit.pop(); 
+      category = rawCategory.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+      cleanText = posSplit.join(' pos ');
       shouldLearn = true; 
     }
 
-    const amountRegex = /(\d+[\d\.,]*)\s*(ribu|rb|juta|jt|k|m)?/i;
-    const match = cleanText.match(amountRegex);
+    // 2. EKSTRAK NOMINAL AI: Cari angka yang paling besar!
+    // Membaca: 100 ribu, 500 rb, 1.5 jt, 50k
+    const amountRegex = /(?:rp\s*)?([\d\.,]+)\s*(ribu|rb|juta|jt|k|m)?(?:\b|\s|$)/gi;
+    const matches = [...cleanText.matchAll(amountRegex)];
 
-    if (match) {
-      let rawNumber = parseFloat(match[1].replace(/[^\d]/g, ""));
-      let multiplier = match[2] ? match[2].toLowerCase() : "";
+    if (matches.length > 0) {
+      let maxVal = 0;
+      let bestMatch = null;
 
-      if (multiplier === "ribu" || multiplier === "rb" || multiplier === "k") rawNumber *= 1000;
-      if (multiplier === "juta" || multiplier === "jt" || multiplier === "m") rawNumber *= 1000000;
-      amount = rawNumber;
+      for (const match of matches) {
+        let numStr = match[1].replace(/\./g, "").replace(/,/g, ".");
+        let val = parseFloat(numStr);
+        let mult = match[2] ? match[2].toLowerCase() : "";
+
+        if (["ribu", "rb", "k"].includes(mult)) val *= 1000;
+        if (["juta", "jt", "m"].includes(mult)) val *= 1000000;
+
+        // Pilih angka paling besar sebagai nominal (mengabaikan angka quantity seperti "2 kopi")
+        if (val > maxVal) {
+          maxVal = val;
+          bestMatch = match;
+        }
+      }
+
+      if (bestMatch) {
+        amount = maxVal;
+        // Hapus persis teks nominal tersebut dari catatan
+        cleanText = cleanText.replace(bestMatch[0], "").trim();
+      }
     }
 
-    let cleanNote = cleanText.replace(amountRegex, "").trim();
-    const note = cleanNote.charAt(0).toUpperCase() + cleanNote.slice(1);
+    // 3. RAPIKAN CATATAN
+    let note = cleanText.charAt(0).toUpperCase() + cleanText.slice(1);
+    note = note.replace(/\s+/g, ' ').trim(); 
 
-    if (!posMatch) {
-      const lowerText = cleanText.toLowerCase();
+    // 4. FALLBACK DICTIONARY JIKA TIDAK PAKAI "POS"
+    if (!shouldLearn) {
+      const lowerText = note.toLowerCase();
       for (const [cat, keywords] of Object.entries(aiDictionary)) {
         if (keywords.some(kw => lowerText.includes(kw))) {
           category = cat;
@@ -129,7 +150,6 @@ export default function QuickCommandBar({ onProcessTransaction }) {
   // 🎙️ FITUR SUARA (SPEECH RECOGNITION)
   // ==========================================
   const toggleListening = () => {
-    // Jika sedang merekam, matikan mic-nya
     if (isListening) {
       if (recognitionRef.current) {
         recognitionRef.current.stop();
@@ -147,7 +167,7 @@ export default function QuickCommandBar({ onProcessTransaction }) {
     }
 
     const recognition = new SpeechRecognition();
-    recognitionRef.current = recognition; // Simpan ke ref
+    recognitionRef.current = recognition; 
     recognition.lang = 'id-ID';
     recognition.interimResults = false;
     recognition.maxAlternatives = 1;
@@ -160,11 +180,13 @@ export default function QuickCommandBar({ onProcessTransaction }) {
     recognition.onresult = (event) => {
       const transcript = event.results[0][0].transcript;
       setIsListening(false);
-      processDirectText(transcript); 
+      
+      // REVISI DI SINI: Teks hasil suara dimasukkan ke kolom input saja,
+      // memberikan kesempatan user untuk membaca, mengedit, atau langsung klik enter/kirim.
+      setInputText(transcript); 
     };
 
     recognition.onerror = (event) => {
-      // Abaikan error "aborted" (karena user membatalkan) dan "no-speech" (karena hening)
       if (event.error === 'aborted' || event.error === 'no-speech') {
         setIsListening(false);
         setInputText("");
@@ -193,7 +215,11 @@ export default function QuickCommandBar({ onProcessTransaction }) {
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40"
-            onClick={() => setIsActive(false)}
+            onClick={() => {
+              if (isListening && recognitionRef.current) recognitionRef.current.stop();
+              setIsActive(false);
+              setIsListening(false);
+            }}
           />
         )}
       </AnimatePresence>
@@ -214,7 +240,7 @@ export default function QuickCommandBar({ onProcessTransaction }) {
           <>
             <button type="button" onClick={(e) => { 
               e.stopPropagation(); 
-              if (isListening && recognitionRef.current) recognitionRef.current.stop(); // Hentikan mic jika modal ditutup
+              if (isListening && recognitionRef.current) recognitionRef.current.stop(); 
               setIsActive(false); 
               setIsListening(false);
             }} className="p-3 text-white/70 hover:text-white transition-colors">

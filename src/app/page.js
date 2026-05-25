@@ -1,8 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Moon, Sun, ArrowUpCircle, ArrowDownCircle, Coffee, ShoppingBag, Receipt, Layers, Trash2, Edit3, Home as HomeIcon, PieChart as PieChartIcon, CreditCard, Settings, Plus, X, Command } from "lucide-react";
-import { PieChart, Pie, Cell, Tooltip, Legend } from 'recharts';
+import { Moon, Sun, ArrowUpCircle, ArrowDownCircle, Coffee, ShoppingBag, Receipt, Layers, Trash2, Edit3, Home as HomeIcon, PieChart as PieChartIcon, CreditCard, Settings, Plus, X, Command, Download, Search } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 
 // Hooks
@@ -30,6 +29,24 @@ const formatDateTime = (isoString) => {
   const hh = String(date.getHours()).padStart(2, '0');
   const min = String(date.getMinutes()).padStart(2, '0');
   return `${day}, ${d}-${m}-${y} ${hh}:${min}`;
+};
+
+// === FUNGSI HELPER GLOBAL ===
+const parseFlexibleNumber = (val) => {
+  if (!val) return 0;
+  const str = String(val).toLowerCase();
+  const match = str.match(/([\d\.,]+)\s*(k|rb|ribu|m|jt|juta)?/);
+  if (!match) return parseFloat(str.replace(/[^\d]/g, '')) || 0;
+  
+  // Mengubah koma jadi titik (jika nulis 1,5jt -> 1.5)
+  let numStr = match[1].replace(/\./g, '').replace(/,/g, '.'); 
+  let num = parseFloat(numStr);
+  let mult = match[2];
+  
+  if (['k', 'rb', 'ribu'].includes(mult)) num *= 1000;
+  if (['m', 'jt', 'juta'].includes(mult)) num *= 1000000;
+  
+  return num;
 };
 
 const CHART_COLORS = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#14b8a6'];
@@ -80,9 +97,59 @@ export default function Home() {
     setDeleteConfirmModal({ isOpen: false, trxId: null, amount: null }); // Tutup pop-up
   };
 
+  // ==========================================
+  // 📊 FITUR EXPORT LAPORAN KE CSV
+  // ==========================================
+  const exportToCSV = () => {
+    // 1. Cek apakah ada data transaksi
+    if (!transactions || transactions.length === 0) {
+      alert("⚠️ ArtaKita: Tidak ada data transaksi untuk diekspor.");
+      return;
+    }
+
+    // 2. Tentukan Header Kolom (Format Indonesia)
+    const headers = ["Tanggal", "Waktu", "Catatan", "Kategori", "Jenis", "Nominal (Rp)"];
+
+    // 3. Mapping data transaksi menjadi baris-baris CSV
+    const rows = transactions.map(trx => {
+      const dateObj = new Date(trx.created_at);
+      const tanggal = dateObj.toLocaleDateString('id-ID', { year: 'numeric', month: '2-digit', day: '2-digit' });
+      const waktu = dateObj.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+      
+      // Bungkus catatan dengan tanda kutip ganda untuk mencegah error jika catatan mengandung koma
+      const catatanClean = `"${trx.note.replace(/"/g, '""')}"`;
+      const jenis = trx.type === 'income' ? 'Pemasukan' : 'Pengeluaran';
+
+      return [tanggal, waktu, catatanClean, trx.category, jenis, trx.amount];
+    });
+
+    // 4. Gabungkan header dan baris menggunakan separator koma
+    // Menggunakan '\uFEFF' (BOM) agar Excel otomatis mendeteksi format UTF-8 (mencegah karakter berantakan)
+    const csvContent = "\uFEFF" + [
+      headers.join(","),
+      ...rows.map(e => e.join(","))
+    ].join("\n");
+
+    // 5. Trigger download file otomatis di browser
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    
+    // Format nama file: Laporan_ArtaKita_25-05-2026.csv
+    const dateFile = new Date().toLocaleDateString('id-ID').replace(/\//g, '-');
+    link.setAttribute("href", url);
+    link.setAttribute("download", `Laporan_ArtaKita_${dateFile}.csv`);
+    link.style.visibility = 'hidden';
+    
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   // === 4. STATE FILTER & MODAL (Disatukan agar tidak ganda) ===
   const [typeFilter, setTypeFilter] = useState('all'); 
   const [categoryFilter, setCategoryFilter] = useState('Semua');
+  const [searchQuery, setSearchQuery] = useState('');
   
   // State Semua Modal
   const [isSmartInputOpen, setIsSmartInputOpen] = useState(false);
@@ -94,6 +161,15 @@ export default function Home() {
   const [isShareWalletOpen, setIsShareWalletOpen] = useState(false);
   const [walletToShare, setWalletToShare] = useState(null);
   const [allBudgets, setAllBudgets] = useState([]);
+  const [quickTimeFilter, setQuickTimeFilter] = useState('month');
+  const [goals, setGoals] = useState([]);
+  const [isNewGoalOpen, setIsNewGoalOpen] = useState(false);
+  const [newGoalData, setNewGoalData] = useState({ name: '', target: '', current: '' });
+
+  // === STATE BARU UNTUK FITUR CELENGAN CANGGIH ===
+  const [goalDeleteModal, setGoalDeleteModal] = useState({ isOpen: false, goalId: null, goalName: '' });
+  const [activeGoalInput, setActiveGoalInput] = useState(null); // Menyimpan ID celengan yang sedang mau diisi/dikurangi
+  const [flexibleSavingsAmount, setFlexibleSavingsAmount] = useState(''); // Menyimpan teks input (misal: 10k, 1jt)
 
 useEffect(() => {
   const fetchAllBudgets = async () => {
@@ -120,15 +196,113 @@ useEffect(() => {
   const incomeThisMonth = transactionsThisMonth.filter(t => t.type === 'income').reduce((acc, curr) => acc + Number(curr.amount), 0);
   const expenseThisMonth = transactionsThisMonth.filter(t => t.type === 'expense' || !t.type).reduce((acc, curr) => acc + Number(curr.amount), 0);
 
-  // Kalkulasi Filter & Kategori
+  // Kalkulasi Filter, Kategori, Search & Waktu Cepat
   const existingCategories = [...new Set(transactionsThisMonth.map(t => t.category))];
   const dynamicCategories = ["Semua", ...existingCategories];
 
   const filteredTransactions = transactionsThisMonth.filter(t => {
     const matchType = typeFilter === 'all' ? true : (typeFilter === 'income' ? t.type === 'income' : (t.type === 'expense' || !t.type));
     const matchCat = categoryFilter === 'Semua' ? true : t.category === categoryFilter;
-    return matchType && matchCat;
+    
+    // Logika Pencarian
+    const searchLower = searchQuery.toLowerCase();
+    const matchSearch = searchQuery === '' || 
+                        t.note.toLowerCase().includes(searchLower) || 
+                        t.category.toLowerCase().includes(searchLower);
+
+    // Logika Quick Time (Waktu Cepat)
+    let matchTime = true;
+    if (quickTimeFilter !== 'month' && t.created_at) {
+      const trxDate = new Date(t.created_at);
+      const today = new Date();
+      
+      if (quickTimeFilter === 'today') {
+        // Cek apakah tanggal transaksinya sama persis dengan hari ini
+        matchTime = trxDate.toDateString() === today.toDateString();
+      } else if (quickTimeFilter === 'week') {
+        // Cek 7 hari ke belakang
+        const pastWeek = new Date(today);
+        pastWeek.setDate(today.getDate() - 7);
+        matchTime = trxDate >= pastWeek && trxDate <= today;
+      }
+    }
+                        
+    return matchType && matchCat && matchSearch && matchTime;
   });
+
+  // Fetch Target Impian
+  useEffect(() => {
+    const fetchGoals = async () => {
+      const { data } = await supabase.from('savings_goals').select('*').order('created_at', { ascending: true });
+      if (data) setGoals(data);
+    };
+    fetchGoals();
+  }, [activeTab]); // Trigger ulang setiap kali membuka tab
+
+  // Fungsi Tambah Target Baru
+  // Fungsi Tambah Target Baru
+  const handleAddGoal = async (e) => {
+    e.preventDefault();
+    if (!newGoalData.name.trim() || !newGoalData.target) return;
+
+    // Terjemahkan teks (5jt/50k) menjadi angka beneran
+    const parsedTarget = parseFlexibleNumber(newGoalData.target);
+    const parsedCurrent = parseFlexibleNumber(newGoalData.current);
+
+    const { data, error } = await supabase.from('savings_goals').insert([{
+      name: newGoalData.name,
+      target_amount: parsedTarget,
+      current_amount: parsedCurrent
+    }]).select();
+
+    if (!error && data) {
+      setGoals([...goals, data[0]]);
+      setIsNewGoalOpen(false);
+      setNewGoalData({ name: '', target: '', current: '' });
+    }
+  };
+
+  // Fungsi Edit Saldo Celengan (Mendukung Tambah, Kurang, dan Reset)
+  const handleModifySavings = async (id, currentAmt, mode) => {
+    let nextAmt = 0;
+
+    if (mode === 'reset') {
+      nextAmt = 0;
+    } else {
+      // Gunakan helper parseFlexibleNumber yang sudah kita buat sebelumnya untuk mengubah '1jt'/'50k' jadi angka asli
+      const parsedAmount = parseFlexibleNumber(flexibleSavingsAmount);
+      if (parsedAmount <= 0) {
+        alert("⚠️ Masukkan nominal yang valid (Contoh: 10k, 500k, 1jt)");
+        return;
+      }
+      
+      nextAmt = mode === 'add' ? Number(currentAmt) + parsedAmount : Number(currentAmt) - parsedAmount;
+      if (nextAmt < 0) nextAmt = 0; // Jaga agar saldo tidak minus
+    }
+
+    const { error } = await supabase.from('savings_goals').update({ current_amount: nextAmt }).eq('id', id);
+    if (!error) {
+      setGoals(goals.map(g => g.id === id ? { ...g, current_amount: nextAmt } : g));
+      setFlexibleSavingsAmount('');
+      setActiveGoalInput(null);
+    }
+  };
+
+  // Fungsi memicu pembukaan modal konfirmasi hapus
+  const triggerDeleteGoal = (id, name) => {
+    setGoalDeleteModal({ isOpen: true, goalId: id, goalName: name });
+  };
+
+  // Fungsi mengeksekusi penghapusan dari database setelah dikonfirmasi "Ya, Hapus"
+  const executeDeleteGoal = async () => {
+    if (goalDeleteModal.goalId) {
+      const { error } = await supabase.from('savings_goals').delete().eq('id', goalDeleteModal.goalId);
+      if (!error) {
+        setGoals(goals.filter(g => g.id !== goalDeleteModal.goalId));
+      }
+    }
+    setGoalDeleteModal({ isOpen: false, goalId: null, goalName: '' });
+  };
 
   // Data untuk Grafik Pie
   const expenseData = transactionsThisMonth
@@ -221,7 +395,7 @@ useEffect(() => {
 
   return (
     <div className={`min-h-screen transition-colors duration-300 ${isDarkMode ? 'dark bg-[#0a0f1c]' : 'bg-gray-50'}`}>
-      <main className="max-w-md mx-auto relative min-h-screen overflow-x-hidden bg-white dark:bg-black">
+      <main className="w-full max-w-lg mx-auto relative min-h-screen overflow-x-hidden bg-white dark:bg-black">
         
         {/* ======================================= */}
         {/* AREA TABS (DI RENDER SECARA CONDITIONAL)*/}
@@ -230,167 +404,307 @@ useEffect(() => {
           
           {/* TAB 1: HOME DASHBOARD */}
           {activeTab === 'home' && (
-  <motion.div 
-    key="home" 
-    initial={{ opacity: 0 }} 
-    animate={{ opacity: 1 }} 
-    exit={{ opacity: 0 }} 
-    transition={{ duration: 0.15 }} 
-    className="pt-8 px-4 h-[100dvh] w-full flex flex-col overflow-hidden" 
-  >
-    {/* SECTION: HEADER (FLEX-NONE = TIDAK AKAN BISA SCROLL) */}
-    <div className="flex-none">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">ArtaKita.</h1>
-          <p className="text-xs font-bold text-blue-600 dark:text-blue-400 tracking-[0.2em] uppercase mt-1">{activeWallet.name}</p>
-        </div>
-        <button onClick={() => setIsDarkMode(!isDarkMode)} className="p-2.5 rounded-2xl bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700 text-gray-600 dark:text-gray-300 transition-all active:scale-90">
-          {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
-        </button>
-      </div>
+            <motion.div 
+              key="home" 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              exit={{ opacity: 0 }} 
+              transition={{ duration: 0.15 }} 
+              className="pt-8 px-3 h-[100dvh] w-full flex flex-col overflow-hidden" 
+            >
+              {/* SECTION: HEADER (FLEX-NONE = TIDAK AKAN BISA SCROLL) */}
+              <div className="flex-none">
+                <div className="flex justify-between items-center mb-6">
+                  <div>
+                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">ArtaKita.</h1>
+                    <p className="text-xs font-bold text-blue-600 dark:text-blue-400 tracking-[0.2em] uppercase mt-1">{activeWallet.name}</p>
+                  </div>
+                  <button onClick={() => setIsDarkMode(!isDarkMode)} className="p-2.5 rounded-2xl bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700 text-gray-600 dark:text-gray-300 transition-all active:scale-90">
+                    {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+                  </button>
+                </div>
 
-      <div className="bg-white dark:bg-[#121827] rounded-[32px] p-7 shadow-2xl shadow-blue-500/10 border border-gray-100 dark:border-gray-800/60 mb-6">
-        <p className="text-[10px] font-black text-gray-400 dark:text-gray-600 uppercase tracking-[0.3em] mb-3">Total Saldo (Semua Waktu)</p>
-        <div className="flex items-baseline gap-2 mb-8">
-          <span className="text-2xl font-bold text-gray-300 dark:text-gray-700">Rp</span>
-          <span className="text-5xl font-black text-gray-900 dark:text-white tracking-tighter">{balance.toLocaleString('id-ID')}</span>
-        </div>
+                <div className="bg-white dark:bg-[#121827] rounded-[32px] p-7 shadow-2xl shadow-blue-500/10 border border-gray-100 dark:border-gray-800/60 mb-6">
+                  <p className="text-[10px] font-black text-gray-400 dark:text-gray-600 uppercase tracking-[0.3em] mb-3">Total Saldo (Semua Waktu)</p>
+                  <div className="flex items-baseline gap-2 mb-8">
+                    <span className="text-2xl font-bold text-gray-300 dark:text-gray-700">Rp</span>
+                    <span className="text-5xl font-black text-gray-900 dark:text-white tracking-tighter">{balance.toLocaleString('id-ID')}</span>
+                  </div>
 
-        <BudgetAlert budgets={allBudgets} transactions={transactionsThisMonth} />
-        
-        <p className="text-[9px] font-black text-blue-500/60 dark:text-blue-400/60 uppercase tracking-widest mb-2 border-t border-gray-100 dark:border-gray-800 pt-3">Sirkulasi Bulan Ini</p>
-        <div className="grid grid-cols-2 gap-4">
-          <button onClick={() => setTypeFilter(typeFilter === 'income' ? 'all' : 'income')} className={`p-4 rounded-2xl border transition-all ${typeFilter === 'income' ? 'bg-green-500/10 border-green-500 shadow-lg shadow-green-500/20' : 'bg-gray-50 dark:bg-gray-900/40 border-gray-100 dark:border-gray-800/50'}`}>
-            <div className="flex items-center gap-1.5 text-green-600 dark:text-green-500 mb-1"><ArrowDownCircle size={14} /><span className="text-[9px] font-black uppercase tracking-wider">In</span></div>
-            <p className="font-bold text-gray-800 dark:text-gray-200 text-sm">Rp {incomeThisMonth.toLocaleString('id-ID')}</p>
-          </button>
-          <button onClick={() => setTypeFilter(typeFilter === 'expense' ? 'all' : 'expense')} className={`p-4 rounded-2xl border transition-all ${typeFilter === 'expense' ? 'bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20' : 'bg-gray-50 dark:bg-gray-900/40 border-gray-100 dark:border-gray-800/50'}`}>
-            <div className="flex items-center gap-1.5 text-red-600 dark:text-red-500 mb-1"><ArrowUpCircle size={14} /><span className="text-[9px] font-black uppercase tracking-wider">Out</span></div>
-            <p className="font-bold text-gray-800 dark:text-gray-200 text-sm">Rp {expenseThisMonth.toLocaleString('id-ID')}</p>
-          </button>
-        </div>
-      </div>
+                  <BudgetAlert budgets={allBudgets} transactions={transactionsThisMonth} />
+                  
+                  <p className="text-[9px] font-black text-blue-500/60 dark:text-blue-400/60 uppercase tracking-widest mb-2 border-t border-gray-100 dark:border-gray-800 pt-3">Sirkulasi Bulan Ini</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <button onClick={() => setTypeFilter(typeFilter === 'income' ? 'all' : 'income')} className={`p-4 rounded-2xl border transition-all ${typeFilter === 'income' ? 'bg-green-500/10 border-green-500 shadow-lg shadow-green-500/20' : 'bg-gray-50 dark:bg-gray-900/40 border-gray-100 dark:border-gray-800/50'}`}>
+                      <div className="flex items-center gap-1.5 text-green-600 dark:text-green-500 mb-1"><ArrowDownCircle size={14} /><span className="text-[9px] font-black uppercase tracking-wider">In</span></div>
+                      <p className="font-bold text-gray-800 dark:text-gray-200 text-sm">Rp {incomeThisMonth.toLocaleString('id-ID')}</p>
+                    </button>
+                    <button onClick={() => setTypeFilter(typeFilter === 'expense' ? 'all' : 'expense')} className={`p-4 rounded-2xl border transition-all ${typeFilter === 'expense' ? 'bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20' : 'bg-gray-50 dark:bg-gray-900/40 border-gray-100 dark:border-gray-800/50'}`}>
+                      <div className="flex items-center gap-1.5 text-red-600 dark:text-red-500 mb-1"><ArrowUpCircle size={14} /><span className="text-[9px] font-black uppercase tracking-wider">Out</span></div>
+                      <p className="font-bold text-gray-800 dark:text-gray-200 text-sm">Rp {expenseThisMonth.toLocaleString('id-ID')}</p>
+                    </button>
+                  </div>
+                </div>
 
-      <div className="flex gap-2 mb-6 overflow-x-auto pb-2 no-scrollbar cursor-grab snap-x">
-        {dynamicCategories.map((cat) => (
-          <button key={cat} onClick={() => setCategoryFilter(cat)}
-            className={`snap-center shrink-0 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${
-              categoryFilter === cat ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30' : 'bg-transparent text-gray-500 border border-gray-200 dark:border-gray-800'
-            }`}>
-            {cat}
-          </button>
-        ))}
-      </div>
+                {/* SMART SEARCH BAR (STATIC) */}
+                <div className="relative mb-6">
+                  <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+                    <Search size={16} className="text-gray-400" />
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Cari transaksi"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full bg-gray-50 dark:bg-[#121827] border border-gray-200 dark:border-gray-800/60 rounded-[24px] py-3.5 pl-11 pr-10 text-sm font-bold text-gray-900 dark:text-white placeholder-gray-400 outline-none focus:border-blue-500 transition-all shadow-sm"
+                  />
+                  <AnimatePresence>
+                    {searchQuery && (
+                      <motion.button
+                        initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }}
+                        onClick={() => setSearchQuery('')}
+                        className="absolute inset-y-0 right-4 flex items-center text-gray-400 hover:text-red-500 transition-colors"
+                      >
+                        <X size={16} />
+                      </motion.button>
+                    )}
+                  </AnimatePresence>
+                </div>
 
-      <div className="flex justify-between items-center mb-4">
-        <div className="flex items-center gap-2.5">
-          <h2 className="text-[10px] font-black text-gray-400 dark:text-gray-600 tracking-[0.3em] uppercase">Log Aktivitas</h2>
-          <span className="text-[9px] font-black text-blue-600 dark:text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded-md uppercase tracking-wider">
-            {filteredTransactions.length} Item
-          </span>
-        </div>
-        
-        <div className="relative group">
-          <select value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} className="appearance-none bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300 hover:border-blue-500/50 rounded-xl pl-3 pr-8 py-1.5 text-[9px] font-black uppercase tracking-widest outline-none cursor-pointer transition-all shadow-sm">
-            {recentMonths.map(m => <option key={m.value} value={m.value} className="bg-white dark:bg-[#121827] text-gray-900 dark:text-white font-bold">{m.label}</option>)}
-          </select>
-        </div>
-      </div>
-    </div>
+                {/* DYNAMIC CATEGORIES (DRAG SCROLL) */}
+                <div className="flex gap-2 mb-6 overflow-x-auto pb-2 no-scrollbar cursor-grab snap-x">
+                  {dynamicCategories.map((cat) => (
+                    <button key={cat} onClick={() => setCategoryFilter(cat)}
+                      className={`snap-center shrink-0 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${
+                        categoryFilter === cat ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30' : 'bg-transparent text-gray-500 border border-gray-200 dark:border-gray-800'
+                      }`}>
+                      {cat}
+                    </button>
+                  ))}
+                </div>
 
-    {/* SECTION: LIST (FLEX-1 = AREA YANG SCROLLING) */}
-    {/* min-h-0 sangat krusial untuk mencegah container meluber */}
-    <div className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar pb-32 min-h-0">
-      <AnimatePresence mode="popLayout">
-        {filteredTransactions.map((trx) => (
-          <motion.div key={trx.id} layout initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, scale: 0.95 }}
-            className="flex items-center justify-between p-4 rounded-[24px] bg-white dark:bg-gray-900/20 border border-gray-100 dark:border-gray-800/40 hover:border-blue-500/30 transition-all mb-3"
-          >
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-gray-50 dark:bg-gray-800 flex items-center justify-center text-gray-600 dark:text-gray-400 shadow-inner">
-                {getIcon(trx.category)}
-              </div>
-              <div>
-                <p className="font-bold text-sm text-gray-800 dark:text-gray-100 tracking-tight">{trx.note}</p>
-                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">{trx.category}</p>
-                <p className={`text-[8px] mt-0.5 ${trx.type === 'income' ? 'text-green-500' : 'text-red-500'}`}>{formatDateTime(trx.created_at)}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <p className={`font-black text-sm mr-1 ${trx.type === 'income' ? 'text-green-500' : 'text-red-500'}`}>
-                {trx.type === 'income' ? '+' : '-'} {trx.amount.toLocaleString('id-ID')}
-              </p>
-              <div className="flex gap-1 opacity-40 hover:opacity-100 transition-opacity">
-                <button onClick={() => setEditTrxModal({ isOpen: true, data: { ...trx } })} className="p-2 text-gray-400 hover:text-blue-500 rounded-xl transition-all"><Edit3 size={14} /></button>
-                <button onClick={() => handleDeleteClick(trx.id, trx.amount)} className="p-2 text-gray-400 hover:text-red-500 rounded-xl transition-all"><Trash2 size={14} /></button>
-              </div>
-            </div>
-          </motion.div>
-        ))}
-      </AnimatePresence>
-      {filteredTransactions.length === 0 && (
-        <div className="text-center py-20 bg-gray-50/50 dark:bg-gray-900/10 rounded-[32px] border border-dashed border-gray-200 dark:border-gray-800">
-          <p className="text-[10px] font-black text-gray-300 dark:text-gray-700 uppercase tracking-[0.4em]">Kosong</p>
-        </div>
-      )}
-    </div>
-  </motion.div>
-)}
+                {/* QUICK TIME FILTER (PILLS TOGGLE) */}
+                <div className="flex bg-gray-100 dark:bg-[#121827] p-1 rounded-[16px] mb-6 border border-gray-200 dark:border-gray-800/60 shadow-inner">
+                  <button 
+                    onClick={() => setQuickTimeFilter('today')} 
+                    className={`flex-1 text-[9px] font-black uppercase tracking-widest py-2.5 rounded-xl transition-all duration-300 ${quickTimeFilter === 'today' ? 'bg-white dark:bg-blue-600 text-blue-600 dark:text-white shadow-sm' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`}
+                  >
+                    Hari Ini
+                  </button>
+                  <button 
+                    onClick={() => setQuickTimeFilter('week')} 
+                    className={`flex-1 text-[9px] font-black uppercase tracking-widest py-2.5 rounded-xl transition-all duration-300 ${quickTimeFilter === 'week' ? 'bg-white dark:bg-blue-600 text-blue-600 dark:text-white shadow-sm' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`}
+                  >
+                    7 Hari
+                  </button>
+                  <button 
+                    onClick={() => setQuickTimeFilter('month')} 
+                    className={`flex-1 text-[9px] font-black uppercase tracking-widest py-2.5 rounded-xl transition-all duration-300 ${quickTimeFilter === 'month' ? 'bg-white dark:bg-blue-600 text-blue-600 dark:text-white shadow-sm' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`}
+                  >
+                    Bulan Ini
+                  </button>
+                </div>
 
-          {/* TAB 2: ANALYTICS (STATS) */}
-          {activeTab === 'analytics' && (
-            <motion.div key="analytics" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="pt-8 px-4 pb-32 min-h-screen w-full flex flex-col">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">Analisis Pengeluaran</h2>
-                <div className="relative group">
-                  <select value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} className="appearance-none bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300 hover:border-blue-500/50 rounded-xl pl-3 pr-8 py-1.5 text-[9px] font-black uppercase tracking-widest outline-none cursor-pointer transition-all shadow-sm">
-                    {recentMonths.map(m => <option key={m.value} value={m.value} className="bg-white dark:bg-[#121827] text-gray-900 dark:text-white font-bold">{m.label}</option>)}
-                  </select>
-                  <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 group-hover:text-blue-500 transition-colors"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg></div>
+                {/* AREA JUDUL LOG AKTIVITAS */}
+                <div className="flex justify-between items-center mb-4">
+                  <div className="flex items-center gap-2.5">
+                    <h2 className="text-[10px] font-black text-gray-400 dark:text-gray-600 tracking-[0.3em] uppercase">Log Aktivitas</h2>
+                    <span className="text-[9px] font-black text-blue-600 dark:text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded-md uppercase tracking-wider">
+                      {filteredTransactions.length} Item
+                    </span>
+                  </div>
+                  
+                  <div className="relative group">
+                    <select value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} className="appearance-none bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300 hover:border-blue-500/50 rounded-xl pl-3 pr-8 py-1.5 text-[9px] font-black uppercase tracking-widest outline-none cursor-pointer transition-all shadow-sm">
+                      {recentMonths.map(m => <option key={m.value} value={m.value} className="bg-white dark:bg-[#121827] text-gray-900 dark:text-white font-bold">{m.label}</option>)}
+                    </select>
+                  </div>
                 </div>
               </div>
-              
-              <BudgetProgress selectedMonth={selectedMonth} transactions={transactionsThisMonth} />
 
-              {expenseData.length > 0 ? (
-                <>
-                  <div className="bg-white dark:bg-[#121827] rounded-[32px] p-6 shadow-xl border border-gray-100 dark:border-gray-800/60 mb-6 flex justify-center items-center h-72 w-full">
-                    <PieChart width={300} height={250}>
-                      <Pie data={expenseData} innerRadius={70} outerRadius={90} paddingAngle={5} dataKey="value" stroke="none" isAnimationActive={false}>
-                        {expenseData.map((entry, index) => <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />)}
-                      </Pie>
-                      <Tooltip formatter={(value) => `Rp ${value.toLocaleString('id-ID')}`} contentStyle={{ borderRadius: '16px', border: 'none', backgroundColor: '#1e293b', color: '#fff', fontSize: '12px', fontWeight: 'bold' }} itemStyle={{ color: '#fff' }} />
-                      <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: '11px', fontWeight: 'bold' }} />
-                    </PieChart>
-                  </div>
-                  <h3 className="text-[10px] font-black text-gray-400 dark:text-gray-600 tracking-[0.3em] uppercase mb-4">Rincian Detail</h3>
-                  <div className="space-y-3">
-                    {expenseData.map((item, index) => (
-                      <div key={item.name} className="flex justify-between items-center p-4 rounded-2xl bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-800/50 hover:border-gray-200 dark:hover:border-gray-700 transition-all">
-                        <div className="flex items-center gap-3">
-                          <div className="w-3 h-3 rounded-full shadow-sm" style={{ backgroundColor: CHART_COLORS[index % CHART_COLORS.length] }}></div>
-                          <span className="font-bold text-sm text-gray-800 dark:text-gray-200">{item.name}</span>
+              {/* SECTION: LIST (FLEX-1 = AREA YANG SCROLLING) */}
+              <div className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar pb-32 min-h-0">
+                <AnimatePresence mode="popLayout">
+                  {filteredTransactions.map((trx) => (
+                    <motion.div key={trx.id} layout initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, scale: 0.95 }}
+                      className="flex items-center justify-between p-4 rounded-[24px] bg-white dark:bg-gray-900/20 border border-gray-100 dark:border-gray-800/40 hover:border-blue-500/30 transition-all mb-3"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-2xl bg-gray-50 dark:bg-gray-800 flex items-center justify-center text-gray-600 dark:text-gray-400 shadow-inner">
+                          {getIcon(trx.category)}
                         </div>
-                        <span className="font-black text-sm text-gray-900 dark:text-white tracking-tight">Rp {item.value.toLocaleString('id-ID')}</span>
+                        <div>
+                          <p className="font-bold text-sm text-gray-800 dark:text-gray-100 tracking-tight">{trx.note}</p>
+                          <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">{trx.category}</p>
+                          <p className={`text-[8px] mt-0.5 ${trx.type === 'income' ? 'text-green-500' : 'text-red-500'}`}>{formatDateTime(trx.created_at)}</p>
+                        </div>
                       </div>
-                    ))}
+                      <div className="flex items-center gap-2">
+                        <p className={`font-black text-sm mr-1 ${trx.type === 'income' ? 'text-green-500' : 'text-red-500'}`}>
+                          {trx.type === 'income' ? '+' : '-'} {trx.amount.toLocaleString('id-ID')}
+                        </p>
+                        <div className="flex gap-1 opacity-40 hover:opacity-100 transition-opacity">
+                          <button onClick={() => setEditTrxModal({ isOpen: true, data: { ...trx } })} className="p-2 text-gray-400 hover:text-blue-500 rounded-xl transition-all"><Edit3 size={14} /></button>
+                          <button onClick={() => handleDeleteClick(trx.id, trx.amount)} className="p-2 text-gray-400 hover:text-red-500 rounded-xl transition-all"><Trash2 size={14} /></button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+                {filteredTransactions.length === 0 && (
+                  <div className="text-center py-20 bg-gray-50/50 dark:bg-gray-900/10 rounded-[32px] border border-dashed border-gray-200 dark:border-gray-800">
+                    <p className="text-[10px] font-black text-gray-300 dark:text-gray-700 uppercase tracking-[0.4em]">Kosong</p>
                   </div>
-                </>
-              ) : (
-                <div className="text-center py-20 bg-gray-50/50 dark:bg-gray-900/10 rounded-[32px] border border-dashed border-gray-200 dark:border-gray-800 mt-10">
-                  <PieChartIcon className="w-12 h-12 mx-auto mb-4 text-gray-400 opacity-30" />
-                  <p className="text-[10px] font-black text-gray-400 dark:text-gray-600 uppercase tracking-[0.4em]">Belum Ada Data</p>
-                </div>
-              )}
+                )}
+              </div>
             </motion.div>
           )}
 
-          {/* TAB 3: WALLETS */}
+          {/* TAB 2: STATS & ANALYTICS (DENGAN FINANCIAL GRADE) */}
+          {activeTab === 'analytics' && (
+            <motion.div key="stats" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="pt-8 px-3 pb-32 h-full overflow-y-auto min-h-0 no-scrollbar w-full flex flex-col">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6 tracking-tight">Analitik Pengeluaran</h2>
+
+              {(() => {
+                try {
+                  // 1. PENGAMANAN & PEMISAHAN DATA
+                  const safeTransactions = Array.isArray(filteredTransactions) ? filteredTransactions : [];
+                  const expenses = safeTransactions.filter(trx => trx && trx.type === 'expense');
+                  const incomes = safeTransactions.filter(trx => trx && trx.type === 'income');
+                  
+                  // 2. KELOMPOKKAN PENGELUARAN
+                  const dataRaw = expenses.reduce((acc, trx) => {
+                    const amt = Number(trx.amount) || 0;
+                    const cat = trx.category || 'Lainnya'; 
+                    const existing = acc.find(item => item.name === cat);
+                    if (existing) {
+                      existing.value += amt;
+                    } else {
+                      acc.push({ name: cat, value: amt });
+                    }
+                    return acc;
+                  }, []);
+
+                  // 3. KALKULASI TOTAL
+                  const statsData = dataRaw.sort((a, b) => b.value - a.value);
+                  const totalExpense = statsData.reduce((sum, item) => sum + item.value, 0);
+                  const totalIncome = incomes.reduce((sum, trx) => sum + (Number(trx.amount) || 0), 0);
+
+                  // 4. LOGIKA AI RAPOR KEUANGAN (FINANCIAL GRADE)
+                  let healthGrade = "A";
+                  let healthMessage = "Sangat Sehat! Surplus kas Anda aman.";
+                  let gradeColor = "text-green-500";
+                  let gradeBg = "from-green-500/20 to-green-500/5 border-green-500/30";
+
+                  if (totalIncome > 0) {
+                    const expenseRatio = totalExpense / totalIncome;
+                    if (expenseRatio >= 0.9) {
+                      healthGrade = "D";
+                      healthMessage = "Bahaya! Pengeluaran nyaris melebihi pemasukan.";
+                      gradeColor = "text-red-500";
+                      gradeBg = "from-red-500/20 to-red-500/5 border-red-500/30";
+                    } else if (expenseRatio >= 0.7) {
+                      healthGrade = "C";
+                      healthMessage = "Waspada. Kurangi pengeluaran yang tidak perlu.";
+                      gradeColor = "text-orange-500";
+                      gradeBg = "from-orange-500/20 to-orange-500/5 border-orange-500/30";
+                    } else if (expenseRatio >= 0.5) {
+                      healthGrade = "B";
+                      healthMessage = "Bagus. Keuangan Anda cukup stabil bulan ini.";
+                      gradeColor = "text-blue-500";
+                      gradeBg = "from-blue-500/20 to-blue-500/5 border-blue-500/30";
+                    }
+                  } else if (totalExpense > 0 && totalIncome === 0) {
+                    healthGrade = "F";
+                    healthMessage = "Minus! Belum ada pemasukan yang tercatat.";
+                    gradeColor = "text-red-500";
+                    gradeBg = "from-red-500/20 to-red-500/5 border-red-500/30";
+                  } else {
+                    healthGrade = "-";
+                    healthMessage = "Belum ada transaksi bulan ini.";
+                    gradeColor = "text-gray-400";
+                    gradeBg = "from-gray-500/10 to-transparent border-gray-500/20";
+                  }
+
+                  const COLORS = ['#ef4444', '#f59e0b', '#3b82f6', '#10b981', '#8b5cf6', '#ec4899', '#14b8a6'];
+
+                  return (
+                    <div className="space-y-4 mb-8">
+                      
+                      {/* KOTAK RAPOR KESEHATAN KEUANGAN */}
+                      <div className={`bg-gradient-to-br ${gradeBg} rounded-[24px] p-5 border shadow-sm flex items-center justify-between mb-4 transition-colors`}>
+                        <div>
+                          <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5">Status Keuangan</p>
+                          <p className="text-xs font-bold text-gray-800 dark:text-gray-200 leading-snug pr-4">{healthMessage}</p>
+                        </div>
+                        <div className={`shrink-0 w-14 h-14 rounded-2xl bg-white dark:bg-[#121827] shadow-sm flex items-center justify-center text-2xl font-black ${gradeColor}`}>
+                          {healthGrade}
+                        </div>
+                      </div>
+
+                      {/* KOTAK TOTAL PENGELUARAN */}
+                      <div className="bg-white dark:bg-[#121827] rounded-[32px] p-8 shadow-2xl shadow-red-500/10 border border-gray-100 dark:border-gray-800/60 mb-8 flex flex-col items-center justify-center text-center relative overflow-hidden">
+                        <div className="absolute top-0 w-full h-1 bg-gradient-to-r from-red-500 via-orange-500 to-red-500 opacity-50"></div>
+                        <p className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.3em] mb-2">Total Pengeluaran</p>
+                        <p className="text-4xl font-black text-red-500 tracking-tighter">
+                          <span className="text-2xl mr-1">Rp</span>
+                          {totalExpense.toLocaleString('id-ID')}
+                        </p>
+                      </div>
+
+                      <h3 className="text-[10px] font-black text-gray-400 dark:text-gray-600 uppercase tracking-[0.3em] mb-4 pl-2">Rincian Kategori</h3>
+                      
+                      {statsData.length > 0 ? statsData.map((item, index) => {
+                        const percentage = totalExpense > 0 ? ((item.value / totalExpense) * 100).toFixed(1) : 0;
+                        const barColor = COLORS[index % COLORS.length];
+                        
+                        return (
+                          <div key={item.name} className="bg-white dark:bg-gray-900/40 p-5 rounded-[24px] border border-gray-100 dark:border-gray-800/50 shadow-sm mb-3">
+                            <div className="flex justify-between items-end mb-3">
+                              <div>
+                                <p className="font-bold text-sm text-gray-800 dark:text-gray-200">{item.name}</p>
+                                <p className="text-[10px] font-black text-gray-400 mt-0.5 tracking-wider">{percentage}%</p>
+                              </div>
+                              <p className="font-black text-sm text-gray-900 dark:text-white">Rp {item.value.toLocaleString('id-ID')}</p>
+                            </div>
+                            
+                            <div className="w-full h-2.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                              <motion.div 
+                                initial={{ width: 0 }}
+                                animate={{ width: `${percentage}%` }}
+                                transition={{ duration: 1, ease: "easeOut", delay: index * 0.1 }}
+                                className="h-full rounded-full"
+                                style={{ backgroundColor: barColor }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      }) : (
+                        <div className="text-center py-16 bg-gray-50/50 dark:bg-gray-900/10 rounded-[32px] border border-dashed border-gray-200 dark:border-gray-800">
+                          <p className="text-[10px] font-black text-gray-300 dark:text-gray-700 uppercase tracking-[0.4em]">Belum Ada Data</p>
+                        </div>
+                      )}
+                    </div>
+                  );
+                } catch (error) {
+                  return (
+                    <div className="bg-red-50 border border-red-200 p-6 rounded-[24px] mt-4">
+                      <p className="text-red-600 font-bold mb-2">Terjadi Kesalahan Render:</p>
+                      <p className="text-xs text-red-500 break-words">{error.toString()}</p>
+                    </div>
+                  );
+                }
+              })()}
+            </motion.div>
+          )}
+
+          {/* TAB 3: WALLETS & SAVINGS GOALS */}
           {activeTab === 'wallets' && (
-            <motion.div key="wallets" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="pt-8 px-4 pb-32 min-h-screen w-full flex flex-col">
+            <motion.div key="wallets" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="pt-8 px-3 pb-32 h-full overflow-y-auto min-h-0 no-scrollbar w-full flex flex-col">
               <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6 tracking-tight">Pilih Dompet</h2>
-              <div className="space-y-4">
+              
+              {/* DAFTAR REKENING */}
+              <div className="space-y-4 mb-10">
                 {wallets.length === 0 && <p className="text-center text-xs font-bold text-gray-500">Memuat Rekening...</p>}
 
                 {wallets.map((wallet, idx) => (
@@ -408,10 +722,10 @@ useEffect(() => {
                         <div className="flex items-center gap-3">
                           <h3 className="text-white text-2xl font-bold tracking-tight">{wallet.name}</h3>
                           <div className="flex gap-1.5 opacity-60 hover:opacity-100 transition-opacity">
-                            <button onClick={(e) => { e.stopPropagation(); setWalletToEdit(wallet); setIsEditWalletOpen(true); }} className="p-1.5 bg-white/20 rounded-full hover:bg-white/40 transition-colors backdrop-blur-md" title="Edit Dompet">
+                            <button onClick={(e) => { e.stopPropagation(); setWalletToEdit(wallet); setIsEditWalletOpen(true); }} className="p-1.5 bg-white/20 rounded-full hover:bg-white/40 transition-colors backdrop-blur-md">
                               <Edit3 size={12} className="text-white" />
                             </button>
-                            <button onClick={(e) => { e.stopPropagation(); setWalletToShare(wallet); setIsShareWalletOpen(true); }} className="p-1.5 bg-white/20 rounded-full hover:bg-white/40 transition-colors backdrop-blur-md" title="Bagikan Dompet">
+                            <button onClick={(e) => { e.stopPropagation(); setWalletToShare(wallet); setIsShareWalletOpen(true); }} className="p-1.5 bg-white/20 rounded-full hover:bg-white/40 transition-colors backdrop-blur-md">
                               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
                             </button>
                           </div>
@@ -424,23 +738,171 @@ useEffect(() => {
                   </motion.div>
                 ))}
                 
-                <button onClick={() => setNewWalletModal({ isOpen: true, name: '' })} className="w-full mt-4 p-6 rounded-[32px] border-2 border-dashed border-gray-300 dark:border-gray-700 text-gray-500 hover:text-blue-500 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all flex flex-col items-center justify-center gap-2">
-                  <span className="text-2xl font-light">+</span>
-                  <span className="text-[10px] font-black uppercase tracking-widest">Tambah Rekening Baru</span>
+                <button onClick={() => setNewWalletModal({ isOpen: true, name: '' })} className="w-full p-5 rounded-[24px] border-2 border-dashed border-gray-200 dark:border-gray-800 text-gray-400 hover:text-blue-500 hover:border-blue-500/50 hover:bg-blue-500/5 transition-all flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-wider">
+                  <span>+</span> Tambah Rekening Baru
                 </button>
+              </div>
+
+              {/* FITUR: TARGET IMPIAN (SAVINGS GOALS) */}
+              <div className="border-t border-gray-100 dark:border-gray-800/80 pt-8 space-y-4">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-[10px] font-black text-gray-400 dark:text-gray-600 tracking-[0.3em] uppercase">Target Impian (Celengan)</h2>
+                  <button 
+                    onClick={() => setIsNewGoalOpen(!isNewGoalOpen)} 
+                    className="px-3 py-1.5 bg-blue-500/10 border border-blue-500/20 text-blue-600 dark:text-blue-400 font-black text-[9px] uppercase tracking-widest rounded-xl transition-all active:scale-95"
+                  >
+                    {isNewGoalOpen ? "Batal" : "+ Target"}
+                  </button>
+                </div>
+
+                {/* FORM INPUT TARGET BARU */}
+                <AnimatePresence>
+                  {isNewGoalOpen && (
+                    <motion.form 
+                      initial={{ opacity: 0, h: 0 }} animate={{ opacity: 1, h: "auto" }} exit={{ opacity: 0, h: 0 }}
+                      onSubmit={handleAddGoal} className="bg-gray-50 dark:bg-gray-900/40 p-5 rounded-[24px] border border-gray-100 dark:border-gray-800/50 space-y-3 mb-6"
+                    >
+                      <input type="text" required placeholder="Nama impian (Cth: Laptop Baru, Dana Darurat)" value={newGoalData.name} onChange={e => setNewGoalData({...newGoalData, name: e.target.value})} className="w-full bg-white dark:bg-[#121827] border border-gray-200 dark:border-gray-800 rounded-xl py-2.5 px-4 text-xs font-bold text-gray-900 dark:text-white outline-none focus:border-blue-500" />
+                      <div className="grid grid-cols-2 gap-3">
+                        <input type="text" required placeholder="Target (Cth: 5jt, 500k)" value={newGoalData.target} onChange={e => setNewGoalData({...newGoalData, target: e.target.value})} className="w-full bg-white dark:bg-[#121827] border border-gray-200 dark:border-gray-800 rounded-xl py-2.5 px-4 text-xs font-bold text-gray-900 dark:text-white outline-none focus:border-blue-500" />
+                        <input type="text" placeholder="Isi Awal (Opsional)" value={newGoalData.current} onChange={e => setNewGoalData({...newGoalData, current: e.target.value})} className="w-full bg-white dark:bg-[#121827] border border-gray-200 dark:border-gray-800 rounded-xl py-2.5 px-4 text-xs font-bold text-gray-900 dark:text-white outline-none focus:border-blue-500" />
+                      </div>
+                      <button type="submit" className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-black uppercase tracking-widest rounded-xl shadow-md transition-all">Simpan Target</button>
+                    </motion.form>
+                  )}
+                </AnimatePresence>
+
+                {/* ITERASI DAFTAR CELENGAN */}
+                {goals.map((goal) => {
+                  const pct = Math.min(100, ((goal.current_amount / goal.target_amount) * 100)).toFixed(0);
+                  const isInputOpen = activeGoalInput === goal.id;
+
+                  return (
+                    <div key={goal.id} className="bg-white dark:bg-[#121827] p-5 rounded-[24px] border border-gray-100 dark:border-gray-800/60 shadow-sm relative overflow-hidden mb-3">
+                      <div className="flex justify-between items-start mb-2">
+                        <div>
+                          <p className="font-bold text-sm text-gray-900 dark:text-white tracking-tight">{goal.name}</p>
+                          <p className="text-[10px] text-gray-400 font-normal mt-0.5">
+                            Rp {goal.current_amount.toLocaleString('id-ID')} / <span className="font-bold text-gray-500 dark:text-gray-400">Rp {goal.target_amount.toLocaleString('id-ID')}</span>
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span className="text-xs font-black text-blue-500 mr-2">{pct}%</span>
+                          
+                          {/* Tombol Hapus Target */}
+                          <button 
+                            onClick={() => triggerDeleteGoal(goal.id, goal.name)}
+                            className="p-2 text-gray-400 hover:text-red-500 transition-colors"
+                            title="Hapus Target"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* PROGRESS BAR */}
+                      <div className="w-full h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden mt-3 mb-4">
+                        <motion.div 
+                          initial={{ width: 0 }}
+                          animate={{ width: `${pct}%` }}
+                          transition={{ duration: 1, ease: "easeOut" }}
+                          className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full"
+                        />
+                      </div>
+
+                      {/* PANEL INPUT MODIFIKASI NOMINAL BEBAS */}
+                      <div className="pt-2 border-t border-gray-50 dark:border-gray-800/40">
+                        {!isInputOpen ? (
+                          <div className="flex justify-between items-center">
+                            <button 
+                              onClick={() => setActiveGoalInput(goal.id)}
+                              className="text-[9px] font-black text-blue-500 bg-blue-500/10 border border-blue-500/10 px-3 py-1.5 rounded-lg hover:bg-blue-500 hover:text-white transition-all uppercase tracking-wider"
+                            >
+                              Mutasi Saldo
+                            </button>
+                            <button 
+                              onClick={() => handleModifySavings(goal.id, goal.current_amount, 'reset')}
+                              className="text-[9px] font-black text-gray-400 hover:text-red-500 px-3 py-1.5 rounded-lg transition-all uppercase tracking-wider"
+                            >
+                              Reset Nominal
+                            </button>
+                          </div>
+                        ) : (
+                          <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} className="flex gap-2 items-center">
+                            <input 
+                              type="text" 
+                              placeholder="Isi angka (Cth: 10k, 50k, 1jt)" 
+                              value={flexibleSavingsAmount}
+                              onChange={(e) => setFlexibleSavingsAmount(e.target.value)}
+                              className="flex-1 bg-gray-50 dark:bg-[#0a0f1c] border border-gray-200 dark:border-gray-800 rounded-xl py-2 px-3 text-xs font-bold text-gray-900 dark:text-white outline-none focus:border-blue-500"
+                            />
+                            <button 
+                              onClick={() => handleModifySavings(goal.id, goal.current_amount, 'add')}
+                              className="px-3 py-2 bg-green-600 text-white font-black text-[9px] uppercase tracking-wider rounded-xl shadow-md active:scale-95 transition-all"
+                            >
+                              + Tabung
+                            </button>
+                            <button 
+                              onClick={() => handleModifySavings(goal.id, goal.current_amount, 'subtract')}
+                              className="px-3 py-2 bg-red-600 text-white font-black text-[9px] uppercase tracking-wider rounded-xl shadow-md active:scale-95 transition-all"
+                            >
+                              - Pakai
+                            </button>
+                            <button 
+                              onClick={() => { setActiveGoalInput(null); setFlexibleSavingsAmount(''); }}
+                              className="p-2 text-gray-400 hover:text-gray-600 text-xs font-bold"
+                            >
+                              Batal
+                            </button>
+                          </motion.div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {goals.length === 0 && !isNewGoalOpen && (
+                  <div className="text-center py-10 bg-gray-50/50 dark:bg-gray-900/10 rounded-[24px] border border-dashed border-gray-200 dark:border-gray-800">
+                    <p className="text-[10px] font-black text-gray-300 dark:text-gray-700 uppercase tracking-[0.4em]">Belum Ada Target</p>
+                  </div>
+                )}
               </div>
             </motion.div>
           )}
 
           {/* TAB 4: SETTINGS */}
           {activeTab === 'settings' && (
-            <motion.div key="settings" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="pt-8 px-4 pb-32 min-h-screen w-full flex flex-col">
+            <motion.div key="settings" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="pt-8 px-4 pb-32 h-full overflow-y-auto min-h-0 no-scrollbar w-full flex flex-col">
               <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6 tracking-tight">Pengaturan</h2>
+              
               <div className="mb-6"><ManageCategories /></div>
               <div className="mb-8"><ManageBudgets selectedMonth={selectedMonth} /></div>
-              <button onClick={handleLogout} className="relative z-10 w-full p-6 rounded-[32px] bg-red-500/10 border border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center gap-3 font-black uppercase tracking-widest text-xs" >
-              Keluar dari Akun
-            </button>
+              
+              {/* TOMBOL EXPORT LAPORAN DI SINI */}
+              <div className="mb-8">
+                <button 
+                  onClick={exportToCSV}
+                  className="w-full p-5 rounded-[24px] bg-blue-500/10 border border-blue-500/20 text-blue-600 dark:text-blue-400 hover:bg-blue-600 hover:text-white transition-all flex items-center justify-between font-bold text-sm"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center">
+                      <Download size={18} />
+                    </div>
+                    <div className="text-left">
+                      <p className="text-sm font-bold text-gray-800 dark:text-gray-100">Unduh Laporan Keuangan</p>
+                      <p className="text-[10px] text-gray-400 font-normal">Format .CSV (Excel / Spreadsheets)</p>
+                    </div>
+                  </div>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                </button>
+              </div>
+              
+              {/* TOMBOL LOGOUT TETAP DI BAWAH */}
+              <div className="mt-auto">
+                <button onClick={handleLogout} className="relative z-10 w-full p-6 rounded-[32px] bg-red-500/10 border border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center gap-3 font-black uppercase tracking-widest text-xs" >
+                  Keluar dari Akun
+                </button>
+              </div>
             </motion.div>
           )}
 
@@ -522,7 +984,7 @@ useEffect(() => {
 
         {/* BOTTOM NAVIGATION BAR */}
 <nav className="fixed bottom-0 left-0 right-0 z-[9999] bg-white/80 dark:bg-[#0a0f1c]/90 backdrop-blur-xl border-t border-gray-200 dark:border-gray-800 pb-safe">
-  <div className="max-w-md mx-auto flex justify-between items-center px-6 py-4">
+  <div className="w-full max-w-lg mx-auto flex justify-between items-center px-4 py-4">
             {[
               { id: 'home', label: 'HOME', Icon: HomeIcon },
               { id: 'analytics', label: 'STATS', Icon: PieChartIcon },
@@ -578,7 +1040,47 @@ useEffect(() => {
             </motion.div>
           </motion.div>
         )}
-      </AnimatePresence>    
+      </AnimatePresence>
+
+      {/* MODAL KONFIRMASI HAPUS TARGET IMPIAN (CELENGAN) */}
+        <AnimatePresence>
+          {goalDeleteModal.isOpen && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+              <motion.div 
+                initial={{ scale: 0.9, opacity: 0 }} 
+                animate={{ scale: 1, opacity: 1 }} 
+                exit={{ scale: 0.9, opacity: 0 }} 
+                transition={{ type: "spring", damping: 25, stiffness: 300 }} 
+                className="w-full max-w-sm bg-white dark:bg-[#121827] rounded-[32px] p-6 shadow-2xl border border-gray-100 dark:border-gray-800 text-center"
+              >
+                <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4 text-red-500">
+                  <Trash2 size={32} />
+                </div>
+                
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Hapus Impian Anda?</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+                  Target <span className="font-bold text-gray-900 dark:text-white">"{goalDeleteModal.goalName}"</span> beserta seluruh progres tabungannya akan dihapus permanen. Lanjutkan?
+                </p>
+                
+                <div className="flex gap-3">
+                  <button 
+                    onClick={() => setGoalDeleteModal({ isOpen: false, goalId: null, goalName: '' })} 
+                    className="flex-1 py-3.5 rounded-2xl font-bold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all"
+                  >
+                    Batal
+                  </button>
+                  <button 
+                    onClick={executeDeleteGoal} 
+                    className="flex-1 py-3.5 rounded-2xl font-bold text-white bg-red-500 hover:bg-red-600 transition-all shadow-lg shadow-red-500/30"
+                  >
+                    Ya, Hapus
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
       </main>
     </div>
   );
