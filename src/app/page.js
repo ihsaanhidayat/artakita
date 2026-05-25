@@ -63,6 +63,22 @@ export default function Home() {
 
   // === 3. DATA FINANSIAL ===
   const { balance, transactions, addTransaction, deleteTransaction, updateTransaction } = useFinData(activeWallet.id);
+  
+  // === STATE UNTUK POP-UP HAPUS ===
+  const [deleteConfirmModal, setDeleteConfirmModal] = useState({ isOpen: false, trxId: null, amount: null });
+
+  // Fungsi untuk memunculkan pop-up
+  const handleDeleteClick = (id, amount) => {
+    setDeleteConfirmModal({ isOpen: true, trxId: id, amount: amount });
+  };
+
+  // Fungsi untuk mengeksekusi penghapusan jika tombol "Ya" diklik
+  const executeDelete = () => {
+    if (deleteConfirmModal.trxId) {
+      deleteTransaction(deleteConfirmModal.trxId, deleteConfirmModal.amount); // Memanggil fungsi hook asli
+    }
+    setDeleteConfirmModal({ isOpen: false, trxId: null, amount: null }); // Tutup pop-up
+  };
 
   // === 4. STATE FILTER & MODAL (Disatukan agar tidak ganda) ===
   const [typeFilter, setTypeFilter] = useState('all'); 
@@ -307,7 +323,7 @@ useEffect(() => {
               </p>
               <div className="flex gap-1 opacity-40 hover:opacity-100 transition-opacity">
                 <button onClick={() => setEditTrxModal({ isOpen: true, data: { ...trx } })} className="p-2 text-gray-400 hover:text-blue-500 rounded-xl transition-all"><Edit3 size={14} /></button>
-                <button onClick={() => deleteTransaction(trx.id, trx.amount)} className="p-2 text-gray-400 hover:text-red-500 rounded-xl transition-all"><Trash2 size={14} /></button>
+                <button onClick={() => handleDeleteClick(trx.id, trx.amount)} className="p-2 text-gray-400 hover:text-red-500 rounded-xl transition-all"><Trash2 size={14} /></button>
               </div>
             </div>
           </motion.div>
@@ -422,10 +438,7 @@ useEffect(() => {
               <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6 tracking-tight">Pengaturan</h2>
               <div className="mb-6"><ManageCategories /></div>
               <div className="mb-8"><ManageBudgets selectedMonth={selectedMonth} /></div>
-              <button 
-              onClick={handleLogout} 
-              className="relative z-[9999] w-full p-6 rounded-[32px] bg-red-500/10 border border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center gap-3 font-black uppercase tracking-widest text-xs pointer-events-auto"
-            >
+              <button onClick={handleLogout} className="relative z-10 w-full p-6 rounded-[32px] bg-red-500/10 border border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center gap-3 font-black uppercase tracking-widest text-xs" >
               Keluar dari Akun
             </button>
             </motion.div>
@@ -436,32 +449,7 @@ useEffect(() => {
         {/* ======================================= */}
         {/* AREA MODALS & BOTTOM NAV (DILUAR TABS)  */}
         {/* ======================================= */}
-        {activeTab === 'home' && <QuickCommandBar onProcessTransaction={() => setIsSmartInputOpen(true)} />}
-
-        {/* MODAL: SMART INPUT */}
-        <AnimatePresence>
-          {isSmartInputOpen && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-4 pb-0 sm:pb-4">
-              <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", damping: 25, stiffness: 300 }} className="w-full max-w-md bg-white dark:bg-[#121827] rounded-t-[32px] sm:rounded-[32px] p-6 shadow-2xl border border-gray-100 dark:border-gray-800">
-                <div className="flex justify-between items-center mb-6">
-                  <div className="flex items-center gap-2">
-                    <Command className="text-blue-500" size={20} />
-                    <h3 className="text-lg font-bold text-gray-900 dark:text-white">Smart Input</h3>
-                  </div>
-                  <button onClick={() => setIsSmartInputOpen(false)} className="p-2 text-gray-400 hover:text-red-500 bg-gray-50 dark:bg-gray-800 rounded-full"><X size={18} /></button>
-                </div>
-                <form onSubmit={handleSmartSubmit}>
-                  <input type="text" autoFocus required value={smartCommand} onChange={(e) => setSmartCommand(e.target.value)} className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl py-4 px-5 text-gray-900 dark:text-white outline-none focus:border-blue-500 font-bold text-base" placeholder="Contoh: out 50k Kopi Starbucks" />
-                  <div className="mt-4 flex gap-2 flex-wrap">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 bg-gray-100 dark:bg-gray-800 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700">out 25k makan siang</span>
-                    <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 bg-gray-100 dark:bg-gray-800 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700">in 2jt gaji</span>
-                  </div>
-                  <button type="submit" className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3.5 rounded-2xl transition-all shadow-lg shadow-blue-500/30 mt-6">Proses Cepat</button>
-                </form>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {activeTab === 'home' && <QuickCommandBar onProcessTransaction={addTransaction} />}
 
         {/* MODAL: EDIT TRANSAKSI */}
         <AnimatePresence>
@@ -533,8 +521,8 @@ useEffect(() => {
         </AnimatePresence>
 
         {/* BOTTOM NAVIGATION BAR */}
-        <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/80 dark:bg-[#0a0f1c]/90 backdrop-blur-xl border-t border-gray-200 dark:border-gray-800 pb-safe">
-          <div className="max-w-md mx-auto flex justify-between items-center px-6 py-4">
+<nav className="fixed bottom-0 left-0 right-0 z-[9999] bg-white/80 dark:bg-[#0a0f1c]/90 backdrop-blur-xl border-t border-gray-200 dark:border-gray-800 pb-safe">
+  <div className="max-w-md mx-auto flex justify-between items-center px-6 py-4">
             {[
               { id: 'home', label: 'HOME', Icon: HomeIcon },
               { id: 'analytics', label: 'STATS', Icon: PieChartIcon },
@@ -552,7 +540,45 @@ useEffect(() => {
             })}
           </div>
         </nav>
-
+        {/* MODAL KONFIRMASI HAPUS (CUSTOM UI) */}
+      <AnimatePresence>
+        {deleteConfirmModal.isOpen && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }} 
+              animate={{ scale: 1, opacity: 1 }} 
+              exit={{ scale: 0.9, opacity: 0 }} 
+              transition={{ type: "spring", damping: 25, stiffness: 300 }} 
+              className="w-full max-w-sm bg-white dark:bg-[#121827] rounded-[32px] p-6 shadow-2xl border border-gray-100 dark:border-gray-800 text-center"
+            >
+              {/* Ikon Peringatan */}
+              <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4 text-red-500">
+                <Trash2 size={32} />
+              </div>
+              
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Hapus Transaksi?</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+                Data yang sudah dihapus tidak dapat dikembalikan lagi. Yakin ingin melanjutkan?
+              </p>
+              
+              <div className="flex gap-3">
+                <button 
+                  onClick={() => setDeleteConfirmModal({ isOpen: false, trxId: null, amount: null })} 
+                  className="flex-1 py-3.5 rounded-2xl font-bold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all"
+                >
+                  Batal
+                </button>
+                <button 
+                  onClick={executeDelete} 
+                  className="flex-1 py-3.5 rounded-2xl font-bold text-white bg-red-500 hover:bg-red-600 transition-all shadow-lg shadow-red-500/30"
+                >
+                  Ya, Hapus
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>    
       </main>
     </div>
   );

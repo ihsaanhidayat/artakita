@@ -12,16 +12,19 @@ export default function ManageBudgets({ selectedMonth }) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   useEffect(() => {
+  if (isExpanded) {
     fetchData();
-  }, [selectedMonth]);
+  }
+}, [isExpanded, selectedMonth]); 
 
-  const fetchData = async () => {
-    const { data: catData } = await supabase.from('categories').select('name').order('name');
-    if (catData) setCategories(catData);
+const fetchData = async () => {
+  // Ambil data kategori TERBARU dari Supabase
+  const { data: catData } = await supabase.from('categories').select('name').order('name');
+  if (catData) setCategories(catData);
 
-    const { data: budData } = await supabase.from('budgets').select('*').eq('month_year', selectedMonth);
-    if (budData) setBudgets(budData);
-  };
+  const { data: budData } = await supabase.from('budgets').select('*').eq('month_year', selectedMonth);
+  if (budData) setBudgets(budData);
+};
 
   const handleAddBudget = async (e) => {
     e.preventDefault();
