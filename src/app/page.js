@@ -1254,21 +1254,17 @@ const autoClassifyCategory = async (note) => {
             </AnimatePresence>
 
             {/* MODAL: TAMBAH DOMPET BARU */}
-            {/* MODAL: TAMBAH DOMPET BARU */}
+        {/* MODAL: TAMBAH DOMPET BARU */}
         <AnimatePresence>
           {newWalletModal.isOpen && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-md p-0 sm:p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md p-4">
               <motion.div 
-                initial={{ y: "100%" }} 
-                animate={{ y: 0 }} 
-                exit={{ y: "100%" }} 
+                initial={{ scale: 0.9, y: 20 }} 
+                animate={{ scale: 1, y: 0 }} 
+                exit={{ scale: 0.9, y: 20 }} 
                 transition={{ type: "spring", damping: 25, stiffness: 300 }} 
-                className="w-full max-w-sm bg-white dark:bg-[#121827] rounded-t-[32px] sm:rounded-[32px] p-6 pb-10 sm:pb-6 shadow-2xl border border-gray-100 dark:border-gray-800/80 relative"
+                className="w-full max-w-sm bg-white dark:bg-[#121827] rounded-[32px] p-6 shadow-2xl border border-gray-100 dark:border-gray-800/80 relative"
               >
-                
-                {/* Garis Drag Handle untuk Mobile (Aesthetic) */}
-                <div className="w-12 h-1.5 bg-gray-200 dark:bg-gray-800 rounded-full mx-auto mb-6 sm:hidden"></div>
-
                 <div className="flex justify-between items-center mb-6">
                   <h3 className="text-base font-black text-gray-900 dark:text-white uppercase tracking-widest">Buat Rekening Baru</h3>
                   <button onClick={() => setNewWalletModal({ isOpen: false, name: '' })} className="p-2 text-gray-400 hover:text-red-500 bg-gray-50 dark:bg-gray-800/50 rounded-full transition-colors">
@@ -1293,7 +1289,6 @@ const autoClassifyCategory = async (note) => {
                     Buka Rekening
                   </button>
                 </form>
-                
               </motion.div>
             </motion.div>
           )}
