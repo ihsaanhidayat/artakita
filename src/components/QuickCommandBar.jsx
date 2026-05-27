@@ -2,11 +2,13 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Mic, Send, X, TerminalSquare } from "lucide-react";
+import { supabase } from "@/lib/supabaseClient"; // Pastikan import ini ada
 
 export default function QuickCommandBar({ onProcessTransaction }) {
   const [isActive, setIsActive] = useState(false);
   const [inputText, setInputText] = useState("");
   const [isListening, setIsListening] = useState(false);
+  const [category, setCategory] = useState("");
   
   const recognitionRef = useRef(null); 
 
@@ -48,75 +50,115 @@ export default function QuickCommandBar({ onProcessTransaction }) {
   // ==========================================
   // ⚙️ CORE AI LOGIC: TEXT PARSER V3 (SUPER SMART)
   // ==========================================
-  const parseNLP = (text) => {
-    let amount = 0;
-    let type = "expense"; 
-    let category = "Lainnya";
-    let shouldLearn = false; 
-
-    // Cek apakah ini uang masuk
-    if (/^(in\s|masuk\s)/i.test(text)) type = "income";
+  const parseNLP = async (text) => {
+    const cleanText = text.toLowerCase().trim();
     
-    // Bersihkan command awal (in/out)
-    let cleanText = text.replace(/^(in|out|masuk|keluar)\s+/i, "");
-
-    // 1. PISAHKAN KATEGORI DENGAN "POS" UTUH
-    const posSplit = cleanText.toLowerCase().split(/\s+pos\s+/);
-    if (posSplit.length > 1) {
-      const rawCategory = posSplit.pop(); 
-      category = rawCategory.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-      cleanText = posSplit.join(' pos ');
-      shouldLearn = true; 
+    // 1. Deteksi Nominal Uang (Contoh: 5k -> 5000, 50k -> 50000, atau angka murni)
+    let amount = 0;
+    const kMatch = cleanText.match(/(\d+)\s*k/);
+    if (kMatch) {
+      amount = parseInt(kMatch[1]) * 1000;
+    } else {
+      const numMatch = cleanText.match(/\d+/);
+      if (numMatch) amount = parseInt(numMatch[0]);
     }
 
-    // 2. EKSTRAK NOMINAL AI: Cari angka yang paling besar!
-    // Membaca: 100 ribu, 500 rb, 1.5 jt, 50k
-    const amountRegex = /(?:rp\s*)?([\d\.,]+)\s*(ribu|rb|juta|jt|k|m)?(?:\b|\s|$)/gi;
-    const matches = [...cleanText.matchAll(amountRegex)];
+    // Ekstrak kata kunci mentah (menghapus nominal uang dari teks)
+    let phraseWithoutAmount = cleanText.replace(/[\d+]\s*k|[\d+]/g, '').trim();
 
-    if (matches.length > 0) {
-      let maxVal = 0;
-      let bestMatch = null;
+    let categoryName = "Lain-lain"; // Default jika tidak ketemu
+    
+    // 2. DETEKSI COMANND "POS" (Proses Pembelajaran AI)
+    if (phraseWithoutAmount.includes('pos ')) {
+      const parts = phraseWithoutAmount.split('pos ');
+      const itemText = parts[0].replace(/(beli|bayar|untuk)\s*/g, '').trim(); // Contoh: "kopi"
+      const targetCategory = parts[1].trim(); // Contoh: "jajan"
 
-      for (const match of matches) {
-        let numStr = match[1].replace(/\./g, "").replace(/,/g, ".");
-        let val = parseFloat(numStr);
-        let mult = match[2] ? match[2].toLowerCase() : "";
+      if (targetCategory && itemText) {
+        categoryName = targetCategory;
 
-        if (["ribu", "rb", "k"].includes(mult)) val *= 1000;
-        if (["juta", "jt", "m"].includes(mult)) val *= 1000000;
+        // JALAN PINTAS AI BELAJAR: Simpan ke database secara asinkronus (background)
+        setTimeout(async () => {
+          try {
+            // A. Pastikan kategori utama ada di user_categories
+            let { data: catData } = await supabase
+              .from('user_categories')
+              .select('id')
+              .eq('name', categoryName)
+              .single();
 
-        // Pilih angka paling besar sebagai nominal (mengabaikan angka quantity seperti "2 kopi")
-        if (val > maxVal) {
-          maxVal = val;
-          bestMatch = match;
+            if (!catData) {
+              const { data: newCat } = await supabase
+                .from('user_categories')
+                .insert([{ name: categoryName }])
+                .select('id')
+                .single();
+              catData = newCat;
+            }
+
+            // B. Masukkan kata benda ke ai_keywords agar AI ingat di masa depan
+            if (catData) {
+              await supabase
+                .from('ai_keywords')
+                .insert([{ category_id: catData.id, keyword: itemText }]);
+              
+              // Refresh memori AI lokal aplikasi
+              fetchAiBrain();
+            }
+          } catch (err) {
+            console.log("AI sudah hafal kata kunci ini.");
+          }
+        }, 500);
+
+        phraseWithoutAmount = itemText; // Bersihkan frasa untuk catatan transaksi
+      }
+    } 
+    // 3. DETEKSI OTOMATIS (Membaca hasil pembelajaran masa lalu)
+    else {
+      // Cari di memori lokal aiKeywords apakah ada keyword yang cocok dengan input user
+      const coreWords = phraseWithoutAmount.replace(/(beli|bayar|untuk)\s*/g, '').trim().split(' ');
+      
+      // Cari kecocokan kata kunci
+      const matchKey = aiKeywords.find(k => coreWords.includes(k.keyword));
+      
+      if (matchKey) {
+        // Jika ketemu, cari nama kategorinya
+        const matchCat = userCategories.find(c => c.id === matchKey.category_id);
+        if (matchCat) {
+          categoryName = matchCat.name;
         }
       }
-
-      if (bestMatch) {
-        amount = maxVal;
-        // Hapus persis teks nominal tersebut dari catatan
-        cleanText = cleanText.replace(bestMatch[0], "").trim();
-      }
     }
 
-    // 3. RAPIKAN CATATAN
-    let note = cleanText.charAt(0).toUpperCase() + cleanText.slice(1);
-    note = note.replace(/\s+/g, ' ').trim(); 
+    // Bersihkan catatan akhir untuk nota transaksi (Capitalize huruf pertama)
+    const finalNote = phraseWithoutAmount.charAt(0).toUpperCase() + phraseWithoutAmount.slice(1);
 
-    // 4. FALLBACK DICTIONARY JIKA TIDAK PAKAI "POS"
-    if (!shouldLearn) {
-      const lowerText = note.toLowerCase();
-      for (const [cat, keywords] of Object.entries(aiDictionary)) {
-        if (keywords.some(kw => lowerText.includes(kw))) {
-          category = cat;
-          break;
-        }
-      }
-    }
-
-    return { amount, category, note, type, shouldLearn };
+    return {
+      amount,
+      category: categoryName.charAt(0).toUpperCase() + categoryName.slice(1),
+      note: finalNote
+    };
   };
+
+  const autoClassifyCategory = async (note) => {
+  if (!note || note.length < 3) return;
+  
+  const { data: keywords } = await supabase.from('ai_keywords').select('keyword, category_id(name)');
+  
+  const noteLower = note.toLowerCase();
+  const match = keywords?.find(k => noteLower.includes(k.keyword.toLowerCase()));
+  
+  if (match) {
+    setCategory(match.category_id.name); // AI mengisi kategori otomatis
+  } else {
+    setCategory(""); // Reset jika tidak ketemu
+  }
+};
+
+const extractAmount = (text) => {
+  const match = text.match(/\d+/); // Mencari deretan angka
+  return match ? parseInt(match[0]) : 0;
+};
 
   // ==========================================
   // ⚡ EKSEKUTOR UTAMA
@@ -135,7 +177,12 @@ export default function QuickCommandBar({ onProcessTransaction }) {
       learnNewKeyword(category, note);
     }
 
-    onProcessTransaction(note, amount, category, type);
+    // Saat memanggil fungsi submit/send
+  onProcessTransaction({
+      amount: extractAmount(inputText), 
+      note: inputText,
+      category: category
+  });
     
     setInputText("");
     setIsActive(false);
@@ -248,12 +295,15 @@ export default function QuickCommandBar({ onProcessTransaction }) {
             </button>
             
             <input 
-              autoFocus
-              type="text" 
+              type="text"
               value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              placeholder="Cth: out 50k Kopi atau pakai suara..." 
-              className="flex-1 bg-transparent border-none outline-none text-white placeholder-white/50 text-sm px-2"
+              onChange={(e) => {
+                const val = e.target.value;
+                setInputText(val); // Update teks ketikan
+                autoClassifyCategory(val); // Pemicu AI
+              }}
+              placeholder="Contoh: Beli pentol 10000"
+              className="..." // class Anda sebelumnya
             />
             
             <button 

@@ -78,7 +78,7 @@ export const useFinData = (walletId) => {
         setTransactions(prev => [data[0], ...prev]);
       }
     } catch (error) {
-      alert("Gagal menyimpan ke database: " + error.message);
+      throw error;
     }
   };
 

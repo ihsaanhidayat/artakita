@@ -211,3 +211,17 @@ body, main {
 body, main {
   overflow-x: hidden !important;
 }
+
+/* ========================================================== */
+/* MEMBUNUH SPIN BUTTON (PANAH) BAWAAN BROWSER DI INPUT ANGKA */
+/* ========================================================== */
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield; /* Khusus untuk browser Firefox */
+}
