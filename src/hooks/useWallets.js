@@ -12,7 +12,6 @@ export const useWallets = () => {
       const { data, error } = await supabase
         .from('wallets')
         .select('*')
-        .eq('user_id', session.user.id)
         .order('created_at', { ascending: true });
       
       if (data) setWallets(data);

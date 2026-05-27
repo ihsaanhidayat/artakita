@@ -18,9 +18,20 @@ export async function middleware(request) {
         },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value, options }) => {
+            
+            // 👇 SUNTIKAN GEMBOK KEAMANAN DI SINI (MEMBASMI BUG-001) 👇
+            const secureOptions = {
+              ...options,
+              httpOnly: true, // Mencegah pencurian token oleh script jahat (XSS)
+              secure: process.env.NODE_ENV === 'production', // Memaksa HTTPS aktif saat di-deploy (Vercel)
+              sameSite: 'strict', // Mencegah serangan CSRF dari web lain
+            }
+
             request.cookies.set(name, value)
             supabaseResponse = NextResponse.next({ request })
-            supabaseResponse.cookies.set(name, value, options)
+            
+            // 👈 Aplikasikan secureOptions yang sudah digembok ke response
+            supabaseResponse.cookies.set(name, value, secureOptions) 
           })
         },
       },

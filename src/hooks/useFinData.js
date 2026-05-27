@@ -1,5 +1,14 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { z } from "zod";
+
+// Skema Zod dipindahkan ke luar hook agar bisa diakses secara global
+const transactionSchema = z.object({
+  note: z.string().min(2, "Catatan minimal 2 karakter").max(100, "Catatan terlalu panjang"),
+  amount: z.number().positive("Nominal tidak boleh minus atau nol!"),
+  category: z.string().min(1, "Kategori tidak valid"),
+  type: z.enum(['income', 'expense'], { required_error: "Tipe transaksi harus 'income' atau 'expense'" })
+});
 
 export const useFinData = (walletId) => {
   const [transactions, setTransactions] = useState([]);
@@ -49,6 +58,14 @@ export const useFinData = (walletId) => {
   // --- 3. SIMPAN TRANSAKSI KE SUPABASE ---
   const addTransaction = async (note, amount, category, trxType = "expense") => {
     try {
+      // Data difilter dan divalidasi oleh Zod terlebih dahulu
+      const validatedData = transactionSchema.parse({ 
+        note, 
+        amount: Number(amount), 
+        category, 
+        type: trxType 
+      });
+
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
       if (sessionError || !session) {
@@ -56,15 +73,13 @@ export const useFinData = (walletId) => {
         return;
       }
 
-      const realUserId = session.user.id; 
-
       const newTrx = {
-        user_id: realUserId,
+        user_id: session.user.id,
         wallet_id: walletId,
-        note: note,
-        amount: Number(amount),
-        category: category,
-        type: trxType
+        note: validatedData.note,
+        amount: validatedData.amount,
+        category: validatedData.category,
+        type: validatedData.type
       };
 
       const { data, error } = await supabase
@@ -78,7 +93,11 @@ export const useFinData = (walletId) => {
         setTransactions(prev => [data[0], ...prev]);
       }
     } catch (error) {
-      throw error;
+      // Penanganan khusus untuk error Zod agar pesan rapi
+      if (error instanceof z.ZodError) {
+        throw new Error(error.errors[0].message);
+      }
+      throw error; // Lempar error Supabase ke fungsi pemanggil
     }
   };
 
@@ -97,7 +116,7 @@ export const useFinData = (walletId) => {
     }
   };
 
-  // --- 5. UPDATE TRANSAKSI (Sudah Mendukung Edit Nominal) ---
+  // --- 5. UPDATE TRANSAKSI ---
   const updateTransaction = async (id, note, category, amount) => {
     try {
       const { error } = await supabase
@@ -112,6 +131,5 @@ export const useFinData = (walletId) => {
     }
   };
 
-  // Baris return ini yang kemungkinan besar terhapus sebelumnya
   return { balance, totalIncome, totalExpense, transactions, addTransaction, deleteTransaction, updateTransaction };
 };

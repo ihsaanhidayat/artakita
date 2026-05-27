@@ -315,9 +315,9 @@ const extractAmount = (text) => {
               <Mic size={20} />
             </button>
 
-            <button type="submit" className="p-3 text-white/70 hover:text-white hover:scale-110 transition-all active:scale-95">
-              <Send size={20} />
-            </button>
+            <button type="submit" disabled={isSmartLoading}>
+            {isSmartLoading ? "Memproses..." : "Kirim"}
+          </button>
           </>
         )}
       </motion.form>

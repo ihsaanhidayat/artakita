@@ -5,28 +5,23 @@ export async function POST(request) {
   try {
     const { username, password } = await request.json();
 
-    // 1. Gunakan Master Key agar Anda tidak ter-logout
+    // Menggunakan KUNCI MASTER agar bisa membuat user tanpa merusak sesi admin
     const supabaseAdmin = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_ROLE_KEY
+      process.env.SUPABASE_SERVICE_ROLE_KEY,
+      { auth: { autoRefreshToken: false, persistSession: false } }
     );
 
-    // 2. Format username menjadi email internal
-    const email = `${username.toLowerCase().trim()}@artakita.internal`;
+    const email = `${username.trim().toLowerCase()}@artakita.internal`;
 
-    // 3. Buat User langsung ke Auth Supabase
-    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+    // Bypass proses daftar normal langsung via admin auth
+    const { data, error } = await supabaseAdmin.auth.admin.createUser({
       email: email,
       password: password,
-      email_confirm: true, // Langsung aktif
+      email_confirm: true, // Langsung aktif tanpa klik email
     });
 
-    if (authError) throw authError;
-
-    // 4. (Opsional) Paksa user baru mengganti password saat login pertama kali
-    await supabaseAdmin.from('profiles')
-      .update({ must_change_password: true })
-      .eq('id', authData.user.id);
+    if (error) throw error;
 
     return NextResponse.json({ success: true, message: "User berhasil dibuat!" });
   } catch (error) {
