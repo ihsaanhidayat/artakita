@@ -10,61 +10,35 @@ export async function middleware(request) {
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     {
-      // Di middleware.js
-cookies: {
-  getAll() { return request.cookies.getAll() },
-  setAll(cookiesToSet) {
-    cookiesToSet.forEach(({ name, value, options }) => {
-      request.cookies.set(name, value);
-      supabaseResponse = NextResponse.next({ request });
-      
-      // TAMBAHKAN INI: Memastikan cookie aman untuk HTTPS (Production)
-      supabaseResponse.cookies.set(name, value, {
-        ...options,
-        secure: true, // WAJIB untuk Vercel
-        sameSite: 'lax', // Atau 'none' jika cross-domain
-      });
-    });
-  },
-},
+      cookies: {
+        getAll() {
+          return request.cookies.getAll()
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            request.cookies.set(name, value)
+            supabaseResponse = NextResponse.next({ request })
+            supabaseResponse.cookies.set(name, value, options)
+          })
+        },
+      },
     }
   )
 
-  // Cek apakah user memiliki sesi aktif (sudah login)
   const { data: { session } } = await supabase.auth.getSession()
 
-  // Jika mencoba masuk ke halaman utama ('/') ATAU halaman dalam tapi TIDAK punya sesi:
-  // Maka TENDEANG ke halaman /login
-  if (!session && request.nextUrl.pathname.startsWith('/')) {
-    // Jangan redirect jika sedang berada di halaman auth (agar tidak infinite loop)
-    if (request.nextUrl.pathname.startsWith('/login') || request.nextUrl.pathname.startsWith('/register')) {
-      return supabaseResponse
-    }
-    const url = request.nextUrl.clone()
-    url.pathname = '/login'
-    return NextResponse.redirect(url)
-  }
-
-  // Jika SUDAH login tapi mencoba buka halaman /login, tendang ke Dasbor ('/')
-  if (session && request.nextUrl.pathname.startsWith('/login')) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/'
-    return NextResponse.redirect(url)
-  }
-
+  // LOGIKA BARU:
+  // Jika tidak ada sesi, biarkan mereka mengakses '/' (karena di '/' ada LoginView)
+  // Jadi tidak perlu redirect ke '/login' yang sudah tidak ada.
+  
+  // Jika ada sesi tapi mereka mencoba akses halaman yang tidak perlu, 
+  // atau logika lain, baru kita arahkan.
+  
   return supabaseResponse
 }
 
-// Konfigurasi path mana saja yang harus dijaga satpam
 export const config = {
   matcher: [
-    /*
-     * Match semua request path, KECUALI:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - images, dll (file public)
-     */
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }
