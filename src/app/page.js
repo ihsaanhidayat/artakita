@@ -1172,20 +1172,6 @@ const autoClassifyCategory = async (note) => {
 
                   <div className="mb-6"><ManageCategories /></div>
                   <div className="mb-8"><ManageBudgets selectedMonth={selectedMonth} /></div>
-                  <div className="bg-white dark:bg-[#121827] p-6 rounded-[24px] border border-gray-100 dark:border-gray-800 shadow-sm mb-8">
-                  <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mb-4">Pengaturan Tampilan</h3>
-                  <label className="text-xs font-bold text-gray-700 dark:text-gray-300 mb-2 block">Skala Layar ({appScale})</label>
-                  <input 
-                    type="range" 
-                    min="0.8" 
-                    max="1.1" 
-                    step="0.05" 
-                    value={appScale} 
-                    onChange={(e) => setAppScale(parseFloat(e.target.value))}
-                    className="w-full h-2 bg-gray-200 dark:bg-gray-800 rounded-lg appearance-none cursor-pointer accent-blue-500"
-                  />
-                  <p className="text-[9px] text-gray-500 mt-2">Geser untuk menyesuaikan tampilan di HP yang berbeda.</p>
-                </div>
 
                   {/* TOMBOL EXPORT LAPORAN DI SINI */}
                   <div className="mb-8">
@@ -1268,25 +1254,50 @@ const autoClassifyCategory = async (note) => {
             </AnimatePresence>
 
             {/* MODAL: TAMBAH DOMPET BARU */}
-            <AnimatePresence>
-              {newWalletModal.isOpen && (
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[99999] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-md p-4 pb-0 sm:pb-4">
-                  <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", damping: 25, stiffness: 300 }} className="w-full max-w-sm bg-white dark:bg-[#121827] rounded-t-[32px] sm:rounded-[32px] p-6 shadow-2xl border border-gray-100 dark:border-gray-800/80">
-                    <div className="flex justify-between items-center mb-6">
-                      <h3 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-widest">Buat Rekening Baru</h3>
-                      <button onClick={() => setNewWalletModal({ isOpen: false, name: '' })} className="p-2 text-gray-400 hover:text-red-500 bg-gray-50 dark:bg-gray-800/50 rounded-full transition-colors"><X size={16} /></button>
-                    </div>
-                    <form onSubmit={handleCreateWallet} className="space-y-4">
-                      <div>
-                        <label className="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Nama Rekening</label>
-                        <input type="text" required autoFocus value={newWalletModal.name} onChange={(e) => setNewWalletModal({ ...newWalletModal, name: e.target.value })} className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 rounded-2xl py-3 px-4 text-gray-900 dark:text-white outline-none focus:border-blue-500 font-bold" placeholder="Contoh: BCA Pribadi" />
-                      </div>
-                      <button type="submit" className="w-full bg-green-600 hover:bg-green-500 text-white font-bold text-xs uppercase tracking-widest py-3.5 rounded-2xl transition-all shadow-lg shadow-green-500/30 mt-2">Buka Rekening</button>
-                    </form>
-                  </motion.div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+            {/* MODAL: TAMBAH DOMPET BARU */}
+        <AnimatePresence>
+          {newWalletModal.isOpen && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-md p-0 sm:p-4">
+              <motion.div 
+                initial={{ y: "100%" }} 
+                animate={{ y: 0 }} 
+                exit={{ y: "100%" }} 
+                transition={{ type: "spring", damping: 25, stiffness: 300 }} 
+                className="w-full max-w-sm bg-white dark:bg-[#121827] rounded-t-[32px] sm:rounded-[32px] p-6 pb-10 sm:pb-6 shadow-2xl border border-gray-100 dark:border-gray-800/80 relative"
+              >
+                
+                {/* Garis Drag Handle untuk Mobile (Aesthetic) */}
+                <div className="w-12 h-1.5 bg-gray-200 dark:bg-gray-800 rounded-full mx-auto mb-6 sm:hidden"></div>
+
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-base font-black text-gray-900 dark:text-white uppercase tracking-widest">Buat Rekening Baru</h3>
+                  <button onClick={() => setNewWalletModal({ isOpen: false, name: '' })} className="p-2 text-gray-400 hover:text-red-500 bg-gray-50 dark:bg-gray-800/50 rounded-full transition-colors">
+                    <X size={18} />
+                  </button>
+                </div>
+                
+                <form onSubmit={handleCreateWallet} className="space-y-5">
+                  <div>
+                    <label className="block text-xs font-black text-gray-500 uppercase tracking-widest mb-2 ml-1">Nama Rekening</label>
+                    <input 
+                      type="text" 
+                      required 
+                      autoFocus 
+                      value={newWalletModal.name} 
+                      onChange={(e) => setNewWalletModal({ ...newWalletModal, name: e.target.value })} 
+                      className="w-full bg-gray-50 dark:bg-[#0a0f1c] border border-gray-200 dark:border-gray-800 rounded-2xl py-4 px-5 text-sm text-gray-900 dark:text-white outline-none focus:border-blue-500 font-bold transition-all" 
+                      placeholder="Contoh: BCA Pribadi" 
+                    />
+                  </div>
+                  <button type="submit" className="w-full bg-green-600 hover:bg-green-500 text-white font-black text-sm uppercase tracking-widest py-4 rounded-2xl transition-all shadow-lg shadow-green-500/30 mt-2">
+                    Buka Rekening
+                  </button>
+                </form>
+                
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
             {/* MODAL: EDIT DOMPET & SHARE DOMPET */}
             <AnimatePresence>
