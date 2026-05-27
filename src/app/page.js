@@ -18,6 +18,8 @@ import EditWalletModal from "@/components/EditWalletModal";
 import BudgetProgress from "@/components/BudgetProgress";
 import ManageBudgets from "@/components/ManageBudgets";
 import BudgetAlert from "@/components/BudgetAlert";
+import AddDebtModal from "@/components/AddDebtModal";
+import DebtsPage from "@/components/DebtsPage"
 
 // ============================================================
 // HELPER FUNCTIONS
@@ -49,7 +51,7 @@ const parseFlexibleNumber = (val) => {
   return num;
 };
 
-const CHART_COLORS = ["#3b82f6","#ef4444","#10b981","#f59e0b","#8b5cf6","#ec4899","#14b8a6"];
+const CHART_COLORS = ["#3b82f6", "#ef4444", "#10b981", "#f59e0b", "#8b5cf6", "#ec4899", "#14b8a6"];
 const THEME_GRADIENTS = [
   "from-blue-500 to-indigo-600",
   "from-pink-500 to-rose-600",
@@ -61,7 +63,7 @@ const THEME_GRADIENTS = [
 const getRecentMonths = () => {
   const months = [];
   const now = new Date();
-  const monthNames = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agt","Sep","Okt","Nov","Des"];
+  const monthNames = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agt", "Sep", "Okt", "Nov", "Des"];
   for (let i = -3; i <= 2; i++) {
     const temp = new Date(now.getFullYear(), now.getMonth() + i, 1);
     months.push({
@@ -170,11 +172,10 @@ const HomeTab = ({
         <div className="grid grid-cols-2 gap-4 sm:gap-6">
           <button
             onClick={() => setTypeFilter(typeFilter === "income" ? "all" : "income")}
-            className={`p-4 sm:p-6 rounded-[24px] sm:rounded-[32px] border transition-all ${
-              typeFilter === "income"
-                ? "bg-green-500/10 border-green-500 shadow-lg shadow-green-500/20"
-                : "bg-gray-50 dark:bg-gray-900/40 border-gray-100 dark:border-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800"
-            }`}
+            className={`p-4 sm:p-6 rounded-[24px] sm:rounded-[32px] border transition-all ${typeFilter === "income"
+              ? "bg-green-500/10 border-green-500 shadow-lg shadow-green-500/20"
+              : "bg-gray-50 dark:bg-gray-900/40 border-gray-100 dark:border-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800"
+              }`}
           >
             <div className="flex items-center gap-1.5 sm:gap-2 text-green-600 dark:text-green-500 mb-1.5 sm:mb-2">
               <ArrowDownCircle size={16} className="sm:w-5 sm:h-5" />
@@ -186,11 +187,10 @@ const HomeTab = ({
           </button>
           <button
             onClick={() => setTypeFilter(typeFilter === "expense" ? "all" : "expense")}
-            className={`p-4 sm:p-6 rounded-[24px] sm:rounded-[32px] border transition-all ${
-              typeFilter === "expense"
-                ? "bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20"
-                : "bg-gray-50 dark:bg-gray-900/40 border-gray-100 dark:border-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800"
-            }`}
+            className={`p-4 sm:p-6 rounded-[24px] sm:rounded-[32px] border transition-all ${typeFilter === "expense"
+              ? "bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20"
+              : "bg-gray-50 dark:bg-gray-900/40 border-gray-100 dark:border-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800"
+              }`}
           >
             <div className="flex items-center gap-1.5 sm:gap-2 text-red-600 dark:text-red-500 mb-1.5 sm:mb-2">
               <ArrowUpCircle size={16} className="sm:w-5 sm:h-5" />
@@ -236,11 +236,10 @@ const HomeTab = ({
           <button
             key={cat}
             onClick={() => setCategoryFilter(cat)}
-            className={`snap-center shrink-0 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${
-              categoryFilter === cat
-                ? "bg-blue-600 text-white shadow-lg shadow-blue-500/30"
-                : "bg-transparent text-gray-500 border border-gray-200 dark:border-gray-800"
-            }`}
+            className={`snap-center shrink-0 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${categoryFilter === cat
+              ? "bg-blue-600 text-white shadow-lg shadow-blue-500/30"
+              : "bg-transparent text-gray-500 border border-gray-200 dark:border-gray-800"
+              }`}
           >
             {cat}
           </button>
@@ -257,11 +256,10 @@ const HomeTab = ({
           <button
             key={key}
             onClick={() => setQuickTimeFilter(key)}
-            className={`flex-1 text-[9px] font-black uppercase tracking-widest py-2.5 rounded-xl transition-all duration-300 ${
-              quickTimeFilter === key
-                ? "bg-white dark:bg-blue-600 text-blue-600 dark:text-white shadow-sm"
-                : "text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
-            }`}
+            className={`flex-1 text-[9px] font-black uppercase tracking-widest py-2.5 rounded-xl transition-all duration-300 ${quickTimeFilter === key
+              ? "bg-white dark:bg-blue-600 text-blue-600 dark:text-white shadow-sm"
+              : "text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+              }`}
           >
             {label}
           </button>
@@ -323,11 +321,10 @@ const HomeTab = ({
             >
               {/* Icon */}
               <div className="flex items-center gap-4">
-                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${
-                  trx.type === "income"
-                    ? "bg-green-500/10 text-green-600 dark:text-green-400"
-                    : "bg-red-500/10 text-red-500 dark:text-red-400"
-                }`}>
+                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${trx.type === "income"
+                  ? "bg-green-500/10 text-green-600 dark:text-green-400"
+                  : "bg-red-500/10 text-red-500 dark:text-red-400"
+                  }`}>
                   {getIcon(trx.category)}
                 </div>
                 <div>
@@ -347,9 +344,8 @@ const HomeTab = ({
 
               {/* Amount + Actions */}
               <div className="flex flex-col items-end gap-2 shrink-0">
-                <p className={`font-black text-base tracking-tight ${
-                  trx.type === "income" ? "text-green-600 dark:text-green-400" : "text-red-500 dark:text-red-400"
-                }`}>
+                <p className={`font-black text-base tracking-tight ${trx.type === "income" ? "text-green-600 dark:text-green-400" : "text-red-500 dark:text-red-400"
+                  }`}>
                   {trx.type === "income" ? "+" : "-"}Rp {Number(trx.amount).toLocaleString("id-ID")}
                 </p>
                 <div className="flex gap-1.5">
@@ -377,12 +373,12 @@ const HomeTab = ({
 
 /** TAB: ANALYTICS — Ringkasan keuangan & breakdown kategori */
 const AnalyticsTab = ({ filteredTransactions, selectedMonth }) => {
-  const COLORS = ["#ef4444","#f59e0b","#3b82f6","#10b981","#8b5cf6","#ec4899","#14b8a6"];
+  const COLORS = ["#ef4444", "#f59e0b", "#3b82f6", "#10b981", "#8b5cf6", "#ec4899", "#14b8a6"];
 
   try {
     const safeTransactions = Array.isArray(filteredTransactions) ? filteredTransactions : [];
     const expenses = safeTransactions.filter((t) => t?.type === "expense" || !t?.type);
-    const incomes  = safeTransactions.filter((t) => t?.type === "income");
+    const incomes = safeTransactions.filter((t) => t?.type === "income");
 
     const statsData = expenses
       .reduce((acc, trx) => {
@@ -396,7 +392,7 @@ const AnalyticsTab = ({ filteredTransactions, selectedMonth }) => {
       .sort((a, b) => b.value - a.value);
 
     const totalExpense = statsData.reduce((s, i) => s + i.value, 0);
-    const totalIncome  = incomes.reduce((s, t) => s + (Number(t.amount) || 0), 0);
+    const totalIncome = incomes.reduce((s, t) => s + (Number(t.amount) || 0), 0);
 
     let healthGrade = "A", healthMessage = "Sangat Sehat! Surplus kas Anda aman.";
     let gradeColor = "text-green-500", gradeBg = "from-green-500/20 to-green-500/5 border-green-500/30";
@@ -544,11 +540,10 @@ const WalletsTab = ({
             key={wallet.id}
             whileTap={{ scale: 0.95 }}
             onClick={() => { setActiveWallet({ id: wallet.id, name: wallet.name }); setActiveTab("home"); }}
-            className={`w-full text-left relative overflow-hidden rounded-[32px] p-6 transition-all border-2 cursor-pointer ${
-              activeWallet.id === wallet.id
-                ? "border-blue-500 shadow-xl shadow-blue-500/20"
-                : "border-transparent shadow-lg hover:border-gray-300 dark:hover:border-gray-700"
-            }`}
+            className={`w-full text-left relative overflow-hidden rounded-[32px] p-6 transition-all border-2 cursor-pointer ${activeWallet.id === wallet.id
+              ? "border-blue-500 shadow-xl shadow-blue-500/20"
+              : "border-transparent shadow-lg hover:border-gray-300 dark:hover:border-gray-700"
+              }`}
           >
             <div className={`absolute inset-0 bg-gradient-to-br ${THEME_GRADIENTS[idx % THEME_GRADIENTS.length]} opacity-90`} />
             <div className="absolute -right-8 -top-8 w-32 h-32 rounded-full bg-white/10 blur-2xl" />
@@ -840,6 +835,9 @@ export default function Home() {
   // --- Financial Data ---
   const { balance, transactions, addTransaction, deleteTransaction, updateTransaction } = useFinData(activeWallet.id);
 
+  // --- Debts
+  const [isAddDebtOpen, setIsAddDebtOpen] = useState(false);
+
   // --- Filter State ---
   const [typeFilter, setTypeFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("Semua");
@@ -1057,14 +1055,14 @@ export default function Home() {
     const rows = transactions.map((trx) => {
       const d = new Date(trx.created_at);
       const tanggal = d.toLocaleDateString("id-ID", { year: "numeric", month: "2-digit", day: "2-digit" });
-      const waktu   = d.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+      const waktu = d.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
       const catatan = `"${trx.note.replace(/"/g, '""')}"`;
-      const jenis   = trx.type === "income" ? "Pemasukan" : "Pengeluaran";
+      const jenis = trx.type === "income" ? "Pemasukan" : "Pengeluaran";
       return [tanggal, waktu, catatan, trx.category, jenis, trx.amount];
     });
-    const csv  = "\uFEFF" + [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const csv = "\uFEFF" + [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url  = URL.createObjectURL(blob);
+    const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
     link.setAttribute("download", `Laporan_ArtaKita_${new Date().toLocaleDateString("id-ID").replace(/\//g, "-")}.csv`);
@@ -1112,17 +1110,17 @@ export default function Home() {
     try {
       const cleanText = command.toLowerCase().trim();
       let type = "expense", textWithoutType = cleanText;
-      if (cleanText.startsWith("in "))  { type = "income";  textWithoutType = cleanText.substring(3).trim(); }
+      if (cleanText.startsWith("in ")) { type = "income"; textWithoutType = cleanText.substring(3).trim(); }
       if (cleanText.startsWith("out ")) { type = "expense"; textWithoutType = cleanText.substring(4).trim(); }
 
       const regexNominal = /^(\d+(?:[.,]\d+)?(?:k|rb|ribu|m|jt|juta)?)\s+(.+)$/i;
       const matchNominal = textWithoutType.match(regexNominal);
       if (!matchNominal) { showNotification("Format salah! Gunakan: [in/out] [angka] [catatan]", "error"); return; }
 
-      const amount   = parseFlexibleNumber(matchNominal[1]);
-      let rawNote    = matchNominal[2].trim();
+      const amount = parseFlexibleNumber(matchNominal[1]);
+      let rawNote = matchNominal[2].trim();
       let categoryName = "Lainnya";
-      let finalNote  = rawNote;
+      let finalNote = rawNote;
 
       if (rawNote.includes(" pos ")) {
         const parts = rawNote.split(" pos ");
@@ -1147,7 +1145,7 @@ export default function Home() {
         }
       } else {
         const coreWords = rawNote.replace(/(beli|bayar|untuk)\s*/g, "").trim().split(" ");
-        const matchKey  = aiKeywords.find((k) => coreWords.includes(k.keyword));
+        const matchKey = aiKeywords.find((k) => coreWords.includes(k.keyword));
         if (matchKey) {
           const matchCat = userCategories.find((c) => c.id === matchKey.category_id);
           if (matchCat) categoryName = matchCat.name;
@@ -1165,7 +1163,7 @@ export default function Home() {
   const handleAddGoal = async (e) => {
     e.preventDefault();
     if (!newGoalData.name.trim() || !newGoalData.target) return;
-    const parsedTarget  = parseFlexibleNumber(newGoalData.target);
+    const parsedTarget = parseFlexibleNumber(newGoalData.target);
     const parsedCurrent = parseFlexibleNumber(newGoalData.current);
     const { data, error } = await supabase
       .from("savings_goals")
@@ -1213,21 +1211,21 @@ export default function Home() {
   // ============================================================
 
   const transactionsThisMonth = transactions.filter((t) => t.created_at?.startsWith(selectedMonth));
-  const incomeThisMonth  = transactionsThisMonth.filter((t) => t.type === "income").reduce((a, c) => a + Number(c.amount), 0);
+  const incomeThisMonth = transactionsThisMonth.filter((t) => t.type === "income").reduce((a, c) => a + Number(c.amount), 0);
   const expenseThisMonth = transactionsThisMonth.filter((t) => t.type === "expense" || !t.type).reduce((a, c) => a + Number(c.amount), 0);
 
   const existingCategories = [...new Set(transactionsThisMonth.map((t) => t.category))];
-  const dynamicCategories  = ["Semua", ...existingCategories];
+  const dynamicCategories = ["Semua", ...existingCategories];
 
   const filteredTransactions = transactionsThisMonth.filter((t) => {
     const matchType = typeFilter === "all" ? true : typeFilter === "income" ? t.type === "income" : (t.type === "expense" || !t.type);
-    const matchCat  = categoryFilter === "Semua" ? true : t.category === categoryFilter;
+    const matchCat = categoryFilter === "Semua" ? true : t.category === categoryFilter;
     const searchLow = searchQuery.toLowerCase();
     const matchSearch = searchQuery === "" || t.note.toLowerCase().includes(searchLow) || t.category.toLowerCase().includes(searchLow);
     let matchTime = true;
     if (quickTimeFilter !== "month" && t.created_at) {
       const trxDate = new Date(t.created_at);
-      const today   = new Date();
+      const today = new Date();
       if (quickTimeFilter === "today") {
         matchTime = trxDate.toDateString() === today.toDateString();
       } else if (quickTimeFilter === "week") {
@@ -1239,7 +1237,7 @@ export default function Home() {
     return matchType && matchCat && matchSearch && matchTime;
   });
 
-  const filteredIncome  = filteredTransactions.filter((t) => t.type === "income").reduce((a, c) => a + Number(c.amount), 0);
+  const filteredIncome = filteredTransactions.filter((t) => t.type === "income").reduce((a, c) => a + Number(c.amount), 0);
   const filteredExpense = filteredTransactions.filter((t) => t.type === "expense" || !t.type).reduce((a, c) => a + Number(c.amount), 0);
 
   // ============================================================
@@ -1298,6 +1296,15 @@ export default function Home() {
           </motion.div>
         </main>
 
+      ) : !activeWallet ? (
+        /* ===================== LOADING WALLET ===================== */
+        <main className="w-full max-w-lg mx-auto min-h-screen flex items-center justify-center bg-white dark:bg-black">
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-10 h-10 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Memuat data...</p>
+          </div>
+        </main>
+
       ) : (
         /* ===================== MAIN APP ===================== */
         <main className="w-full max-w-lg mx-auto relative min-h-screen overflow-x-hidden bg-white dark:bg-black">
@@ -1311,11 +1318,10 @@ export default function Home() {
                 exit={{ opacity: 0, y: -20, scale: 0.9 }}
                 className="fixed top-6 left-0 right-0 z-[999999] flex justify-center px-4 pointer-events-none"
               >
-                <div className={`flex items-center gap-3 px-5 py-3.5 rounded-full shadow-2xl backdrop-blur-xl border ${
-                  appNotification.type === "error"
-                    ? "bg-red-500/10 border-red-500/20 text-red-500 shadow-red-500/10"
-                    : "bg-green-500/10 border-green-500/20 text-green-500 shadow-green-500/10"
-                }`}>
+                <div className={`flex items-center gap-3 px-5 py-3.5 rounded-full shadow-2xl backdrop-blur-xl border ${appNotification.type === "error"
+                  ? "bg-red-500/10 border-red-500/20 text-red-500 shadow-red-500/10"
+                  : "bg-green-500/10 border-green-500/20 text-green-500 shadow-green-500/10"
+                  }`}>
                   {appNotification.type === "error" ? <X size={18} /> : <Command size={18} />}
                   <span className="text-xs font-bold tracking-wide">{appNotification.message}</span>
                 </div>
@@ -1468,6 +1474,14 @@ export default function Home() {
                 selectedMonth={selectedMonth}
                 exportToCSV={exportToCSV}
                 handleLogout={handleLogout}
+              />
+            )}
+
+            {activeTab === "debts" && (
+              <DebtsPage
+                key="debts"
+                activeWallet={activeWallet}  // ← pastikan ini ada
+                balance={balance}
               />
             )}
           </AnimatePresence>
@@ -1649,6 +1663,13 @@ export default function Home() {
             )}
           </AnimatePresence>
 
+          {/* --- Add New Debts Modal --- */}
+          <AddDebtModal
+            isOpen={isAddDebtOpen}
+            onClose={() => setIsAddDebtOpen(false)}
+            onSuccess={() => showNotification("Hutang/Piutang berhasil dicatat!", "success")}
+          />
+
           {/* ---- Delete Goal Modal ---- */}
           <AnimatePresence>
             {goalDeleteModal.isOpen && (
@@ -1691,39 +1712,26 @@ export default function Home() {
           <nav className="fixed bottom-0 left-0 right-0 z-[9999] bg-white/80 dark:bg-[#0a0f1c]/90 backdrop-blur-xl border-t border-gray-200 dark:border-gray-800 pb-safe">
             <div className="w-full max-w-lg mx-auto flex justify-between items-center px-4 py-4">
               {[
-                { id: "home",      label: "HOME",    Icon: HomeIcon },
-                { id: "analytics", label: "STATS",   Icon: PieChartIcon },
-                { id: "wallets",   label: "WALLETS", Icon: CreditCard },
-                { id: "settings",  label: "SET",     Icon: Settings },
-              ].map(({ id, label, Icon }) => {
-                const isActive = activeTab === id;
+                { id: 'home', label: 'HOME', Icon: HomeIcon },
+                { id: 'analytics', label: 'STATS', Icon: PieChartIcon },
+                { id: 'debts', label: 'HUTANG', Icon: Receipt },
+                { id: 'wallets', label: 'WALLETS', Icon: CreditCard },
+                { id: 'settings', label: 'SET', Icon: Settings }
+              ].map((menu) => {
+                const isActive = activeTab === menu.id;
                 return (
                   <motion.button
-                    key={id}
-                    onClick={() => setActiveTab(id)}
+                    key={menu.id}
+                    onClick={() => setActiveTab(menu.id)} // PERBAIKAN: Semua menu sekarang berfungsi
                     whileTap={{ scale: 0.85 }}
                     animate={{ scale: isActive ? 1.15 : 1, y: isActive ? -6 : 0 }}
                     transition={{ type: "spring", stiffness: 400, damping: 15 }}
                     className="flex flex-col items-center gap-1.5 relative w-12"
-                    style={{ WebkitTapHighlightColor: "transparent" }}
+                    style={{ WebkitTapHighlightColor: 'transparent' }}
                   >
-                    {isActive && (
-                      <motion.div
-                        layoutId="navGlow"
-                        className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-8 bg-blue-500/20 blur-md rounded-full -z-10"
-                      />
-                    )}
-                    <Icon
-                      size={22}
-                      className={`transition-colors duration-300 ${
-                        isActive ? "text-blue-500 fill-blue-500/20" : "text-gray-400 dark:text-gray-600 fill-transparent"
-                      }`}
-                    />
-                    <span className={`text-[9px] font-black uppercase tracking-widest transition-colors duration-300 ${
-                      isActive ? "text-blue-500" : "text-gray-400 dark:text-gray-600"
-                    }`}>
-                      {label}
-                    </span>
+                    {isActive && <motion.div layoutId="navGlow" className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-8 bg-blue-500/20 blur-md rounded-full -z-10" />}
+                    <menu.Icon size={22} className={`transition-colors duration-300 ${isActive ? "text-blue-500 fill-blue-500/20" : "text-gray-400 dark:text-gray-600 fill-transparent"}`} />
+                    <span className={`text-[9px] font-black uppercase tracking-widest transition-colors duration-300 ${isActive ? 'text-blue-500' : 'text-gray-400 dark:text-gray-600'}`}>{menu.label}</span>
                   </motion.button>
                 );
               })}
