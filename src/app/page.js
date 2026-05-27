@@ -140,41 +140,74 @@ export default function Home() {
   }, []); // <-- React mungkin meminta checkProfileStatus dimasukkan ke dalam kurung siku ini jika Anda pakai ESLint ketat
 
 
+
   // === 2. STATE DOMPET ===
   const { wallets, addWallet } = useWallets();
+  // === 2. STATE DOMPET AKTIF ===
   const [activeWallet, setActiveWallet] = useState({ id: "dompet-1", name: "Dompet Utama" });
+
+  // Membaca dompet terakhir saat aplikasi pertama kali dimuat
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const savedWallet = localStorage.getItem("arta_active_wallet");
+      if (savedWallet) setActiveWallet(JSON.parse(savedWallet));
+    }
+  }, []);
+
+  // Menyimpan dompet ke memori setiap kali user pindah dompet
+  useEffect(() => {
+    if (activeWallet.id !== "dompet-1") {
+      localStorage.setItem("arta_active_wallet", JSON.stringify(activeWallet));
+    }
+  }, [activeWallet]);
 
   // === 3. DATA FINANSIAL ===
   const { balance, transactions, addTransaction, deleteTransaction, updateTransaction } = useFinData(activeWallet.id);
 
-  // === STATE UNTUK POP-UP HAPUS ===
-  const [deleteConfirmModal, setDeleteConfirmModal] = useState({ isOpen: false, trxId: null, amount: null });
-
-  // Fungsi untuk memunculkan pop-up
-  const handleDeleteClick = (id, amount) => {
-    setDeleteConfirmModal({ isOpen: true, trxId: id, amount: amount });
-  };
-
-  // Fungsi untuk mengeksekusi penghapusan jika tombol "Ya" diklik
-  const executeDelete = () => {
-    if (deleteConfirmModal.trxId) {
-      deleteTransaction(deleteConfirmModal.trxId, deleteConfirmModal.amount); // Memanggil fungsi hook asli
-    }
-    setDeleteConfirmModal({ isOpen: false, trxId: null, amount: null }); // Tutup pop-up
-  };
-
   // Tambahkan ini di deretan useState Anda
-const [appScale, setAppScale] = useState(() => {
-  if (typeof window !== "undefined") {
-    return parseFloat(localStorage.getItem("appScale")) || 1;
-  }
-  return 1;
-});
+  const [appScale, setAppScale] = useState(() => {
+    if (typeof window !== "undefined") {
+      return parseFloat(localStorage.getItem("appScale")) || 1;
+    }
+    return 1;
+  });
 
-// Efek untuk menyimpan perubahan skala
-useEffect(() => {
-  localStorage.setItem("appScale", appScale);
-}, [appScale]);
+
+  // Efek untuk menyimpan perubahan skala
+  useEffect(() => {
+    localStorage.setItem("appScale", appScale);
+  }, [appScale]);
+
+  // STATE UNTUK MODAL TAMBAH USER
+  const [addUserModal, setAddUserModal] = useState({ isOpen: false, username: '', password: '', isLoading: false });
+
+  // FUNGSI EKSEKUSI KE BACKEND KITA
+  const handleCreateNewUser = async (e) => {
+    e.preventDefault();
+    setAddUserModal(prev => ({ ...prev, isLoading: true }));
+
+    try {
+      const res = await fetch('/api/admin/add-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: addUserModal.username,
+          password: addUserModal.password
+        })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.error);
+
+      // Gunakan toast notification mewah Anda
+      showNotification(`Akses untuk ${addUserModal.username} berhasil dibuat!`, "success");
+      setAddUserModal({ isOpen: false, username: '', password: '', isLoading: false });
+    } catch (err) {
+      showNotification("Gagal: " + err.message, "error");
+      setAddUserModal(prev => ({ ...prev, isLoading: false }));
+    }
+  };
 
   // ==========================================
   // 📊 FITUR EXPORT LAPORAN KE CSV
@@ -250,6 +283,10 @@ useEffect(() => {
   const [activeGoalInput, setActiveGoalInput] = useState(null); // Menyimpan ID celengan yang sedang mau diisi/dikurangi
   const [flexibleSavingsAmount, setFlexibleSavingsAmount] = useState(''); // Menyimpan teks input (misal: 10k, 1jt)
 
+  // STATE UNTUK MODAL KONFIRMASI HAPUS
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState(null);
+
   useEffect(() => {
     const fetchAllBudgets = async () => {
       const { data } = await supabase.from('budgets').select('*').eq('month_year', selectedMonth);
@@ -263,9 +300,10 @@ useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Auto-pilih dompet pertama jika ada
+  // Auto-pilih dompet pertama jika belum ada yang tersimpan di Local Storage
   useEffect(() => {
-    if (wallets.length > 0 && activeWallet.id === "dompet-1") {
+    const savedWallet = localStorage.getItem("arta_active_wallet");
+    if (!savedWallet && wallets.length > 0 && activeWallet.id === "dompet-1") {
       setActiveWallet({ id: wallets[0].id, name: wallets[0].name });
     }
   }, [wallets, activeWallet.id]);
@@ -405,165 +443,158 @@ useEffect(() => {
 
   // === ACTION HANDLERS ===
 
-    // === ACTION HANDLERS ===
-    const getIcon = (category) => {
-      switch (category) {
-        case 'Makan': return <Coffee size={18} />;
-        case 'Belanja': return <ShoppingBag size={18} />;
-        case 'Tagihan': return <Receipt size={18} />;
-        default: return <Layers size={18} />;
-      }
-    };
+  // === ACTION HANDLERS ===
+  const getIcon = (category) => {
+    switch (category) {
+      case 'Makan': return <Coffee size={18} />;
+      case 'Belanja': return <ShoppingBag size={18} />;
+      case 'Tagihan': return <Receipt size={18} />;
+      default: return <Layers size={18} />;
+    }
+  };
 
-    const handleCreateWallet = async (e) => {
-      e.preventDefault();
-      if (!newWalletModal.name.trim()) return;
-      const result = await addWallet(newWalletModal.name);
-      if (result) {
-        setNewWalletModal({ isOpen: false, name: '' });
-        setActiveWallet({ id: result.id, name: result.name });
-        setActiveTab('home');
-      }
-    };
+  const handleCreateWallet = async (e) => {
+    e.preventDefault();
+    if (!newWalletModal.name.trim()) return;
+    const result = await addWallet(newWalletModal.name);
+    if (result) {
+      setNewWalletModal({ isOpen: false, name: '' });
+      setActiveWallet({ id: result.id, name: result.name });
+      setActiveTab('home');
+    }
+  };
 
-    // Tambahkan fungsi ini di dalam komponen Anda
-const autoClassifyCategory = async (note) => {
-  if (!note || note.length < 3) return;
-  
-  // Ambil memori AI (bisa Anda ambil dari state kategori/keywords yang sudah ada)
-  const { data: keywords } = await supabase.from('ai_keywords').select('keyword, category_id(name)');
-  
-  const noteLower = note.toLowerCase();
-  const match = keywords.find(k => noteLower.includes(k.keyword.toLowerCase()));
-  
-  if (match) {
-    // Otomatis update kategori di state modal tanpa mengganti fokus user
-    setEditTrxModal(prev => ({
-      ...prev,
-      data: { ...prev.data, category: match.category_id.name }
-    }));
-  }
-};
+  // Tambahkan fungsi ini di dalam komponen Anda
+  const autoClassifyCategory = async (note) => {
+    if (!note || note.length < 3) return;
 
-    const handleSaveTrxEdit = async (e) => {
-      e.preventDefault();
-      const currentData = editTrxModal.data;
+    // Ambil memori AI (bisa Anda ambil dari state kategori/keywords yang sudah ada)
+    const { data: keywords } = await supabase.from('ai_keywords').select('keyword, category_id(name)');
 
-      // Pengaman 1: Pastikan data benar-benar ada sebelum diproses
-      if (!currentData || !currentData.note || !currentData.amount || !currentData.category) return;
+    const noteLower = note.toLowerCase();
+    const match = keywords.find(k => noteLower.includes(k.keyword.toLowerCase()));
 
-      await updateTransaction(currentData.id, currentData.note, currentData.category, currentData.amount);
+    if (match) {
+      // Otomatis update kategori di state modal tanpa mengganti fokus user
+      setEditTrxModal(prev => ({
+        ...prev,
+        data: { ...prev.data, category: match.category_id.name }
+      }));
+    }
+  };
 
-      // Pengaman 2: Jangan pernah set data menjadi null. 
-      // Biarkan isOpen menjadi false agar Framer Motion bisa menutupnya dengan mulus.
-      setEditTrxModal(prev => ({ ...prev, isOpen: false }));
-    };
+  const handleSaveTrxEdit = async (e) => {
+    e.preventDefault();
+    const currentData = editTrxModal.data;
 
-    const handleSmartSubmit = async (e) => {
-      e.preventDefault();
-      if (!smartCommand.trim()) return;
+    // Pengaman 1: Pastikan data benar-benar ada sebelum diproses
+    if (!currentData || !currentData.note || !currentData.amount || !currentData.category) return;
 
-      const cleanText = smartCommand.toLowerCase().trim();
+    await updateTransaction(currentData.id, currentData.note, currentData.category, currentData.amount);
 
-      // 1. Ekstrak Tipe (in/out)
-      let type = 'expense';
-      let textWithoutType = cleanText;
-      if (cleanText.startsWith('in ')) {
-        type = 'income';
-        textWithoutType = cleanText.substring(3).trim();
-      } else if (cleanText.startsWith('out ')) {
-        type = 'expense';
-        textWithoutType = cleanText.substring(4).trim();
-      }
+    // Pengaman 2: Jangan pernah set data menjadi null. 
+    // Biarkan isOpen menjadi false agar Framer Motion bisa menutupnya dengan mulus.
+    setEditTrxModal(prev => ({ ...prev, isOpen: false }));
+  };
 
-      // 2. EKSTRAK NOMINAL UANG (Ini solusi anti-null!)
-      // Regex ini bertugas memisahkan angka (misal: 15k) dengan kata-kata setelahnya
-      const regexNominal = /^(\d+(?:[.,]\d+)?(?:k|rb|ribu|m|jt|juta)?)\s+(.+)$/i;
-      const matchNominal = textWithoutType.match(regexNominal);
+  const handleSmartSubmit = async (e) => {
+    e.preventDefault();
+    if (!smartCommand.trim()) return;
 
-      let amount = 0;
-      let rawNote = textWithoutType;
+    const cleanText = smartCommand.toLowerCase().trim();
 
-      if (matchNominal) {
-        // Jika ketemu angka, langsung ubah jadi angka murni pakai fungsi bawaan Anda
-        amount = parseFlexibleNumber(matchNominal[1]);
-        rawNote = matchNominal[2].trim();
-      } else {
-        // Jika user tidak memasukkan angka (misal hanya ketik "out beli pulsa")
-        showNotification("Format salah! Gunakan: [in/out] [angka] [catatan]", "error");
-        return; // Hentikan proses agar tidak error masuk ke database
-      }
+    // 1. Ekstrak Tipe (in/out)
+    let type = 'expense';
+    let textWithoutType = cleanText;
+    if (cleanText.startsWith('in ')) {
+      type = 'income';
+      textWithoutType = cleanText.substring(3).trim();
+    } else if (cleanText.startsWith('out ')) {
+      type = 'expense';
+      textWithoutType = cleanText.substring(4).trim();
+    }
 
-      // 3. LOGIKA AI PEMBELAJARAN (POS KATEGORI)
-      let categoryName = "Lainnya";
-      let finalNote = rawNote;
+    // 2. EKSTRAK NOMINAL UANG (Ini solusi anti-null!)
+    // Regex ini bertugas memisahkan angka (misal: 15k) dengan kata-kata setelahnya
+    const regexNominal = /^(\d+(?:[.,]\d+)?(?:k|rb|ribu|m|jt|juta)?)\s+(.+)$/i;
+    const matchNominal = textWithoutType.match(regexNominal);
 
-      if (rawNote.includes(' pos ')) {
-        const parts = rawNote.split(' pos ');
-        finalNote = parts[0].trim();
-        const targetCategory = parts[1].trim();
+    let amount = 0;
+    let rawNote = textWithoutType;
 
-        if (targetCategory && finalNote) {
-          categoryName = targetCategory.charAt(0).toUpperCase() + targetCategory.slice(1);
-          const coreKeyword = finalNote.replace(/(beli|bayar|untuk)\s*/g, '').trim();
+    if (matchNominal) {
+      // Jika ketemu angka, langsung ubah jadi angka murni pakai fungsi bawaan Anda
+      amount = parseFlexibleNumber(matchNominal[1]);
+      rawNote = matchNominal[2].trim();
+    } else {
+      // Jika user tidak memasukkan angka (misal hanya ketik "out beli pulsa")
+      showNotification("Format salah! Gunakan: [in/out] [angka] [catatan]", "error");
+      return; // Hentikan proses agar tidak error masuk ke database
+    }
 
-          // AI Belajar di background
-          setTimeout(async () => {
-            try {
-              let { data: catData } = await supabase.from('user_categories').select('id').eq('name', categoryName).single();
-              if (!catData) {
-                const { data: newCat } = await supabase.from('user_categories').insert([{ name: categoryName }]).select('id').single();
-                catData = newCat;
-              }
-              if (catData) {
-                await supabase.from('ai_keywords').insert([{ category_id: catData.id, keyword: coreKeyword }]);
-                fetchAiBrain();
-              }
-            } catch (err) {
-              console.log("AI: Kata kunci sudah dipelajari.");
+    // 3. LOGIKA AI PEMBELAJARAN (POS KATEGORI)
+    let categoryName = "Lainnya";
+    let finalNote = rawNote;
+
+    if (rawNote.includes(' pos ')) {
+      const parts = rawNote.split(' pos ');
+      finalNote = parts[0].trim();
+      const targetCategory = parts[1].trim();
+
+      if (targetCategory && finalNote) {
+        categoryName = targetCategory.charAt(0).toUpperCase() + targetCategory.slice(1);
+        const coreKeyword = finalNote.replace(/(beli|bayar|untuk)\s*/g, '').trim();
+
+        // AI Belajar di background
+        setTimeout(async () => {
+          try {
+            let { data: catData } = await supabase.from('user_categories').select('id').eq('name', categoryName).single();
+            if (!catData) {
+              const { data: newCat } = await supabase.from('user_categories').insert([{ name: categoryName }]).select('id').single();
+              catData = newCat;
             }
-          }, 500);
-        }
-      } else {
-        // AI Mengingat otomatis
-        const coreWords = rawNote.replace(/(beli|bayar|untuk)\s*/g, '').trim().split(' ');
-        const matchKey = aiKeywords.find(k => coreWords.includes(k.keyword));
-
-        if (matchKey) {
-          const matchCat = userCategories.find(c => c.id === matchKey.category_id);
-          if (matchCat) categoryName = matchCat.name;
-        }
+            if (catData) {
+              await supabase.from('ai_keywords').insert([{ category_id: catData.id, keyword: coreKeyword }]);
+              fetchAiBrain();
+            }
+          } catch (err) {
+            console.log("AI: Kata kunci sudah dipelajari.");
+          }
+        }, 500);
       }
+    } else {
+      // AI Mengingat otomatis
+      const coreWords = rawNote.replace(/(beli|bayar|untuk)\s*/g, '').trim().split(' ');
+      const matchKey = aiKeywords.find(k => coreWords.includes(k.keyword));
 
-      // Rapikan huruf pertama catatan agar kapital
-      finalNote = finalNote.charAt(0).toUpperCase() + finalNote.slice(1);
-
-      // 4. SIMPAN KE DATABASE (DENGAN PERLINDUNGAN TOAST MEWAH)
-      try {
-        // ⚠️ TUGAS PENTING UNTUK ANDA: 
-        // Cek file `src/hooks/useFinData.js` pada bagian fungsi addTransaction.
-        // Pastikan urutan dalam kurung di bawah ini sama persis dengan yang ada di sana!
-        // Format saat ini: (catatan, nominal, kategori, tipe)
-        await addTransaction(finalNote, amount, categoryName, type);
-
-        setSmartCommand("");
-        setIsSmartInputOpen(false);
-        showNotification("Transaksi berhasil dicatat! ✨", "success");
-
-      } catch (error) {
-        // Memanggil Toast Mewah, BUKAN alert jelek
-        showNotification("Gagal: " + error.message, "error");
+      if (matchKey) {
+        const matchCat = userCategories.find(c => c.id === matchKey.category_id);
+        if (matchCat) categoryName = matchCat.name;
       }
-    };
+    }
 
-    const handleLogout = async () => {
-      await supabase.auth.signOut();
-      // Biarkan isDarkMode tetap pada nilai terakhirnya, jangan di-reset!
-    };
+    // Rapikan huruf pertama catatan agar kapital
+    finalNote = finalNote.charAt(0).toUpperCase() + finalNote.slice(1);
 
-    if (!mounted) return null;
+    // 4. SIMPAN KE DATABASE (DENGAN PERLINDUNGAN TOAST MEWAH)
+    try {
+      // ⚠️ TUGAS PENTING UNTUK ANDA: 
+      // Cek file `src/hooks/useFinData.js` pada bagian fungsi addTransaction.
+      // Pastikan urutan dalam kurung di bawah ini sama persis dengan yang ada di sana!
+      // Format saat ini: (catatan, nominal, kategori, tipe)
+      await addTransaction(finalNote, amount, categoryName, type);
 
-    // 3. Logika Login Pintar (Support Username Baru & Email Lama)
+      setSmartCommand("");
+      setIsSmartInputOpen(false);
+      showNotification("Transaksi berhasil dicatat! ✨", "success");
+
+    } catch (error) {
+      // Memanggil Toast Mewah, BUKAN alert jelek
+      showNotification("Gagal: " + error.message, "error");
+    }
+  };
+
+  // 3. Logika Login Pintar
     const handleLogin = async (e) => {
       e.preventDefault();
       setIsAuthLoading(true);
@@ -581,8 +612,19 @@ const autoClassifyCategory = async (note) => {
         password: authPassword,
       });
 
-      if (error) setAuthError('Username/Email atau password salah!');
-      setIsAuthLoading(false);
+      if (error) {
+        setAuthError('Username/Email atau password salah!');
+        setIsAuthLoading(false);
+      } else {
+        window.location.reload(); 
+      }
+    };
+
+    // 4. Logika Logout & Cuci Gudang
+    const handleLogout = async () => {
+      await supabase.auth.signOut();
+      localStorage.removeItem("arta_active_wallet"); 
+      window.location.reload(); 
     };
 
     // 4. Logika Paksa Ganti Password
@@ -689,6 +731,61 @@ const autoClassifyCategory = async (note) => {
                     </form>
                   </motion.div>
                 </div>
+              )}
+            </AnimatePresence>
+
+            {/* MODAL: TAMBAH USER BARU (ADMIN ONLY) */}
+            <AnimatePresence>
+              {addUserModal.isOpen && (
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md p-4">
+                  <motion.div
+                    initial={{ scale: 0.9, y: 20 }}
+                    animate={{ scale: 1, y: 0 }}
+                    exit={{ scale: 0.9, y: 20 }}
+                    transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                    className="w-full max-w-sm bg-white dark:bg-[#121827] rounded-[32px] p-6 shadow-2xl border border-gray-100 dark:border-gray-800/80 relative"
+                  >
+                    <div className="flex justify-between items-center mb-6">
+                      <h3 className="text-base font-black text-gray-900 dark:text-white uppercase tracking-widest">Tambah Pengguna</h3>
+                      <button onClick={() => setAddUserModal({ isOpen: false, username: '', password: '', isLoading: false })} className="p-2 text-gray-400 hover:text-red-500 bg-gray-50 dark:bg-gray-800/50 rounded-full transition-colors">
+                        <X size={18} />
+                      </button>
+                    </div>
+
+                    <form onSubmit={handleCreateNewUser} className="space-y-4">
+                      <div>
+                        <label className="block text-xs font-black text-gray-500 uppercase tracking-widest mb-2 ml-1">Username Baru</label>
+                        <input
+                          type="text"
+                          required
+                          autoFocus
+                          value={addUserModal.username}
+                          onChange={(e) => setAddUserModal({ ...addUserModal, username: e.target.value.replace(/\s+/g, '') })}
+                          className="w-full bg-gray-50 dark:bg-[#0a0f1c] border border-gray-200 dark:border-gray-800 rounded-2xl py-4 px-5 text-sm text-gray-900 dark:text-white outline-none focus:border-blue-500 font-bold transition-all"
+                          placeholder="Contoh: ayu, agus, dsb."
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-black text-gray-500 uppercase tracking-widest mb-2 ml-1">Password Sementara</label>
+                        <input
+                          type="text"
+                          required
+                          value={addUserModal.password}
+                          onChange={(e) => setAddUserModal({ ...addUserModal, password: e.target.value })}
+                          className="w-full bg-gray-50 dark:bg-[#0a0f1c] border border-gray-200 dark:border-gray-800 rounded-2xl py-4 px-5 text-sm text-gray-900 dark:text-white outline-none focus:border-blue-500 font-bold transition-all"
+                          placeholder="Minimal 6 karakter"
+                        />
+                      </div>
+                      <button
+                        type="submit"
+                        disabled={addUserModal.isLoading}
+                        className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800 text-white font-black text-sm uppercase tracking-widest py-4 rounded-2xl transition-all shadow-lg shadow-blue-500/30 mt-4"
+                      >
+                        {addUserModal.isLoading ? 'Memproses...' : 'Daftarkan Akses'}
+                      </button>
+                    </form>
+                  </motion.div>
+                </motion.div>
               )}
             </AnimatePresence>
 
@@ -841,7 +938,7 @@ const autoClassifyCategory = async (note) => {
                             </p>
                             <div className="flex gap-1 opacity-40 hover:opacity-100 transition-opacity">
                               <button onClick={() => setEditTrxModal({ isOpen: true, data: { ...trx } })} className="p-2 text-gray-400 hover:text-blue-500 rounded-xl transition-all"><Edit3 size={14} /></button>
-                              <button onClick={() => handleDeleteClick(trx.id, trx.amount)} className="p-2 text-gray-400 hover:text-red-500 rounded-xl transition-all"><Trash2 size={14} /></button>
+                              <button onClick={() => { setItemToDelete({ id: trx.id, amount: trx.amount }); setIsDeleteModalOpen(true); }} className="p-2 text-gray-400 hover:text-red-500 rounded-xl transition-all"><Trash2 size={14} /></button>
                             </div>
                           </div>
                         </motion.div>
@@ -1014,9 +1111,18 @@ const autoClassifyCategory = async (note) => {
                         <div className="relative z-10 flex justify-between items-center">
                           <div>
                             <p className="text-white/80 text-[10px] font-black uppercase tracking-[0.3em] mb-1">Rekening Tersimpan</p>
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-3 flex-wrap">
                               <h3 className="text-white text-2xl font-bold tracking-tight">{wallet.name}</h3>
-                              <div className="flex gap-1.5 opacity-60 hover:opacity-100 transition-opacity">
+
+                              {/* BADGE DOMPET AKTIF */}
+                              {activeWallet.id === wallet.id && (
+                                <span className="px-2.5 py-1 rounded-lg bg-white/20 border border-white/40 text-white text-[9px] font-black uppercase tracking-widest backdrop-blur-md shadow-sm flex items-center gap-1">
+                                  <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></div>
+                                  Aktif
+                                </span>
+                              )}
+
+                              <div className="flex gap-1.5 opacity-60 hover:opacity-100 transition-opacity ml-1">
                                 <button onClick={(e) => { e.stopPropagation(); setWalletToEdit(wallet); setIsEditWalletOpen(true); }} className="p-1.5 bg-white/20 rounded-full hover:bg-white/40 transition-colors backdrop-blur-md">
                                   <Edit3 size={12} className="text-white" />
                                 </button>
@@ -1226,20 +1332,20 @@ const autoClassifyCategory = async (note) => {
                       </div>
                       <div>
                         <label className="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Catatan</label>
-                        <input 
-                              type="text" 
-                              required 
-                              value={editTrxModal.data.note} 
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                // 1. Update nilai catatannya
-                                setEditTrxModal({ ...editTrxModal, data: { ...editTrxModal.data, note: val } });
-                                
-                                // 2. Panggil AI untuk cek kategori (tanpa mengganggu ketikan user)
-                                autoClassifyCategory(val);
-                              }} 
-                              className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 rounded-2xl py-3 px-4 text-gray-900 dark:text-white outline-none focus:border-blue-500 font-bold" 
-                            />
+                        <input
+                          type="text"
+                          required
+                          value={editTrxModal.data.note}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            // 1. Update nilai catatannya
+                            setEditTrxModal({ ...editTrxModal, data: { ...editTrxModal.data, note: val } });
+
+                            // 2. Panggil AI untuk cek kategori (tanpa mengganggu ketikan user)
+                            autoClassifyCategory(val);
+                          }}
+                          className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 rounded-2xl py-3 px-4 text-gray-900 dark:text-white outline-none focus:border-blue-500 font-bold"
+                        />
                       </div>
                       <div>
                         <label className="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Kategori</label>
@@ -1254,45 +1360,45 @@ const autoClassifyCategory = async (note) => {
             </AnimatePresence>
 
             {/* MODAL: TAMBAH DOMPET BARU */}
-        {/* MODAL: TAMBAH DOMPET BARU */}
-        <AnimatePresence>
-          {newWalletModal.isOpen && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md p-4">
-              <motion.div 
-                initial={{ scale: 0.9, y: 20 }} 
-                animate={{ scale: 1, y: 0 }} 
-                exit={{ scale: 0.9, y: 20 }} 
-                transition={{ type: "spring", damping: 25, stiffness: 300 }} 
-                className="w-full max-w-sm bg-white dark:bg-[#121827] rounded-[32px] p-6 shadow-2xl border border-gray-100 dark:border-gray-800/80 relative"
-              >
-                <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-base font-black text-gray-900 dark:text-white uppercase tracking-widest">Buat Rekening Baru</h3>
-                  <button onClick={() => setNewWalletModal({ isOpen: false, name: '' })} className="p-2 text-gray-400 hover:text-red-500 bg-gray-50 dark:bg-gray-800/50 rounded-full transition-colors">
-                    <X size={18} />
-                  </button>
-                </div>
-                
-                <form onSubmit={handleCreateWallet} className="space-y-5">
-                  <div>
-                    <label className="block text-xs font-black text-gray-500 uppercase tracking-widest mb-2 ml-1">Nama Rekening</label>
-                    <input 
-                      type="text" 
-                      required 
-                      autoFocus 
-                      value={newWalletModal.name} 
-                      onChange={(e) => setNewWalletModal({ ...newWalletModal, name: e.target.value })} 
-                      className="w-full bg-gray-50 dark:bg-[#0a0f1c] border border-gray-200 dark:border-gray-800 rounded-2xl py-4 px-5 text-sm text-gray-900 dark:text-white outline-none focus:border-blue-500 font-bold transition-all" 
-                      placeholder="Contoh: BCA Pribadi" 
-                    />
-                  </div>
-                  <button type="submit" className="w-full bg-green-600 hover:bg-green-500 text-white font-black text-sm uppercase tracking-widest py-4 rounded-2xl transition-all shadow-lg shadow-green-500/30 mt-2">
-                    Buka Rekening
-                  </button>
-                </form>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            {/* MODAL: TAMBAH DOMPET BARU */}
+            <AnimatePresence>
+              {newWalletModal.isOpen && (
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md p-4">
+                  <motion.div
+                    initial={{ scale: 0.9, y: 20 }}
+                    animate={{ scale: 1, y: 0 }}
+                    exit={{ scale: 0.9, y: 20 }}
+                    transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                    className="w-full max-w-sm bg-white dark:bg-[#121827] rounded-[32px] p-6 shadow-2xl border border-gray-100 dark:border-gray-800/80 relative"
+                  >
+                    <div className="flex justify-between items-center mb-6">
+                      <h3 className="text-base font-black text-gray-900 dark:text-white uppercase tracking-widest">Buat Rekening Baru</h3>
+                      <button onClick={() => setNewWalletModal({ isOpen: false, name: '' })} className="p-2 text-gray-400 hover:text-red-500 bg-gray-50 dark:bg-gray-800/50 rounded-full transition-colors">
+                        <X size={18} />
+                      </button>
+                    </div>
+
+                    <form onSubmit={handleCreateWallet} className="space-y-5">
+                      <div>
+                        <label className="block text-xs font-black text-gray-500 uppercase tracking-widest mb-2 ml-1">Nama Rekening</label>
+                        <input
+                          type="text"
+                          required
+                          autoFocus
+                          value={newWalletModal.name}
+                          onChange={(e) => setNewWalletModal({ ...newWalletModal, name: e.target.value })}
+                          className="w-full bg-gray-50 dark:bg-[#0a0f1c] border border-gray-200 dark:border-gray-800 rounded-2xl py-4 px-5 text-sm text-gray-900 dark:text-white outline-none focus:border-blue-500 font-bold transition-all"
+                          placeholder="Contoh: BCA Pribadi"
+                        />
+                      </div>
+                      <button type="submit" className="w-full bg-green-600 hover:bg-green-500 text-white font-black text-sm uppercase tracking-widest py-4 rounded-2xl transition-all shadow-lg shadow-green-500/30 mt-2">
+                        Buka Rekening
+                      </button>
+                    </form>
+                  </motion.div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* MODAL: EDIT DOMPET & SHARE DOMPET */}
             <AnimatePresence>
@@ -1330,39 +1436,53 @@ const autoClassifyCategory = async (note) => {
                 })}
               </div>
             </nav>
-            {/* MODAL KONFIRMASI HAPUS (CUSTOM UI) */}
+
+            {/* MODAL MASTER: KONFIRMASI HAPUS (DANGER ZONE) */}
             <AnimatePresence>
-              {deleteConfirmModal.isOpen && (
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+              {isDeleteModalOpen && (
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md p-4">
                   <motion.div
-                    initial={{ scale: 0.9, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    exit={{ scale: 0.9, opacity: 0 }}
+                    initial={{ scale: 0.9, y: 20 }}
+                    animate={{ scale: 1, y: 0 }}
+                    exit={{ scale: 0.9, y: 20 }}
                     transition={{ type: "spring", damping: 25, stiffness: 300 }}
-                    className="w-full max-w-sm bg-white dark:bg-[#121827] rounded-[32px] p-6 shadow-2xl border border-gray-100 dark:border-gray-800 text-center"
+                    className="w-full max-w-sm bg-white dark:bg-[#121827] rounded-[32px] p-6 shadow-2xl border border-red-100 dark:border-red-900/30 relative text-center"
                   >
-                    {/* Ikon Peringatan */}
-                    <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4 text-red-500">
-                      <Trash2 size={32} />
+                    {/* Ikon Peringatan Mewah */}
+                    <div className="w-16 h-16 bg-red-100 dark:bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Trash2 className="text-red-500" size={28} />
                     </div>
 
-                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Hapus Transaksi?</h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
-                      Data yang sudah dihapus tidak dapat dikembalikan lagi. Yakin ingin melanjutkan?
+                    <h3 className="text-base font-black text-gray-900 dark:text-white uppercase tracking-widest mb-2">Hapus Data?</h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 px-2">
+                      Tindakan ini permanen dan tidak dapat dibatalkan. Apakah Anda yakin?
                     </p>
 
                     <div className="flex gap-3">
                       <button
-                        onClick={() => setDeleteConfirmModal({ isOpen: false, trxId: null, amount: null })}
-                        className="flex-1 py-3.5 rounded-2xl font-bold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all"
+                        onClick={() => setIsDeleteModalOpen(false)}
+                        className="flex-1 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-900 dark:text-white font-black text-xs uppercase tracking-widest py-4 rounded-2xl transition-all"
                       >
                         Batal
                       </button>
                       <button
-                        onClick={executeDelete}
-                        className="flex-1 py-3.5 rounded-2xl font-bold text-white bg-red-500 hover:bg-red-600 transition-all shadow-lg shadow-red-500/30"
+                        onClick={
+                          <button
+                            onClick={() => {
+                              if (itemToDelete) {
+                                deleteTransaction(itemToDelete.id, itemToDelete.amount);
+                                setIsDeleteModalOpen(false);
+                                setItemToDelete(null);
+                              }
+                            }}
+                            className="flex-1 bg-red-600 hover:bg-red-500 text-white font-black text-xs uppercase tracking-widest py-4 rounded-2xl transition-all shadow-lg shadow-red-500/30"
+                          >
+                            Hapus
+                          </button>
+                        } // Ganti dengan fungsi hapus Anda
+                        className="flex-1 bg-red-600 hover:bg-red-500 text-white font-black text-xs uppercase tracking-widest py-4 rounded-2xl transition-all shadow-lg shadow-red-500/30"
                       >
-                        Ya, Hapus
+                        Hapus
                       </button>
                     </div>
                   </motion.div>
@@ -1399,9 +1519,9 @@ const autoClassifyCategory = async (note) => {
                       </button>
                       <button
                         onClick={executeDeleteGoal}
-                        className="flex-1 py-3.5 rounded-2xl font-bold text-white bg-red-500 hover:bg-red-600 transition-all shadow-lg shadow-red-500/30"
+                        className="flex-1 py-3.5 rounded-2xl font-bold text-white bg-red-600 hover:bg-red-500 shadow-lg shadow-red-500/30 transition-all"
                       >
-                        Ya, Hapus
+                        Hapus Impian
                       </button>
                     </div>
                   </motion.div>

@@ -47,16 +47,16 @@ export default function BudgetProgress({ selectedMonth, transactions }) {
                 const limit = Number(budget.limit_amount);
                 const percentage = Math.min((spent / limit) * 100, 100).toFixed(0);
                 
-                let statusColor = "bg-green-500";
+                let statusColor = "bg-green-500 shadow-md shadow-green-500/30";
                 let textColor = "text-green-500";
                 let StatusIcon = CheckCircle2;
                 
                 if (percentage >= 80) {
-                  statusColor = "bg-red-500";
+                  statusColor = "bg-red-500 shadow-lg shadow-red-500/50";
                   textColor = "text-red-500";
                   StatusIcon = AlertTriangle;
                 } else if (percentage >= 50) {
-                  statusColor = "bg-amber-500";
+                  statusColor = "bg-amber-500 shadow-md shadow-amber-500/40";
                   textColor = "text-amber-500";
                   StatusIcon = TrendingUp;
                 }

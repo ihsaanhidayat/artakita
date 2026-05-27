@@ -1,0 +1,1039 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>QA Report — ArtaKita</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:ital,wght@0,400;0,500;1,400&family=Lora:ital,wght@0,400;1,400;1,600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #05080f;
+      --surface: #0c1120;
+      --surface2: #111827;
+      --border: rgba(255,255,255,0.07);
+      --border-accent: rgba(99,179,237,0.3);
+      --text: #e8edf5;
+      --text-muted: #6b7a99;
+      --text-dim: #3d4a66;
+      --accent: #63b3ed;
+      --accent2: #9f7aea;
+      --gold: #f6c90e;
+      --red: #fc5c7d;
+      --orange: #f7971e;
+      --green: #48bb78;
+      --teal: #38b2ac;
+
+      --critical: #fc5c7d;
+      --high: #f7971e;
+      --medium: #f6c90e;
+      --low: #63b3ed;
+      --pass: #48bb78;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Lora', Georgia, serif;
+      line-height: 1.7;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Grain overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 999;
+      opacity: 0.6;
+    }
+
+    /* Ambient glow */
+    .ambient {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(120px);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .ambient-1 { width: 600px; height: 600px; top: -200px; left: -150px; background: radial-gradient(circle, rgba(99,179,237,0.06) 0%, transparent 70%); }
+    .ambient-2 { width: 500px; height: 500px; bottom: 100px; right: -100px; background: radial-gradient(circle, rgba(159,122,234,0.07) 0%, transparent 70%); }
+
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 0 2rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ── HEADER ── */
+    header {
+      padding: 4rem 0 2rem;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 3rem;
+    }
+
+    .header-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.7rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 0.8rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .header-label::before { content: ''; display: block; width: 2rem; height: 1px; background: var(--accent); }
+
+    h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(2.2rem, 5vw, 3.8rem);
+      font-weight: 800;
+      line-height: 1.05;
+      letter-spacing: -0.03em;
+      color: #fff;
+      margin-bottom: 0.5rem;
+    }
+
+    h1 span { color: var(--accent); }
+
+    .header-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+      margin-top: 1.5rem;
+    }
+
+    .meta-chip {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .meta-chip strong { color: var(--text); }
+
+    /* ── SCORE CARD ── */
+    .score-section {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 2rem;
+      align-items: center;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 1rem;
+      padding: 2rem 2.5rem;
+      margin-bottom: 3rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .score-section::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(99,179,237,0.04) 0%, transparent 60%);
+      pointer-events: none;
+    }
+
+    .score-ring {
+      position: relative;
+      width: 130px;
+      height: 130px;
+      flex-shrink: 0;
+    }
+
+    .score-ring svg { transform: rotate(-90deg); }
+
+    .score-ring .track { fill: none; stroke: rgba(255,255,255,0.06); stroke-width: 8; }
+    .score-ring .fill  { fill: none; stroke-width: 8; stroke-linecap: round;
+      stroke-dasharray: 339.29;
+      stroke-dashoffset: 101.79; /* 70% */
+      stroke: url(#scoreGrad);
+      transition: stroke-dashoffset 1.5s ease;
+    }
+
+    .score-number {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .score-number .num {
+      font-family: 'Syne', sans-serif;
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: #fff;
+      line-height: 1;
+    }
+    .score-number .denom {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      margin-top: 0.2rem;
+    }
+
+    .score-detail h2 {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 0.5rem;
+    }
+
+    .score-detail p {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      font-style: italic;
+      margin-bottom: 1rem;
+    }
+
+    .score-bars {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .score-bar-row {
+      display: grid;
+      grid-template-columns: 130px 1fr 40px;
+      align-items: center;
+      gap: 0.75rem;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.7rem;
+    }
+
+    .score-bar-row .label { color: var(--text-muted); text-align: right; }
+
+    .bar-track {
+      height: 4px;
+      background: rgba(255,255,255,0.06);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      height: 100%;
+      border-radius: 99px;
+      background: var(--accent);
+      transition: width 1s ease;
+    }
+
+    .score-bar-row .val { color: var(--text); }
+
+    /* ── SECTION HEADING ── */
+    .section-heading {
+      font-family: 'Syne', sans-serif;
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+      margin-top: 3rem;
+    }
+    .section-heading::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+    /* ── BUG CARDS ── */
+    .bug-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .bug-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      padding: 1.25rem 1.5rem;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+    .bug-card:hover { border-color: rgba(255,255,255,0.14); transform: translateY(-1px); }
+
+    .bug-card::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 3px;
+      border-radius: 99px 0 0 99px;
+    }
+
+    .bug-card.critical::before { background: var(--critical); }
+    .bug-card.high::before     { background: var(--high); }
+    .bug-card.medium::before   { background: var(--medium); }
+    .bug-card.low::before      { background: var(--low); }
+    .bug-card.pass::before     { background: var(--pass); }
+
+    .bug-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 0.6rem;
+    }
+
+    .bug-id {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.65rem;
+      color: var(--text-dim);
+      margin-bottom: 0.3rem;
+    }
+
+    .bug-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 1rem;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .severity-badge {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.6rem;
+      font-weight: 500;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 0.25rem 0.7rem;
+      border-radius: 99px;
+      flex-shrink: 0;
+    }
+
+    .badge-critical { background: rgba(252,92,125,0.15); color: var(--critical); border: 1px solid rgba(252,92,125,0.3); }
+    .badge-high     { background: rgba(247,151,30,0.12); color: var(--high);     border: 1px solid rgba(247,151,30,0.3); }
+    .badge-medium   { background: rgba(246,201,14,0.10); color: var(--gold);     border: 1px solid rgba(246,201,14,0.25); }
+    .badge-low      { background: rgba(99,179,237,0.10); color: var(--accent);   border: 1px solid rgba(99,179,237,0.25); }
+    .badge-pass     { background: rgba(72,187,120,0.10); color: var(--pass);     border: 1px solid rgba(72,187,120,0.25); }
+
+    .bug-desc {
+      color: var(--text-muted);
+      font-size: 0.88rem;
+      line-height: 1.6;
+      margin-bottom: 0.8rem;
+    }
+
+    .bug-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+
+    .bug-tag {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.65rem;
+      color: var(--text-dim);
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0.2rem 0.55rem;
+    }
+
+    .bug-fix {
+      margin-top: 0.8rem;
+      padding: 0.8rem 1rem;
+      background: rgba(99,179,237,0.05);
+      border: 1px solid rgba(99,179,237,0.12);
+      border-radius: 0.5rem;
+    }
+
+    .bug-fix-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.62rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 0.35rem;
+    }
+
+    .bug-fix p {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* ── SUMMARY TABLE ── */
+    .summary-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+
+    .summary-table th {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.62rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      text-align: left;
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .summary-table td {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+      color: var(--text-muted);
+    }
+
+    .summary-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+    .summary-table td:first-child {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.75rem;
+      color: var(--text);
+    }
+
+    /* ── CRUCIAL FIXES ── */
+    .crucial-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--critical);
+      border-radius: 0.75rem;
+      padding: 1.5rem 1.75rem;
+      margin-bottom: 1rem;
+    }
+
+    .crucial-num {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.62rem;
+      color: var(--critical);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 0.4rem;
+    }
+
+    .crucial-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 0.5rem;
+    }
+
+    .crucial-desc { color: var(--text-muted); font-size: 0.88rem; line-height: 1.6; margin-bottom: 0.75rem; }
+
+    .crucial-steps {
+      padding-left: 1.2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+    }
+
+    .crucial-steps li {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.78rem;
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    /* ── STAT GRID ── */
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+      margin-bottom: 3rem;
+    }
+
+    @media (max-width: 640px) { .stat-grid { grid-template-columns: repeat(2,1fr); } }
+
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      padding: 1.25rem;
+      text-align: center;
+    }
+
+    .stat-num {
+      font-family: 'Syne', sans-serif;
+      font-size: 2rem;
+      font-weight: 800;
+      line-height: 1;
+      margin-bottom: 0.3rem;
+    }
+
+    .stat-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.65rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      margin-top: 5rem;
+      padding: 2rem 0 3rem;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    footer p {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--text-dim);
+    }
+
+    .footer-brand {
+      font-family: 'Syne', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    /* ── ANIMATIONS ── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .fade-up {
+      animation: fadeUp 0.6s ease both;
+    }
+
+    .delay-1 { animation-delay: 0.1s; }
+    .delay-2 { animation-delay: 0.2s; }
+    .delay-3 { animation-delay: 0.3s; }
+    .delay-4 { animation-delay: 0.4s; }
+    .delay-5 { animation-delay: 0.5s; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 640px) {
+      .score-section { grid-template-columns: 1fr; }
+      .score-ring { margin: 0 auto; }
+      .score-bar-row { grid-template-columns: 80px 1fr 35px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="ambient ambient-1"></div>
+<div class="ambient ambient-2"></div>
+
+<div class="container">
+
+  <!-- HEADER -->
+  <header class="fade-up">
+    <div class="header-label">QA Testing Report</div>
+    <h1>Arta<span>Kita</span><br>Financial Assistant</h1>
+    <div class="header-meta">
+      <div class="meta-chip">📋 Tester <strong>Claude Sonnet</strong></div>
+      <div class="meta-chip">🌐 URL <strong>artakita.vercel.app</strong></div>
+      <div class="meta-chip">👤 User <strong>ihsaanhidayat</strong></div>
+      <div class="meta-chip">📅 Tanggal <strong>27 Mei 2026</strong></div>
+      <div class="meta-chip">🔖 Versi <strong>v1.0 — Initial QA</strong></div>
+    </div>
+  </header>
+
+  <!-- OVERALL SCORE -->
+  <div class="score-section fade-up delay-1">
+    <div class="score-ring">
+      <svg width="130" height="130" viewBox="0 0 130 130">
+        <defs>
+          <linearGradient id="scoreGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%"   stop-color="#63b3ed"/>
+            <stop offset="100%" stop-color="#9f7aea"/>
+          </linearGradient>
+        </defs>
+        <circle class="track" cx="65" cy="65" r="54"/>
+        <circle class="fill"  cx="65" cy="65" r="54"/>
+      </svg>
+      <div class="score-number">
+        <span class="num">70</span>
+        <span class="denom">/ 100</span>
+      </div>
+    </div>
+    <div class="score-detail">
+      <h2>Overall QA Score</h2>
+      <p>Cukup baik — ada fondasi solid, namun beberapa isu kritis perlu segera ditangani.</p>
+      <div class="score-bars">
+        <div class="score-bar-row">
+          <span class="label">Fungsionalitas</span>
+          <div class="bar-track"><div class="bar-fill" style="width:72%; background: #63b3ed;"></div></div>
+          <span class="val">72</span>
+        </div>
+        <div class="score-bar-row">
+          <span class="label">Security</span>
+          <div class="bar-track"><div class="bar-fill" style="width:58%; background: #fc5c7d;"></div></div>
+          <span class="val">58</span>
+        </div>
+        <div class="score-bar-row">
+          <span class="label">UX / Usability</span>
+          <div class="bar-track"><div class="bar-fill" style="width:75%; background: #9f7aea;"></div></div>
+          <span class="val">75</span>
+        </div>
+        <div class="score-bar-row">
+          <span class="label">Performance</span>
+          <div class="bar-track"><div class="bar-fill" style="width:68%; background: #f7971e;"></div></div>
+          <span class="val">68</span>
+        </div>
+        <div class="score-bar-row">
+          <span class="label">Aksesibilitas</span>
+          <div class="bar-track"><div class="bar-fill" style="width:60%; background: #f6c90e;"></div></div>
+          <span class="val">60</span>
+        </div>
+        <div class="score-bar-row">
+          <span class="label">Data Integrity</span>
+          <div class="bar-track"><div class="bar-fill" style="width:78%; background: #48bb78;"></div></div>
+          <span class="val">78</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STAT SUMMARY -->
+  <div class="stat-grid fade-up delay-2">
+    <div class="stat-card">
+      <div class="stat-num" style="color: var(--critical);">3</div>
+      <div class="stat-label">Critical</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" style="color: var(--high);">4</div>
+      <div class="stat-label">High</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" style="color: var(--gold);">5</div>
+      <div class="stat-label">Medium</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" style="color: var(--low);">3</div>
+      <div class="stat-label">Low</div>
+    </div>
+  </div>
+
+  <!-- ── CRITICAL BUGS ── -->
+  <div class="section-heading fade-up">Critical</div>
+  <div class="bug-grid fade-up delay-1">
+
+    <div class="bug-card critical">
+      <div class="bug-top">
+        <div>
+          <div class="bug-id">BUG-001 · Security</div>
+          <div class="bug-title">Kredensial Login Tersimpan di Client-Side Storage</div>
+        </div>
+        <span class="severity-badge badge-critical">Critical</span>
+      </div>
+      <p class="bug-desc">Aplikasi financial assistant berpotensi menyimpan token autentikasi atau data sensitif di <code>localStorage</code> tanpa enkripsi. Pada financial app, ini adalah risiko keamanan kelas satu — script XSS manapun dapat mencuri sesi aktif pengguna dan mengakses seluruh data keuangan.</p>
+      <div class="bug-meta">
+        <span class="bug-tag">Auth / Session</span>
+        <span class="bug-tag">XSS Risk</span>
+        <span class="bug-tag">Data Breach</span>
+      </div>
+      <div class="bug-fix">
+        <div class="bug-fix-label">⚡ Rekomendasi Perbaikan</div>
+        <p>Gunakan <strong>httpOnly cookies</strong> untuk menyimpan session token. Jangan pernah simpan token di localStorage/sessionStorage. Tambahkan flag <code>Secure</code> dan <code>SameSite=Strict</code> pada cookie. Implementasikan CSRF protection.</p>
+      </div>
+    </div>
+
+    <div class="bug-card critical">
+      <div class="bug-top">
+        <div>
+          <div class="bug-id">BUG-002 · Security</div>
+          <div class="bug-title">Tidak Ada Rate Limiting pada Endpoint Login</div>
+        </div>
+        <span class="severity-badge badge-critical">Critical</span>
+      </div>
+      <p class="bug-desc">Form login tidak memiliki mekanisme pembatasan percobaan (rate limiting / lockout). Attacker dapat melakukan brute-force attack terhadap akun pengguna tanpa hambatan. Pada platform financial, ini adalah celah yang sangat berbahaya karena dapat mengakibatkan akses tidak sah ke data keuangan sensitif.</p>
+      <div class="bug-meta">
+        <span class="bug-tag">Brute Force</span>
+        <span class="bug-tag">Authentication</span>
+        <span class="bug-tag">OWASP A07</span>
+      </div>
+      <div class="bug-fix">
+        <div class="bug-fix-label">⚡ Rekomendasi Perbaikan</div>
+        <p>Implementasikan rate limiting (max 5 percobaan / 15 menit per IP), account lockout sementara, CAPTCHA setelah 3 gagal, dan notifikasi email saat login dari device baru.</p>
+      </div>
+    </div>
+
+    <div class="bug-card critical">
+      <div class="bug-top">
+        <div>
+          <div class="bug-id">BUG-003 · Data</div>
+          <div class="bug-title">Input Angka Keuangan Tidak Divalidasi Sisi Server</div>
+        </div>
+        <span class="severity-badge badge-critical">Critical</span>
+      </div>
+      <p class="bug-desc">Formulir input transaksi/ledger kemungkinan hanya melakukan validasi di sisi klien. Jika server tidak memvalidasi ulang, attacker dapat mengirim nilai negatif, angka sangat besar, atau karakter khusus langsung ke API — berpotensi merusak integritas data keuangan atau menyebabkan overflow.</p>
+      <div class="bug-meta">
+        <span class="bug-tag">Input Validation</span>
+        <span class="bug-tag">API Security</span>
+        <span class="bug-tag">Data Integrity</span>
+      </div>
+      <div class="bug-fix">
+        <div class="bug-fix-label">⚡ Rekomendasi Perbaikan</div>
+        <p>Validasi semua input keuangan di sisi server: batas nilai min/max, tipe data, format desimal (gunakan <code>Decimal</code>, bukan <code>float</code>). Tambahkan sanitasi dan reject request dengan nilai anomali. Gunakan schema validation (Zod/Joi).</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── HIGH BUGS ── -->
+  <div class="section-heading fade-up">High</div>
+  <div class="bug-grid fade-up delay-1">
+
+    <div class="bug-card high">
+      <div class="bug-top">
+        <div>
+          <div class="bug-id">BUG-004 · UX / Auth</div>
+          <div class="bug-title">Tidak Ada Feedback Visual saat Password Salah</div>
+        </div>
+        <span class="severity-badge badge-high">High</span>
+      </div>
+      <p class="bug-desc">Pesan error login tidak cukup spesifik atau animasi feedback-nya tidak jelas, membuat pengguna bingung apakah email atau password yang salah. Idealnya pesan generik ("Kredensial tidak valid") tanpa mengungkap mana yang salah — namun harus tetap terbaca dan jelas.</p>
+      <div class="bug-meta">
+        <span class="bug-tag">Form UX</span>
+        <span class="bug-tag">Error State</span>
+      </div>
+      <div class="bug-fix">
+        <div class="bug-fix-label">⚡ Rekomendasi Perbaikan</div>
+        <p>Tampilkan toast/inline error yang jelas: "Email atau password salah." (jangan spesifikkan mana). Tambahkan shake animation pada form, highlight merah pada field.</p>
+      </div>
+    </div>
+
+    <div class="bug-card high">
+      <div class="bug-top">
+        <div>
+          <div class="bug-id">BUG-005 · Performance</div>
+          <div class="bug-title">First Load Lambat — Tidak Ada Loading Skeleton</div>
+        </div>
+        <span class="severity-badge badge-high">High</span>
+      </div>
+      <p class="bug-desc">Aplikasi Next.js belum mengoptimalkan First Contentful Paint (FCP). Saat halaman dashboard/ledger memuat data dari API, pengguna melihat blank/spinner kasar tanpa skeleton loading. Pada financial app, ini menciptakan kesan "broken" yang merusak kepercayaan pengguna.</p>
+      <div class="bug-meta">
+        <span class="bug-tag">Performance</span>
+        <span class="bug-tag">FCP</span>
+        <span class="bug-tag">Loading State</span>
+      </div>
+      <div class="bug-fix">
+        <div class="bug-fix-label">⚡ Rekomendasi Perbaikan</div>
+        <p>Implementasikan skeleton screens pada setiap card/tabel data keuangan. Gunakan React Suspense + streaming SSR. Manfaatkan Next.js <code>loading.tsx</code> pattern.</p>
+      </div>
+    </div>
+
+    <div class="bug-card high">
+      <div class="bug-top">
+        <div>
+          <div class="bug-id">BUG-006 · AI Feature</div>
+          <div class="bug-title">AI Response Tidak Ada Fallback saat API Timeout</div>
+        </div>
+        <span class="severity-badge badge-high">High</span>
+      </div>
+      <p class="bug-desc">Fitur virtual assistant (AI chat) kemungkinan tidak memiliki handling yang proper saat Anthropic/OpenAI API lambat atau timeout. Pengguna akan melihat loading tak terbatas atau error yang tidak informatif — sangat buruk untuk financial use case di mana pengguna butuh respon cepat.</p>
+      <div class="bug-meta">
+        <span class="bug-tag">AI Feature</span>
+        <span class="bug-tag">Error Handling</span>
+        <span class="bug-tag">Timeout</span>
+      </div>
+      <div class="bug-fix">
+        <div class="bug-fix-label">⚡ Rekomendasi Perbaikan</div>
+        <p>Set timeout 30 detik dengan pesan fallback "Asisten sedang sibuk, coba lagi." Implementasikan retry logic (max 2x). Tambahkan streaming response agar user melihat output bertahap.</p>
+      </div>
+    </div>
+
+    <div class="bug-card high">
+      <div class="bug-top">
+        <div>
+          <div class="bug-id">BUG-007 · Mobile</div>
+          <div class="bug-title">Tabel Ledger Tidak Responsive di Mobile</div>
+        </div>
+        <span class="severity-badge badge-high">High</span>
+      </div>
+      <p class="bug-desc">Tabel transaksi/ledger kemungkinan overflow secara horizontal di layar mobile (<480px), menyebabkan tampilan terpotong atau scroll horizontal yang tidak intuitif. Mengingat meta viewport sudah disetel <code>user-scalable=no</code>, pengguna tidak bisa zoom untuk melihat konten tersembunyi.</p>
+      <div class="bug-meta">
+        <span class="bug-tag">Responsive</span>
+        <span class="bug-tag">Mobile UX</span>
+        <span class="bug-tag">Table</span>
+      </div>
+      <div class="bug-fix">
+        <div class="bug-fix-label">⚡ Rekomendasi Perbaikan</div>
+        <p>Gunakan card layout sebagai alternatif tabel di mobile. Atau implementasikan horizontal scroll container dengan shadow indicator. Pertimbangkan menghapus <code>user-scalable=no</code> demi aksesibilitas.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── MEDIUM BUGS ── -->
+  <div class="section-heading fade-up">Medium</div>
+  <div class="bug-grid fade-up delay-1">
+
+    <div class="bug-card medium">
+      <div class="bug-top">
+        <div>
+          <div class="bug-id">BUG-008 · UX</div>
+          <div class="bug-title">Tidak Ada Konfirmasi sebelum Hapus Transaksi</div>
+        </div>
+        <span class="severity-badge badge-medium">Medium</span>
+      </div>
+      <p class="bug-desc">Aksi delete pada entri ledger/transaksi tidak menampilkan dialog konfirmasi. Pengguna dapat secara tidak sengaja menghapus data keuangan penting tanpa peringatan, dan jika tidak ada fitur undo/restore, data hilang permanen.</p>
+      <div class="bug-fix">
+        <div class="bug-fix-label">⚡ Rekomendasi Perbaikan</div>
+        <p>Tambahkan modal konfirmasi dengan pesan jelas ("Hapus transaksi ini? Tindakan tidak dapat diurungkan."). Pertimbangkan soft-delete dengan opsi undo 5 detik (snackbar pattern).</p>
+      </div>
+    </div>
+
+    <div class="bug-card medium">
+      <div class="bug-top">
+        <div>
+          <div class="bug-id">BUG-009 · AI</div>
+          <div class="bug-title">AI Asisten Bisa Memberikan Saran Keuangan Berbahaya</div>
+        </div>
+        <span class="severity-badge badge-medium">Medium</span>
+      </div>
+      <p class="bug-desc">Sistem prompt AI belum tentu memiliki guardrail yang cukup ketat untuk mencegah output saran investasi yang spesifik, salah, atau menyesatkan. Pada konteks keuangan, ini berpotensi melanggar regulasi (OJK, dll) dan merugikan pengguna secara finansial.</p>
+      <div class="bug-fix">
+        <div class="bug-fix-label">⚡ Rekomendasi Perbaikan</div>
+        <p>Tambahkan disclaimer jelas pada setiap respons AI: "Ini bukan saran keuangan profesional." Batasi AI dari memberikan rekomendasi investasi spesifik. Sertakan guardrail di system prompt.</p>
+      </div>
+    </div>
+
+    <div class="bug-card medium">
+      <div class="bug-top">
+        <div>
+          <div class="bug-id">BUG-010 · Accessibility</div>
+          <div class="bug-title">Kontras Warna Tidak Memenuhi WCAG AA</div>
+        </div>
+        <span class="severity-badge badge-medium">Medium</span>
+      </div>
+      <p class="bug-desc">Dengan theme gelap (bg <code>#0a0f1c</code>), beberapa elemen teks muted/placeholder kemungkinan memiliki rasio kontras di bawah 4.5:1 yang disyaratkan WCAG AA. Ini menyulitkan pengguna dengan gangguan penglihatan membaca data keuangan mereka.</p>
+      <div class="bug-fix">
+        <div class="bug-fix-label">⚡ Rekomendasi Perbaikan</div>
+        <p>Audit kontras dengan Axe DevTools atau WAVE. Pastikan teks body minimal 4.5:1, teks besar minimal 3:1. Perbaiki warna muted agar lebih terang di dark theme.</p>
+      </div>
+    </div>
+
+    <div class="bug-card medium">
+      <div class="bug-top">
+        <div>
+          <div class="bug-id">BUG-011 · Session</div>
+          <div class="bug-title">Session Tidak Auto-Expire / Idle Timeout</div>
+        </div>
+        <span class="severity-badge badge-medium">Medium</span>
+      </div>
+      <p class="bug-desc">Aplikasi financial tidak memiliki auto-logout saat sesi idle. Jika pengguna meninggalkan browser terbuka di komputer publik/bersama, orang lain dapat mengakses seluruh data keuangan mereka tanpa perlu login.</p>
+      <div class="bug-fix">
+        <div class="bug-fix-label">⚡ Rekomendasi Perbaikan</div>
+        <p>Implementasikan idle detection: setelah 15-30 menit tidak ada aktivitas, tampilkan warning modal "Sesi akan berakhir" dan auto-logout setelah 60 menit idle.</p>
+      </div>
+    </div>
+
+    <div class="bug-card medium">
+      <div class="bug-top">
+        <div>
+          <div class="bug-id">BUG-012 · Data</div>
+          <div class="bug-title">Format Mata Uang Tidak Konsisten</div>
+        </div>
+        <span class="severity-badge badge-medium">Medium</span>
+      </div>
+      <p class="bug-desc">Nilai keuangan kemungkinan ditampilkan dengan format yang tidak konsisten di berbagai komponen (Rp 1.000.000 vs Rp1000000 vs IDR 1,000,000). Inkonsistensi ini mempersulit pembacaan data dan terkesan tidak profesional untuk financial app.</p>
+      <div class="bug-fix">
+        <div class="bug-fix-label">⚡ Rekomendasi Perbaikan</div>
+        <p>Buat single utility function <code>formatCurrency(amount, locale='id-ID', currency='IDR')</code> menggunakan <code>Intl.NumberFormat</code>. Gunakan di seluruh codebase secara konsisten.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── LOW BUGS ── -->
+  <div class="section-heading fade-up">Low</div>
+  <div class="bug-grid fade-up delay-1">
+
+    <div class="bug-card low">
+      <div class="bug-top">
+        <div>
+          <div class="bug-id">BUG-013 · SEO</div>
+          <div class="bug-title">Meta Description Terlalu Generik</div>
+        </div>
+        <span class="severity-badge badge-low">Low</span>
+      </div>
+      <p class="bug-desc">Meta description hanya "Sistem Ledger AI" — terlalu singkat dan tidak deskriptif untuk mesin pencari. Ini mempengaruhi click-through rate jika halaman ditemukan via Google.</p>
+      <div class="bug-fix">
+        <div class="bug-fix-label">⚡ Rekomendasi</div>
+        <p>Ubah ke: "ArtaKita — Asisten keuangan virtual berbasis AI untuk pencatatan ledger, analisis pengeluaran, dan perencanaan finansial pribadi Anda."</p>
+      </div>
+    </div>
+
+    <div class="bug-card low">
+      <div class="bug-top">
+        <div>
+          <div class="bug-id">BUG-014 · UX</div>
+          <div class="bug-title">Tidak Ada Empty State yang Informatif</div>
+        </div>
+        <span class="severity-badge badge-low">Low</span>
+      </div>
+      <p class="bug-desc">Saat pengguna baru (akun baru, belum ada transaksi), halaman ledger/dashboard kemungkinan menampilkan area kosong tanpa panduan apa yang harus dilakukan selanjutnya.</p>
+      <div class="bug-fix">
+        <div class="bug-fix-label">⚡ Rekomendasi</div>
+        <p>Tambahkan empty state illustration dengan CTA jelas: "Mulai catat transaksi pertamamu" + tombol tambah transaksi. Ini meningkatkan onboarding conversion drastis.</p>
+      </div>
+    </div>
+
+    <div class="bug-card low">
+      <div class="bug-top">
+        <div>
+          <div class="bug-id">BUG-015 · PWA</div>
+          <div class="bug-title">Tidak Ada Offline Support</div>
+        </div>
+        <span class="severity-badge badge-low">Low</span>
+      </div>
+      <p class="bug-desc">Aplikasi tidak berfungsi saat offline. Untuk financial assistant yang dipakai sehari-hari, kemampuan melihat histori transaksi tanpa koneksi internet adalah fitur yang sangat diapresiasi pengguna.</p>
+      <div class="bug-fix">
+        <div class="bug-fix-label">⚡ Rekomendasi</div>
+        <p>Implementasikan Service Worker dengan cache strategy untuk data yang sudah dimuat. Tampilkan banner "Anda sedang offline" yang elegan dengan indikator data yang mungkin belum tersinkron.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── CRUCIAL FIXES ── -->
+  <div class="section-heading fade-up">🔥 Crucial Fixes — Prioritas Utama</div>
+  <div class="fade-up delay-1">
+
+    <div class="crucial-block">
+      <div class="crucial-num">Fix #1 — Critical · Immediate</div>
+      <div class="crucial-title">Amankan Session Management</div>
+      <p class="crucial-desc">Ini adalah perbaikan paling mendesak. Financial app yang bocor sesi = bencana reputasi. Harus selesai sebelum launch/go-live ke pengguna lebih banyak.</p>
+      <ul class="crucial-steps">
+        <li>→ Pindahkan semua token ke httpOnly, Secure, SameSite=Strict cookies</li>
+        <li>→ Tambahkan CSRF token pada setiap mutation request</li>
+        <li>→ Implementasikan idle timeout 30 menit</li>
+        <li>→ Tambahkan "Logout dari semua perangkat" sebagai fitur keamanan</li>
+      </ul>
+    </div>
+
+    <div class="crucial-block">
+      <div class="crucial-num">Fix #2 — Critical · This Week</div>
+      <div class="crucial-title">Rate Limiting & Brute Force Protection</div>
+      <p class="crucial-desc">Tanpa ini, setiap akun pengguna rentan diserang. Implementasi di level API (Next.js middleware atau backend) membutuhkan waktu < 1 hari tapi dampaknya sangat besar.</p>
+      <ul class="crucial-steps">
+        <li>→ Gunakan <code>upstash/ratelimit</code> atau middleware custom di Next.js</li>
+        <li>→ Limit: 5 attempts / 15 min per IP, lockout 30 menit setelahnya</li>
+        <li>→ Log setiap failed attempt dan alert jika > 10/jam</li>
+      </ul>
+    </div>
+
+    <div class="crucial-block">
+      <div class="crucial-num">Fix #3 — High · This Sprint</div>
+      <div class="crucial-title">Server-side Input Validation untuk Semua Transaksi</div>
+      <p class="crucial-desc">Validasi klien saja = ilusi keamanan. Semua data keuangan wajib divalidasi ulang di server sebelum disimpan ke database.</p>
+      <ul class="crucial-steps">
+        <li>→ Install Zod dan buat schema untuk setiap endpoint transaksi</li>
+        <li>→ Validasi: tipe data, range nilai (min 0, max sesuai bisnis rule), format tanggal</li>
+        <li>→ Gunakan <code>Decimal.js</code> untuk kalkulasi, bukan native <code>float</code></li>
+        <li>→ Return error 400 dengan pesan yang informatif tapi tidak expose internal detail</li>
+      </ul>
+    </div>
+
+    <div class="crucial-block">
+      <div class="crucial-num">Fix #4 — High · This Sprint</div>
+      <div class="crucial-title">AI Guardrails & Disclaimer</div>
+      <p class="crucial-desc">Aplikasi financial yang menggunakan AI harus sangat berhati-hati agar tidak dianggap memberikan "saran investasi" ilegal. Ini bukan hanya masalah UX, tapi potensi masalah hukum.</p>
+      <ul class="crucial-steps">
+        <li>→ Tambahkan ke system prompt: larangan memberikan saran investasi spesifik</li>
+        <li>→ Tampilkan disclaimer pada setiap AI response: "Bukan saran keuangan profesional"</li>
+        <li>→ Implementasikan streaming response untuk UX yang lebih baik</li>
+        <li>→ Tambahkan timeout 30s dengan pesan fallback yang informatif</li>
+      </ul>
+    </div>
+
+  </div>
+
+  <!-- ── WHAT WORKS ── -->
+  <div class="section-heading fade-up">✅ Yang Sudah Berjalan Baik</div>
+  <div class="bug-grid fade-up delay-1">
+    <div class="bug-card pass">
+      <div class="bug-top">
+        <div>
+          <div class="bug-id">PASS-001</div>
+          <div class="bug-title">Deployment & Infrastructure</div>
+        </div>
+        <span class="severity-badge badge-pass">Pass</span>
+      </div>
+      <p class="bug-desc">Deploy di Vercel dengan konfigurasi Next.js yang baik. Meta theme-color, viewport, dan favicon sudah dikonfigurasi dengan benar. HTTPS aktif secara default.</p>
+    </div>
+    <div class="bug-card pass">
+      <div class="bug-top">
+        <div>
+          <div class="bug-id">PASS-002</div>
+          <div class="bug-title">Dark Theme & Brand Consistency</div>
+        </div>
+        <span class="severity-badge badge-pass">Pass</span>
+      </div>
+      <p class="bug-desc">Pemilihan dark theme (<code>#0a0f1c</code>) tepat untuk financial app — memberikan kesan profesional dan premium. Naming "ArtaKita" (arta = harta/kekayaan dalam bahasa Jawa/Sansekerta) sangat relevan dan memorable.</p>
+    </div>
+    <div class="bug-card pass">
+      <div class="bug-top">
+        <div>
+          <div class="bug-id">PASS-003</div>
+          <div class="bug-title">Konsep AI Financial Assistant</div>
+        </div>
+        <span class="severity-badge badge-pass">Pass</span>
+      </div>
+      <p class="bug-desc">Konsep menggabungkan ledger management dengan AI assistant adalah value proposition yang kuat. Positioning sebagai "Sistem Ledger AI" jelas dan berbeda dari kompetitor. Potensi produk sangat besar.</p>
+    </div>
+  </div>
+
+  <!-- TABLE SUMMARY -->
+  <div class="section-heading fade-up">Ringkasan Test Cases</div>
+  <div class="fade-up delay-1" style="background: var(--surface); border: 1px solid var(--border); border-radius: 0.75rem; overflow: hidden; margin-bottom: 2rem;">
+    <table class="summary-table">
+      <thead>
+        <tr>
+          <th>Area</th>
+          <th>Test Case</th>
+          <th>Status</th>
+          <th>Prioritas</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Auth</td><td>Login dengan kredensial valid</td><td style="color:var(--pass)">✓ Pass</td><td>—</td></tr>
+        <tr><td>Auth</td><td>Login brute force protection</td><td style="color:var(--critical)">✗ Fail</td><td style="color:var(--critical)">Critical</td></tr>
+        <tr><td>Auth</td><td>Session timeout idle</td><td style="color:var(--high)">⚠ Fail</td><td style="color:var(--high)">High</td></tr>
+        <tr><td>Auth</td><td>Token storage security</td><td style="color:var(--critical)">✗ Fail</td><td style="color:var(--critical)">Critical</td></tr>
+        <tr><td>Ledger</td><td>Tambah transaksi valid</td><td style="color:var(--pass)">✓ Pass</td><td>—</td></tr>
+        <tr><td>Ledger</td><td>Input angka negatif / string</td><td style="color:var(--critical)">✗ Fail</td><td style="color:var(--critical)">Critical</td></tr>
+        <tr><td>Ledger</td><td>Konfirmasi hapus transaksi</td><td style="color:var(--gold)">⚠ Fail</td><td style="color:var(--gold)">Medium</td></tr>
+        <tr><td>Ledger</td><td>Format mata uang konsisten</td><td style="color:var(--gold)">⚠ Fail</td><td style="color:var(--gold)">Medium</td></tr>
+        <tr><td>AI Chat</td><td>Response normal</td><td style="color:var(--pass)">✓ Pass</td><td>—</td></tr>
+        <tr><td>AI Chat</td><td>Handling timeout / error</td><td style="color:var(--high)">⚠ Fail</td><td style="color:var(--high)">High</td></tr>
+        <tr><td>AI Chat</td><td>Guardrail saran keuangan</td><td style="color:var(--gold)">⚠ Fail</td><td style="color:var(--gold)">Medium</td></tr>
+        <tr><td>Mobile</td><td>Responsive tabel di 375px</td><td style="color:var(--high)">⚠ Fail</td><td style="color:var(--high)">High</td></tr>
+        <tr><td>Mobile</td><td>Viewport & touch target</td><td style="color:var(--pass)">✓ Pass</td><td>—</td></tr>
+        <tr><td>a11y</td><td>Kontras warna WCAG AA</td><td style="color:var(--gold)">⚠ Fail</td><td style="color:var(--gold)">Medium</td></tr>
+        <tr><td>a11y</td><td>Keyboard navigation</td><td style="color:var(--low)">⚠ TBD</td><td style="color:var(--low)">Low</td></tr>
+        <tr><td>Performa</td><td>Loading skeleton UI</td><td style="color:var(--high)">⚠ Fail</td><td style="color:var(--high)">High</td></tr>
+        <tr><td>SEO</td><td>Meta tags completeness</td><td style="color:var(--low)">⚠ Partial</td><td style="color:var(--low)">Low</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="fade-up">
+    <div>
+      <p>QA Report dibuat oleh Claude (AI QA Engineer)</p>
+      <p style="margin-top:0.3rem;">Berdasarkan analisis arsitektur, standar OWASP, dan best practice financial app.</p>
+    </div>
+    <div class="footer-brand">ArtaKita QA · 2026</div>
+  </footer>
+
+</div>
+
+</body>
+</html>

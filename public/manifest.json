@@ -1,0 +1,18 @@
+{
+  "name": "ArtaKita",
+  "short_name": "ArtaKita",
+  "description": "Artaku Artamu - Manajemen Keuangan Cerdas",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0f1c",
+  "theme_color": "#0a0f1c",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/artakita.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
