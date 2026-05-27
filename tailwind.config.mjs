@@ -1,6 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  darkMode: 'class', // <--- INI KUNCI UTAMA AGAR KARTU BISA GELAP/TERANG
+  darkMode: 'class', // Penting untuk Dark Mode
   content: [
     "./src/**/*.{js,ts,jsx,tsx,mdx}",
   ],
