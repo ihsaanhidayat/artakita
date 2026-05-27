@@ -163,6 +163,19 @@ export default function Home() {
     setDeleteConfirmModal({ isOpen: false, trxId: null, amount: null }); // Tutup pop-up
   };
 
+  // Tambahkan ini di deretan useState Anda
+const [appScale, setAppScale] = useState(() => {
+  if (typeof window !== "undefined") {
+    return parseFloat(localStorage.getItem("appScale")) || 1;
+  }
+  return 1;
+});
+
+// Efek untuk menyimpan perubahan skala
+useEffect(() => {
+  localStorage.setItem("appScale", appScale);
+}, [appScale]);
+
   // ==========================================
   // 📊 FITUR EXPORT LAPORAN KE CSV
   // ==========================================
@@ -1159,6 +1172,20 @@ const autoClassifyCategory = async (note) => {
 
                   <div className="mb-6"><ManageCategories /></div>
                   <div className="mb-8"><ManageBudgets selectedMonth={selectedMonth} /></div>
+                  <div className="bg-white dark:bg-[#121827] p-6 rounded-[24px] border border-gray-100 dark:border-gray-800 shadow-sm mb-8">
+                  <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mb-4">Pengaturan Tampilan</h3>
+                  <label className="text-xs font-bold text-gray-700 dark:text-gray-300 mb-2 block">Skala Layar ({appScale})</label>
+                  <input 
+                    type="range" 
+                    min="0.8" 
+                    max="1.1" 
+                    step="0.05" 
+                    value={appScale} 
+                    onChange={(e) => setAppScale(parseFloat(e.target.value))}
+                    className="w-full h-2 bg-gray-200 dark:bg-gray-800 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                  />
+                  <p className="text-[9px] text-gray-500 mt-2">Geser untuk menyesuaikan tampilan di HP yang berbeda.</p>
+                </div>
 
                   {/* TOMBOL EXPORT LAPORAN DI SINI */}
                   <div className="mb-8">
@@ -1243,7 +1270,7 @@ const autoClassifyCategory = async (note) => {
             {/* MODAL: TAMBAH DOMPET BARU */}
             <AnimatePresence>
               {newWalletModal.isOpen && (
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-md p-4 pb-0 sm:pb-4">
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[99999] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-md p-4 pb-0 sm:pb-4">
                   <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", damping: 25, stiffness: 300 }} className="w-full max-w-sm bg-white dark:bg-[#121827] rounded-t-[32px] sm:rounded-[32px] p-6 shadow-2xl border border-gray-100 dark:border-gray-800/80">
                     <div className="flex justify-between items-center mb-6">
                       <h3 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-widest">Buat Rekening Baru</h3>

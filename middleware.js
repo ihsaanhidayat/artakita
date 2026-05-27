@@ -2,10 +2,12 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 
 export async function middleware(request) {
+  // 1. Inisialisasi Response
   let supabaseResponse = NextResponse.next({
     request,
   })
 
+  // 2. Inisialisasi Supabase Client
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
@@ -25,18 +27,25 @@ export async function middleware(request) {
     }
   )
 
-  const { data: { session } } = await supabase.auth.getSession()
+  // 3. Cek Sesi (ambil session DAN error)
+  const { data: { session }, error } = await supabase.auth.getSession()
 
-  // LOGIKA BARU:
-  // Jika tidak ada sesi, biarkan mereka mengakses '/' (karena di '/' ada LoginView)
-  // Jadi tidak perlu redirect ke '/login' yang sudah tidak ada.
-  
-  // Jika ada sesi tapi mereka mencoba akses halaman yang tidak perlu, 
-  // atau logika lain, baru kita arahkan.
-  
+  // 4. Penanganan Error (Jika token invalid)
+  if (error) {
+    console.error("Token tidak valid, sesi dianggap tidak ada:", error.message);
+    // Kita tidak perlu redirect paksa di sini, 
+    // biarkan aplikasi menganggap tidak ada sesi (session = null)
+  }
+
+  // 5. Logika Redirect (Opsional)
+  // Karena Anda sudah menghapus halaman /login dan menggabungkan semuanya di '/',
+  // Anda tidak perlu melakukan redirect di sini.
+  // Biarkan middleware mengembalikan respon apa adanya.
+
   return supabaseResponse
 }
 
+// Konfigurasi tetap sama
 export const config = {
   matcher: [
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
