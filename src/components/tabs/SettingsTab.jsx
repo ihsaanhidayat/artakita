@@ -1,10 +1,18 @@
 "use client";
 import { motion } from "framer-motion";
-import { Download } from "lucide-react";
+import { Download, CreditCard, ChevronRight } from "lucide-react";
 import ManageCategories from "@/components/ManageCategories";
-import ManageBudgets from "@/components/ManageBudgets";
+import UserManagement from "@/components/UserManagement";
 
-export default function SettingsTab({ selectedMonth, exportToCSV, handleLogout }) {
+/**
+ * SettingsTab
+ * Props:
+ *  - exportToCSV: () => void
+ *  - handleLogout: () => void
+ *  - isAdmin: boolean — tampilkan User Management jika true
+ *  - onNotify: (message, type) => void — untuk toast dari UserManagement
+ */
+export default function SettingsTab({ exportToCSV, handleLogout, isAdmin, onNotify, onManageWallets }) {
   return (
     <motion.div
       key="settings"
@@ -21,8 +29,30 @@ export default function SettingsTab({ selectedMonth, exportToCSV, handleLogout }
       <div className="mb-6">
         <ManageCategories />
       </div>
-      <div className="mb-8">
-        <ManageBudgets selectedMonth={selectedMonth} />
+      {/* User Management — hanya tampil untuk admin */}
+      {isAdmin && (
+        <div className="mb-6">
+          <UserManagement onNotify={onNotify} />
+        </div>
+      )}
+
+      {/* Manage Wallets */}
+      <div className="mb-4">
+        <button
+          onClick={onManageWallets}
+          className="w-full p-5 rounded-[24px] bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-800/60 hover:border-blue-500/50 hover:bg-blue-500/5 transition-all flex items-center justify-between"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
+              <CreditCard size={18} className="text-blue-500" />
+            </div>
+            <div className="text-left">
+              <p className="text-sm font-bold text-gray-800 dark:text-gray-100">Wallets & Savings</p>
+              <p className="text-[10px] text-gray-400 font-normal">Kelola rekening & target impian</p>
+            </div>
+          </div>
+          <ChevronRight size={16} className="text-gray-400" />
+        </button>
       </div>
 
       {/* Export CSV */}

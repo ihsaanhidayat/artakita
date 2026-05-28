@@ -1,6 +1,6 @@
 "use client";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowDownCircle, CreditCard, Edit3, Trash2 } from "lucide-react";
+import { ArrowDownCircle, CreditCard, Edit3, Trash2, ArrowLeft } from "lucide-react";
 import { THEME_GRADIENTS } from "@/lib/utils";
 
 export default function WalletsTab({
@@ -8,6 +8,7 @@ export default function WalletsTab({
   session,
   onEditWallet, onShareWallet,
   onNewWallet,
+  onBack,
   goals, isNewGoalOpen, setIsNewGoalOpen,
   newGoalData, setNewGoalData,
   handleAddGoal,
@@ -24,9 +25,17 @@ export default function WalletsTab({
       transition={{ duration: 0.15 }}
       className="pt-8 px-3 pb-32 h-[100dvh] overflow-y-auto no-scrollbar w-full flex flex-col"
     >
-      <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6 tracking-tight flex-none">
-        Pilih Dompet
-      </h2>
+      <div className="flex items-center gap-3 mb-6 flex-none">
+        <button
+          onClick={onBack}
+          className="p-2.5 bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-2xl text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-all active:scale-90"
+        >
+          <ArrowLeft size={18} />
+        </button>
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">
+          Wallets & Savings
+        </h2>
+      </div>
 
       <div className="space-y-4 mb-10">
         {wallets.length === 0 && (

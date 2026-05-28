@@ -1,11 +1,10 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
-import { AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
-  Home as HomeIcon, PieChart as PieChartIcon,
-  CreditCard, Settings, Receipt, X
+  Home as HomeIcon, BarChart3, Landmark, Package, Settings,
+  CreditCard, Receipt, X, RefreshCw
 } from "lucide-react";
-import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabaseClient";
 
 // Hooks
@@ -31,7 +30,9 @@ import ForcePasswordModal from "@/components/modals/ForcePasswordModal";
 // Shared components
 import Toast        from "@/components/Toast";
 import DeleteModal  from "@/components/DeleteModal";
-import DebtsTab     from "@/components/tabs/DebtsTab";
+import DebtsTab       from "@/components/tabs/DebtsTab";
+import AssetsTab      from "@/components/tabs/AssetsTab";
+import RecurringTab   from "@/components/tabs/RecurringTab";
 import EditWalletModal from "@/components/EditWalletModal";
 import ShareWallet  from "@/components/ShareWallet";
 import QuickCommandBar from "@/components/QuickCommandBar";
@@ -116,7 +117,8 @@ export default function Home() {
   // ── UI State ──────────────────────────────────────────────────────────────
   const [mounted, setMounted]         = useState(false);
   const [isDarkMode, setIsDarkMode]   = useState(true);
-  const [activeTab, setActiveTab]     = useState("home");
+  const [activeTab, setActiveTab]       = useState("home");
+  const [financeSubTab, setFinanceSubTab] = useState("debts"); // "debts" | "recurring"
   const [recentMonths]                = useState(getRecentMonths);
   const [selectedMonth, setSelectedMonth] = useState(
     () => new Date().toISOString().slice(0, 7)
@@ -130,12 +132,15 @@ export default function Home() {
   const {
     balance, transactions,
     addTransaction, deleteTransaction, updateTransaction,
+    hasMore, loadMore, isLoading,
+    refetch,
   } = useFinData(activeWallet?.id ?? null);
 
   // ── AI Brain ──────────────────────────────────────────────────────────────
   const [userCategories, setUserCategories] = useState([]);
   const [aiKeywords, setAiKeywords]         = useState([]);
   const [isSmartLoading, setIsSmartLoading] = useState(false);
+  const [isAdmin, setIsAdmin]                 = useState(false);
 
   // ── Filter State ──────────────────────────────────────────────────────────
   const [typeFilter, setTypeFilter]         = useState("all");
@@ -180,17 +185,29 @@ export default function Home() {
     document.documentElement.classList.toggle("dark", isDarkMode);
   }, [isDarkMode]);
 
-  // AI Brain fetch
+  // AI Brain + role fetch
   useEffect(() => {
     if (!auth.session?.user?.id) return;
+    const userId = auth.session.user.id;
+
     const fetchAiBrain = async () => {
-      const userId = auth.session.user.id;
       const { data: cats } = await supabase.from("user_categories").select("*").order("name", { ascending: true });
       const { data: keys } = await supabase.from("ai_keywords").select("*").eq("user_id", userId);
       if (cats) setUserCategories(cats);
       if (keys) setAiKeywords(keys);
     };
+
+    const fetchRole = async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", userId)
+        .single();
+      if (data?.role === "admin") setIsAdmin(true);
+    };
+
     fetchAiBrain();
+    fetchRole();
   }, [auth.session]);
 
   // Active wallet — baca localStorage, tidak tunggu wallets dari DB
@@ -497,7 +514,7 @@ export default function Home() {
         />
 
         {/* ── Tab content ── */}
-        <AnimatePresence mode="wait">
+        <AnimatePresence mode="wait" initial={false}>
           {activeTab === "home" && (
             <HomeTab
               key="home"
@@ -519,11 +536,20 @@ export default function Home() {
               transactionsThisMonth={transactionsThisMonth}
               onEditTransaction={(trx) => setEditTrxModal({ isOpen: true, data: { ...trx } })}
               onDeleteTransaction={(trx) => { setItemToDelete(trx); setIsDeleteModalOpen(true); }}
+              hasMore={hasMore}
+              loadMore={loadMore}
+              isLoading={isLoading}
             />
           )}
 
           {activeTab === "analytics" && (
-            <AnalyticsTab key="analytics" filteredTransactions={filteredTransactions} />
+            <AnalyticsTab
+              key="analytics"
+              filteredTransactions={filteredTransactions}
+              transactions={transactionsThisMonth}
+              selectedMonth={selectedMonth}
+              balance={balance}
+            />
           )}
 
           {activeTab === "wallets" && (
@@ -532,6 +558,7 @@ export default function Home() {
               wallets={wallets} activeWallet={activeWallet}
               setActiveWallet={setActiveWallet} setActiveTab={setActiveTab}
               session={auth.session}
+              onBack={() => setActiveTab("settings")}
               onEditWallet={(w) => { setWalletToEdit(w); setIsEditWalletOpen(true); }}
               onShareWallet={(w) => { setWalletToShare(w); setIsShareWalletOpen(true); }}
               onNewWallet={() => setIsNewWalletOpen(true)}
@@ -546,16 +573,79 @@ export default function Home() {
             />
           )}
 
-          {activeTab === "debts" && (
-            <DebtsTab key="debts" activeWallet={activeWallet} balance={balance} />
+          {activeTab === "finance" && (
+            <motion.div
+              key="finance"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              className="pt-8 px-0 h-[100dvh] w-full flex flex-col overflow-hidden"
+            >
+              {/* Sub-tab toggle */}
+              <div className="flex bg-gray-100 dark:bg-[#121827] p-1 rounded-[16px] mx-3 mb-0 border border-gray-200 dark:border-gray-800/60 shadow-inner flex-none">
+                {[
+                  { key: "debts",     label: "Debt & Receivable" },
+                  { key: "recurring", label: "Recurring" },
+                ].map(({ key, label }) => (
+                  <button
+                    key={key}
+                    onClick={() => setFinanceSubTab(key)}
+                    className={`flex-1 text-[9px] font-black uppercase tracking-widest py-2.5 rounded-xl transition-all duration-300 ${
+                      financeSubTab === key
+                        ? "bg-white dark:bg-blue-600 text-blue-600 dark:text-white shadow-sm"
+                        : "text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              {/* Content */}
+              <div className="flex-1 overflow-hidden min-h-0">
+                {financeSubTab === "debts" && (
+                  <DebtsTab activeWallet={activeWallet} balance={balance} />
+                )}
+                {financeSubTab === "recurring" && (
+                  <RecurringTab activeWallet={activeWallet} onNotify={showNotification} />
+                )}
+              </div>
+            </motion.div>
+          )}
+
+          {activeTab === "assets" && (
+            <AssetsTab key="assets" activeWallet={activeWallet} />
           )}
 
           {activeTab === "settings" && (
             <SettingsTab
               key="settings"
-              selectedMonth={selectedMonth}
               exportToCSV={exportToCSV}
               handleLogout={auth.handleLogout}
+              isAdmin={isAdmin}
+              onNotify={showNotification}
+              onManageWallets={() => setActiveTab("wallets")}
+            />
+          )}
+
+          {activeTab === "wallets" && (
+            <WalletsTab
+              key="wallets"
+              wallets={wallets} activeWallet={activeWallet}
+              setActiveWallet={setActiveWallet} setActiveTab={setActiveTab}
+              session={auth.session}
+              onBack={() => setActiveTab("settings")}
+              onEditWallet={(w) => { setWalletToEdit(w); setIsEditWalletOpen(true); }}
+              onShareWallet={(w) => { setWalletToShare(w); setIsShareWalletOpen(true); }}
+              onNewWallet={() => setIsNewWalletOpen(true)}
+              goals={goals}
+              isNewGoalOpen={isNewGoalOpen} setIsNewGoalOpen={setIsNewGoalOpen}
+              newGoalData={newGoalData} setNewGoalData={setNewGoalData}
+              handleAddGoal={handleAddGoal}
+              activeGoalInput={activeGoalInput} setActiveGoalInput={setActiveGoalInput}
+              flexibleSavingsAmount={flexibleSavingsAmount} setFlexibleSavingsAmount={setFlexibleSavingsAmount}
+              handleModifySavings={handleModifySavings}
+              triggerDeleteGoal={triggerDeleteGoal}
             />
           )}
         </AnimatePresence>
@@ -648,32 +738,49 @@ export default function Home() {
           onCancel={() => setGoalDeleteModal({ isOpen: false, goalId: null, goalName: "" })}
         />
 
-        {/* ── Bottom Navigation ── */}
+        {/* ── Bottom Navigation — 5 tab, centered, compact ── */}
         <nav className="fixed bottom-0 left-0 right-0 z-[9999] bg-white/80 dark:bg-[#0a0f1c]/90 backdrop-blur-xl border-t border-gray-200 dark:border-gray-800 pb-safe">
-          <div className="w-full max-w-lg mx-auto flex justify-between items-center px-4 py-4">
+          <div className="w-full max-w-lg mx-auto flex justify-center items-center px-4 py-3 gap-2">
             {[
-              { id: "home",      label: "HOME",    Icon: HomeIcon },
-              { id: "analytics", label: "STATS",   Icon: PieChartIcon },
-              { id: "debts",     label: "HUTANG",  Icon: Receipt },
-              { id: "wallets",   label: "WALLETS", Icon: CreditCard },
-              { id: "settings",  label: "SET",     Icon: Settings },
+              { id: "home",      label: "Home",    Icon: HomeIcon },
+              { id: "analytics", label: "Stats",   Icon: BarChart3 },
+              { id: "finance",   label: "Finance", Icon: Landmark },
+              { id: "assets",    label: "Assets",  Icon: Package },
+              { id: "settings",  label: "More",    Icon: Settings },
             ].map(({ id, label, Icon }) => {
               const isActive = activeTab === id;
               return (
                 <motion.button
                   key={id}
                   onClick={() => setActiveTab(id)}
-                  whileTap={{ scale: 0.85 }}
-                  animate={{ scale: isActive ? 1.15 : 1, y: isActive ? -6 : 0 }}
-                  transition={{ type: "spring", stiffness: 400, damping: 15 }}
-                  className="flex flex-col items-center gap-1.5 relative w-12"
+                  whileTap={{ scale: 0.9 }}
+                  animate={{ y: isActive ? -4 : 0 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 20 }}
+                  className="flex flex-col items-center gap-1 relative flex-1 max-w-[64px]"
                   style={{ WebkitTapHighlightColor: "transparent" }}
                 >
-                  {isActive && (
-                    <motion.div layoutId="navGlow" className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-8 bg-blue-500/20 blur-md rounded-full -z-10" />
-                  )}
-                  <Icon size={22} className={`transition-colors duration-300 ${isActive ? "text-blue-500 fill-blue-500/20" : "text-gray-400 dark:text-gray-600 fill-transparent"}`} />
-                  <span className={`text-[9px] font-black uppercase tracking-widest transition-colors duration-300 ${isActive ? "text-blue-500" : "text-gray-400 dark:text-gray-600"}`}>
+                  {/* Active pill background */}
+                  <AnimatePresence>
+                    {isActive && (
+                      <motion.div
+                        layoutId="navPill"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="absolute -top-1 left-1/2 -translate-x-1/2 w-10 h-10 bg-blue-500/10 rounded-2xl -z-10"
+                      />
+                    )}
+                  </AnimatePresence>
+                  <Icon
+                    size={22}
+                    strokeWidth={isActive ? 2.5 : 1.8}
+                    className={`transition-all duration-300 ${
+                      isActive ? "text-blue-500" : "text-gray-400 dark:text-gray-600"
+                    }`}
+                  />
+                  <span className={`text-[8px] font-black uppercase tracking-widest transition-colors duration-300 ${
+                    isActive ? "text-blue-500" : "text-gray-400 dark:text-gray-600"
+                  }`}>
                     {label}
                   </span>
                 </motion.button>
