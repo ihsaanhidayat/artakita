@@ -64,8 +64,8 @@ const HomeTabComponent = memo(function HomeTab({
   session,
   onSwitchWallet,
 }) {
-  const [viewerUrl, setViewerUrl]   = React.useState(null);
-  const [viewerLabel, setViewerLabel] = React.useState("");
+  const [viewerUrl, setViewerUrl]   = useState(null);
+  const [viewerLabel, setViewerLabel] = useState("");
 
   return (
     <motion.div
