@@ -1,27 +1,13 @@
+"use client";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabaseClient";
+import { parseFlexibleNumber, fmt } from "@/lib/utils";
 import {
   Plus, Trash2, ChevronDown, ArrowDownLeft, ArrowUpRight,
   CheckCircle2, Wallet, TrendingDown, TrendingUp, X
 } from "lucide-react";
 
-// ── Helper ───────────────────────────────────────────────────────────────────
-const parseFlexibleNumber = (val) => {
-  if (!val) return 0;
-  const str = String(val).toLowerCase().trim();
-  const isNegative = str.includes("-");
-  const match = str.match(/([\d\.,]+)\s*(k|rb|ribu|m|jt|juta)?/);
-  if (!match) return 0;
-  let numStr = match[1].replace(/\./g, "").replace(/,/g, ".");
-  let num = parseFloat(numStr);
-  const mult = match[2];
-  if (["k", "rb", "ribu"].includes(mult)) num *= 1000;
-  if (["m", "jt", "juta"].includes(mult)) num *= 1000000;
-  return isNegative ? -num : num;
-};
-
-const fmt = (n) => Number(n || 0).toLocaleString("id-ID");
 
 // ── Mini Bar Chart ────────────────────────────────────────────────────────────
 const DebtChart = ({ debts, balance }) => {
@@ -132,7 +118,7 @@ const DebtChart = ({ debts, balance }) => {
 };
 
 // ── Main Component ────────────────────────────────────────────────────────────
-export default function DebtsPage({ activeWallet, balance }) {
+export default function DebtsTab({ activeWallet, balance }) {
   const [debts, setDebts]               = useState([]);
   const [isFormOpen, setIsFormOpen]     = useState(false);
   const [activePayment, setActivePayment] = useState(null);
@@ -142,6 +128,7 @@ export default function DebtsPage({ activeWallet, balance }) {
   const [formData, setFormData]           = useState({ person: "", amount: "", type: "debt" });
   const [isAddLoading, setIsAddLoading]   = useState(false);
   const [filterType, setFilterType]       = useState("all"); // all | debt | receivable
+  const [expandedDebt, setExpandedDebt]   = useState(null); // id debt yang sedang di-expand
   const [toast, setToast]                 = useState({ show: false, message: "", type: "error" });
 
   const showToast = (message, type = "error") => {
@@ -346,7 +333,8 @@ export default function DebtsPage({ activeWallet, balance }) {
           const progress   = rawInitial > 0 ? Math.min((paid / rawInitial) * 100, 100) : 0;
           const isDebt     = d.type === "debt";
           const isLunas    = progress >= 100 && rawAmount <= 0;
-          const isActive = activePayment === d.id;
+          const isActive   = activePayment === d.id;
+          const isExpanded = expandedDebt === d.id;
 
           return (
             <motion.div
@@ -354,28 +342,34 @@ export default function DebtsPage({ activeWallet, balance }) {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.04 }}
-              className="bg-white dark:bg-[#121827] border border-gray-100 dark:border-gray-800/60 rounded-[24px] p-5 shadow-sm relative overflow-hidden"
+              className="bg-white dark:bg-[#121827] border border-gray-100 dark:border-gray-800/60 rounded-[24px] shadow-sm relative overflow-hidden"
             >
               {/* Accent strip kiri */}
-              <div className={`absolute left-0 top-5 bottom-5 w-[3px] rounded-full ${
+              <div className={`absolute left-0 top-0 bottom-0 w-[3px] ${
                 isLunas ? "bg-emerald-500" : isDebt ? "bg-red-500" : "bg-blue-500"
               }`} />
 
-              <div className="pl-4">
-                {/* Row atas */}
-                <div className="flex justify-between items-start mb-3">
-                  <div>
+              {/* ── COLLAPSED HEADER — selalu tampil ── */}
+              <button
+                onClick={() => {
+                  setExpandedDebt(isExpanded ? null : d.id);
+                  if (isExpanded) { setActivePayment(null); setPaymentError(""); }
+                }}
+                className="w-full flex items-center justify-between px-5 py-4 pl-6 text-left"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <p className="font-black text-sm text-gray-900 dark:text-white tracking-tight">
+                      <p className="font-black text-sm text-gray-900 dark:text-white tracking-tight truncate">
                         {d.person_name}
                       </p>
                       {isLunas && (
-                        <span className="flex items-center gap-1 text-[8px] font-black text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full uppercase tracking-widest">
+                        <span className="flex items-center gap-1 text-[8px] font-black text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full uppercase tracking-widest shrink-0">
                           <CheckCircle2 size={9} /> Lunas
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center gap-1.5 mt-1">
+                    <div className="flex items-center gap-1.5 mt-0.5">
                       {isDebt
                         ? <ArrowUpRight size={10} className="text-red-400" />
                         : <ArrowDownLeft size={10} className="text-blue-400" />
@@ -387,157 +381,175 @@ export default function DebtsPage({ activeWallet, balance }) {
                       </span>
                     </div>
                   </div>
+                </div>
 
+                {/* Kanan: nominal + progress + chevron */}
+                <div className="flex items-center gap-3 shrink-0 ml-3">
                   <div className="text-right">
                     <p className="font-black text-sm text-gray-900 dark:text-white">
-                      Rp {fmt(d.amount)}
+                      Rp {fmt(rawAmount)}
                     </p>
-                    <p className="text-[9px] text-gray-400 mt-0.5">
-                      dari Rp {fmt(d.initial_amount)}
+                    <p className="text-[9px] text-gray-400">
+                      {progress.toFixed(0)}% terbayar
                     </p>
                   </div>
-                </div>
-
-                {/* Progress bar */}
-                <div className="w-full h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden mb-1.5">
                   <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${progress}%` }}
-                    transition={{ duration: 1, ease: "easeOut" }}
-                    className={`h-full rounded-full ${
-                      isLunas ? "bg-emerald-500"
-                        : progress < 30 ? "bg-red-500"
-                        : progress < 70 ? "bg-amber-500"
-                        : "bg-emerald-500"
-                    }`}
-                  />
-                </div>
-
-                <div className="flex justify-between items-center mb-4">
-                  <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">
-                    Terbayar {progress.toFixed(0)}%
-                  </span>
-                  <span className="text-[9px] text-gray-400">
-                    Rp {fmt(paid)} / Rp {fmt(d.initial_amount)}
-                  </span>
-                </div>
-
-                {/* Action buttons */}
-                {!isLunas && (
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => handleDelete(d.id)}
-                      className="p-2.5 text-gray-400 hover:text-red-500 bg-gray-50 dark:bg-gray-800/50 rounded-xl transition-colors"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                    <button
-                      onClick={() => {
-                        setActivePayment(isActive ? null : d.id);
-                        setPaymentAmount("");
-                        setPaymentError("");
-                      }}
-                      className={`flex-1 font-black text-[10px] uppercase tracking-widest rounded-xl py-2.5 transition-all active:scale-95 ${
-                        isActive
-                          ? "bg-gray-100 dark:bg-gray-800 text-gray-500"
-                          : isDebt
-                          ? "bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white border border-red-500/20 shadow-sm"
-                          : "bg-blue-500/10 hover:bg-blue-500 text-blue-500 hover:text-white border border-blue-500/20 shadow-sm"
-                      }`}
-                    >
-                      {isActive ? "Batal" : isDebt ? "Bayar Hutang" : "Terima Piutang"}
-                    </button>
-                  </div>
-                )}
-
-                {/* Tombol hapus jika lunas */}
-                {isLunas && (
-                  <button
-                    onClick={() => handleDelete(d.id)}
-                    className="w-full py-2 text-[10px] font-black text-gray-400 hover:text-red-500 uppercase tracking-widest transition-colors text-center rounded-xl hover:bg-red-500/5"
+                    animate={{ rotate: isExpanded ? 180 : 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="text-gray-400 shrink-0"
                   >
-                    Hapus Catatan
-                  </button>
-                )}
+                    <ChevronDown size={16} />
+                  </motion.div>
+                </div>
+              </button>
 
-                {/* Payment Panel */}
-                <AnimatePresence>
-                  {isActive && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: "auto", opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.2 }}
-                      className="overflow-hidden"
-                    >
-                      <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-800/60">
-                        {/* Info saldo dompet (untuk hutang) */}
-                        {isDebt && (
-                          <div className="flex items-center gap-1.5 mb-2">
-                            <Wallet size={11} className="text-gray-400" />
-                            <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">
-                              Saldo dompet: Rp {fmt(balance)}
-                            </span>
-                          </div>
-                        )}
+              {/* Progress bar tipis — selalu tampil */}
+              <div className="w-full h-1 bg-gray-100 dark:bg-gray-800 overflow-hidden">
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${progress}%` }}
+                  transition={{ duration: 1, ease: "easeOut" }}
+                  className={`h-full ${
+                    isLunas ? "bg-emerald-500"
+                      : progress < 30 ? "bg-red-500"
+                      : progress < 70 ? "bg-amber-500"
+                      : "bg-emerald-500"
+                  }`}
+                />
+              </div>
 
-                        {/* Info sisa hutang */}
-                        <div className="flex items-center gap-1.5 mb-3">
-                          {isDebt
-                            ? <TrendingDown size={11} className="text-red-400" />
-                            : <TrendingUp size={11} className="text-emerald-400" />
-                          }
-                          <span className={`text-[9px] font-black uppercase tracking-widest ${
-                            isDebt ? "text-red-400" : "text-emerald-400"
-                          }`}>
-                            Sisa {isDebt ? "hutang" : "piutang"}: Rp {fmt(Math.abs(d.amount))}
-                          </span>
-                        </div>
+              {/* ── EXPANDED DETAIL ── */}
+              <AnimatePresence initial={false}>
+                {isExpanded && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.25, ease: "easeInOut" }}
+                    className="overflow-hidden"
+                  >
+                    <div className="px-5 pb-5 pl-6 pt-3 border-t border-gray-100 dark:border-gray-800/60">
 
-                        <div className="flex gap-2">
-                          <input
-                            type="text"
-                            autoFocus
-                            placeholder="Nominal (Cth: 50k, 1jt)"
-                            value={paymentAmount}
-                            onChange={(e) => {
-                              setPaymentAmount(e.target.value);
+                      {/* Detail nominal */}
+                      <div className="flex justify-between items-center mb-4">
+                        <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">
+                          Terbayar {progress.toFixed(0)}%
+                        </span>
+                        <span className="text-[9px] text-gray-400">
+                          Rp {fmt(paid)} / Rp {fmt(rawInitial)}
+                        </span>
+                      </div>
+
+                      {/* Action buttons */}
+                      {!isLunas && (
+                        <div className="flex gap-2 mb-0">
+                          <button
+                            onClick={() => handleDelete(d.id)}
+                            className="p-2.5 text-gray-400 hover:text-red-500 bg-gray-50 dark:bg-gray-800/50 rounded-xl transition-colors"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                          <button
+                            onClick={() => {
+                              setActivePayment(isActive ? null : d.id);
+                              setPaymentAmount("");
                               setPaymentError("");
                             }}
-                            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handlePayment(d); }}}
-                            className="flex-1 bg-gray-50 dark:bg-[#0a0f1c] border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white text-sm font-bold p-3 rounded-xl outline-none focus:border-blue-500 transition-all placeholder-gray-400"
-                          />
-                          <button
-                            onClick={() => handlePayment(d)}
-                            disabled={isPayLoading}
-                            className={`px-4 rounded-xl font-black text-xs uppercase tracking-widest transition-all active:scale-95 disabled:opacity-50 ${
-                              isDebt
-                                ? "bg-red-500 hover:bg-red-400 text-white shadow-lg shadow-red-500/20"
-                                : "bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-500/20"
+                            className={`flex-1 font-black text-[10px] uppercase tracking-widest rounded-xl py-2.5 transition-all active:scale-95 ${
+                              isActive
+                                ? "bg-gray-100 dark:bg-gray-800 text-gray-500"
+                                : isDebt
+                                ? "bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white border border-red-500/20 shadow-sm"
+                                : "bg-blue-500/10 hover:bg-blue-500 text-blue-500 hover:text-white border border-blue-500/20 shadow-sm"
                             }`}
                           >
-                            {isPayLoading ? "..." : "OK"}
+                            {isActive ? "Batal" : isDebt ? "Bayar Hutang" : "Terima Piutang"}
                           </button>
                         </div>
+                      )}
 
-                        {/* Error message */}
-                        <AnimatePresence>
-                          {paymentError && (
-                            <motion.p
-                              initial={{ opacity: 0, y: -4 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              exit={{ opacity: 0 }}
-                              className="text-[10px] font-bold text-red-500 mt-2 bg-red-500/10 px-3 py-1.5 rounded-lg"
-                            >
-                              {paymentError}
-                            </motion.p>
-                          )}
-                        </AnimatePresence>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
+                      {/* Tombol hapus jika lunas */}
+                      {isLunas && (
+                        <button
+                          onClick={() => handleDelete(d.id)}
+                          className="w-full py-2 text-[10px] font-black text-gray-400 hover:text-red-500 uppercase tracking-widest transition-colors text-center rounded-xl hover:bg-red-500/5"
+                        >
+                          Hapus Catatan
+                        </button>
+                      )}
+
+                      {/* Payment Panel */}
+                      <AnimatePresence>
+                        {isActive && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: "auto", opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                            className="overflow-hidden"
+                          >
+                            <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-800/60">
+                              {isDebt && (
+                                <div className="flex items-center gap-1.5 mb-2">
+                                  <Wallet size={11} className="text-gray-400" />
+                                  <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">
+                                    Saldo dompet: Rp {fmt(balance)}
+                                  </span>
+                                </div>
+                              )}
+                              <div className="flex items-center gap-1.5 mb-3">
+                                {isDebt
+                                  ? <TrendingDown size={11} className="text-red-400" />
+                                  : <TrendingUp size={11} className="text-emerald-400" />
+                                }
+                                <span className={`text-[9px] font-black uppercase tracking-widest ${
+                                  isDebt ? "text-red-400" : "text-emerald-400"
+                                }`}>
+                                  Sisa {isDebt ? "hutang" : "piutang"}: Rp {fmt(rawAmount)}
+                                </span>
+                              </div>
+                              <div className="flex gap-2">
+                                <input
+                                  type="text"
+                                  autoFocus
+                                  placeholder="Nominal (Cth: 50k, 1jt)"
+                                  value={paymentAmount}
+                                  onChange={(e) => { setPaymentAmount(e.target.value); setPaymentError(""); }}
+                                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handlePayment(d); } }}
+                                  className="flex-1 bg-gray-50 dark:bg-[#0a0f1c] border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white text-sm font-bold p-3 rounded-xl outline-none focus:border-blue-500 transition-all placeholder-gray-400"
+                                />
+                                <button
+                                  onClick={() => handlePayment(d)}
+                                  disabled={isPayLoading}
+                                  className={`px-4 rounded-xl font-black text-xs uppercase tracking-widest transition-all active:scale-95 disabled:opacity-50 ${
+                                    isDebt
+                                      ? "bg-red-500 hover:bg-red-400 text-white shadow-lg shadow-red-500/20"
+                                      : "bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-500/20"
+                                  }`}
+                                >
+                                  {isPayLoading ? "..." : "OK"}
+                                </button>
+                              </div>
+                              <AnimatePresence>
+                                {paymentError && (
+                                  <motion.p
+                                    initial={{ opacity: 0, y: -4 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0 }}
+                                    className="text-[10px] font-bold text-red-500 mt-2 bg-red-500/10 px-3 py-1.5 rounded-lg"
+                                  >
+                                    {paymentError}
+                                  </motion.p>
+                                )}
+                              </AnimatePresence>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </motion.div>
           );
         })}
@@ -651,9 +663,9 @@ export default function DebtsPage({ activeWallet, balance }) {
                   Nominal
                 </label>
                 <input
-                  type="text"
+                  type="number"
                   required
-                  placeholder="50k, 1jt, 100rb.."
+                  placeholder="0"
                   value={formData.amount}
                   onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
                   className="w-full bg-gray-50 dark:bg-[#121827] border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white font-bold text-sm p-4 rounded-2xl outline-none focus:border-blue-500 transition-all placeholder-gray-400"

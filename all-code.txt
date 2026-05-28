@@ -1,0 +1,2762 @@
+﻿
+=== FILE: package.json ===
+{
+  "name": "artakita",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "@supabase/ssr": "^0.10.3",
+    "@supabase/supabase-js": "^2.106.1",
+    "@vercel/speed-insights": "^2.0.0",
+    "framer-motion": "^12.40.0",
+    "lucide-react": "^1.16.0",
+    "next": "16.2.6",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "recharts": "^3.8.1",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.5.0",
+    "babel-plugin-react-compiler": "1.0.0",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.6",
+    "postcss": "^8.5.15",
+    "tailwindcss": "^3.4.19"
+  }
+}
+
+
+
+=== FILE: next.config.mjs ===
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  /* config options here */
+  reactCompiler: true,
+};
+
+export default nextConfig;
+
+
+
+=== FILE: middleware.js ===
+import { createServerClient } from '@supabase/ssr'
+import { NextResponse } from 'next/server'
+
+export async function middleware(request) {
+  // 1. Inisialisasi Response
+  let supabaseResponse = NextResponse.next({
+    request,
+  })
+
+  // 2. Inisialisasi Supabase Client
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll()
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            
+            // ðŸ‘‡ SUNTIKAN GEMBOK KEAMANAN DI SINI (MEMBASMI BUG-001) ðŸ‘‡
+            const secureOptions = {
+              ...options,
+              httpOnly: true, // Mencegah pencurian token oleh script jahat (XSS)
+              secure: process.env.NODE_ENV === 'production', // Memaksa HTTPS aktif saat di-deploy (Vercel)
+              sameSite: 'strict', // Mencegah serangan CSRF dari web lain
+            }
+
+            request.cookies.set(name, value)
+            supabaseResponse = NextResponse.next({ request })
+            
+            // ðŸ‘ˆ Aplikasikan secureOptions yang sudah digembok ke response
+            supabaseResponse.cookies.set(name, value, secureOptions) 
+          })
+        },
+      },
+    }
+  )
+
+  // 3. Cek Sesi (ambil session DAN error)
+  const { data: { session }, error } = await supabase.auth.getSession()
+
+  // 4. Penanganan Error (Jika token invalid)
+  if (error) {
+    console.error("Token tidak valid, sesi dianggap tidak ada:", error.message);
+    // Kita tidak perlu redirect paksa di sini, 
+    // biarkan aplikasi menganggap tidak ada sesi (session = null)
+  }
+
+  // 5. Logika Redirect (Opsional)
+  // Karena Anda sudah menghapus halaman /login dan menggabungkan semuanya di '/',
+  // Anda tidak perlu melakukan redirect di sini.
+  // Biarkan middleware mengembalikan respon apa adanya.
+
+  return supabaseResponse
+}
+
+// Konfigurasi tetap sama
+export const config = {
+  matcher: [
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+  ],
+}
+
+
+=== FILE: jsconfig.json ===
+{
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  }
+}
+
+
+
+=== FILE: tailwind.config.mjs ===
+/** @type {import('tailwindcss').Config} */
+export default {
+  darkMode: 'class', // Penting untuk Dark Mode
+  content: [
+    "./src/**/*.{js,ts,jsx,tsx,mdx}",
+  ],
+  theme: {
+    extend: {},
+  },
+  plugins: [],
+};
+
+
+=== FILE: src/app/layout.js ===
+import { Inter } from "next/font/google";
+import "./globals.css";
+
+// Memuat font Inter dengan subset latin
+const inter = Inter({ subsets: ["latin"] });
+
+export default function RootLayout({ children }) {
+  return (
+    <html lang="id" suppressHydrationWarning={true}>
+      <body>{children}</body>
+    </html>
+  );
+}
+
+export const viewport = {
+  themeColor: '#0a0f1c',
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
+
+export const metadata = {
+  title: 'ArtaKita',
+  description: 'Aplikasi Manajemen Keuangan Pribadi & Bersama',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'ArtaKita',
+  },
+};
+
+
+=== FILE: src/app/page.js ===
+
+
+=== FILE: src/app/login/page.js ===
+"use client";
+import { useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
+import { useRouter } from "next/navigation"; // <-- Import Router
+
+export default function LoginPage() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  
+  const router = useRouter(); // <-- Deklarasi Router di sini
+
+  const handleLogin = async (e) => {
+
+    e.preventDefault(); setLoading(true);
+
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      console.log("DEBUG LOGIN:", data, error);
+
+      if (error) {
+        alert("Gagal Login: " + error.message);
+        setLoading(false); // Matikan loading jika error
+      } else {
+        // GUNAKAN HARD REDIRECT INI
+        // Ini memaksa browser memuat ulang dan mengirim cookie ke Middleware
+        window.location.href = "/";
+      }
+    } catch (err) {
+      console.error("ðŸš¨ ERROR SISTEM ASLI:", err);
+      alert("Sistem Error: " + err.message);
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-[#0a0f1c] p-6 relative overflow-hidden">
+      {/* Background Glow Effect */}
+      <div className="absolute w-96 h-96 bg-blue-500/20 rounded-full blur-[128px]"></div>
+
+      {/* Glassmorphism Card */}
+      <div className="relative z-10 w-full max-w-sm backdrop-blur-xl bg-white/5 border border-white/10 p-8 rounded-3xl shadow-2xl">
+        <h1 className="text-2xl font-bold text-white mb-2 text-center">ArtaKita</h1>
+        <p className="text-white/50 text-sm text-center mb-6">Akses Terbatas</p>
+        
+        <form onSubmit={handleLogin} className="space-y-4">
+          <input 
+            type="email" 
+            placeholder="Email" 
+            className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-white focus:border-blue-500 outline-none"
+            onChange={(e) => setEmail(e.target.value)} 
+            required 
+          />
+          <input 
+            type="password" 
+            placeholder="Password" 
+            className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-white focus:border-blue-500 outline-none"
+            onChange={(e) => setPassword(e.target.value)} 
+            required 
+          />
+          <button 
+            type="submit" 
+            disabled={loading}
+            className="w-full mt-4 bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl transition-all"
+          >
+            {loading ? "Memverifikasi..." : "Masuk"}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+
+=== FILE: src/app/auth/callback/route.js ===
+import { createServerClient } from '@supabase/ssr'
+import { NextResponse } from 'next/server'
+
+export async function GET(request) {
+  const { searchParams, origin } = new URL(request.url)
+  const code = searchParams.get('code')
+  // Mengarahkan kembali ke dashboard setelah login sukses
+  const next = searchParams.get('next') ?? '/'
+
+  if (code) {
+    const cookieStore = new Map() // Untuk storage sementara
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      {
+        cookies: {
+          get(name) { return request.cookies.get(name)?.value },
+          set(name, value, options) { }, // Tidak dipakai di sini, gunakan NextResponse
+          remove(name, options) { },
+        },
+      }
+    )
+
+    const { error } = await supabase.auth.exchangeCodeForSession(code)
+    if (!error) {
+      const response = NextResponse.redirect(`${origin}${next}`)
+      return response
+    }
+  }
+
+  // Jika error, kembali ke halaman login
+  return NextResponse.redirect(`${origin}/login`)
+}
+
+
+=== FILE: src/app/admin/route.js ===
+import { createClient } from '@supabase/supabase-js';
+import { NextResponse } from 'next/server';
+
+export async function POST(request) {
+  try {
+    const { username, password } = await request.json();
+
+    // Menggunakan KUNCI MASTER agar bisa membuat user tanpa merusak sesi admin
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY,
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    );
+
+    const email = `${username.trim().toLowerCase()}@artakita.internal`;
+
+    // Bypass proses daftar normal langsung via admin auth
+    const { data, error } = await supabaseAdmin.auth.admin.createUser({
+      email: email,
+      password: password,
+      email_confirm: true, // Langsung aktif tanpa klik email
+    });
+
+    if (error) throw error;
+
+    return NextResponse.json({ success: true, message: "User berhasil dibuat!" });
+  } catch (error) {
+    return NextResponse.json({ error: error.message }, { status: 400 });
+  }
+}
+
+
+=== FILE: src/app/api/get-users/route.js ===
+import { createClient } from '@supabase/supabase-js';
+import { NextResponse } from 'next/server';
+
+export async function GET() {
+  try {
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY
+    );
+
+    const { data, error } = await supabaseAdmin.auth.admin.listUsers();
+    
+    if (error) throw error;
+
+    const availableUsers = data.users
+      .filter(u => u.email && u.email.endsWith('@artakita.internal'))
+      .map(u => ({
+        uid: u.id,
+        username: u.email.split('@')[0]
+      }));
+
+    return NextResponse.json({ success: true, users: availableUsers });
+
+  } catch (error) {
+    return NextResponse.json({ error: error.message }, { status: 400 });
+  }
+}
+
+
+=== FILE: src/components/Header.jsx ===
+import React from 'react';
+import { useTheme } from './useTheme'; // Sesuaikan path-nya
+
+export default function Header() {
+  const { theme, toggleTheme } = useTheme();
+
+  return (
+    <header className="header-fixed">
+      <div className="header-container">
+        {/* Logo atau Nama Aplikasi */}
+        <h1 className="logo">ArtaKita</h1>
+        
+        {/* Tombol Ganti Tema */}
+        <button onClick={toggleTheme} className="theme-toggle-btn">
+          {theme === 'light' ? 'ðŸŒ™ Gelap' : 'â˜€ï¸ Terang'}
+        </button>
+      </div>
+    </header>
+  );
+}
+
+
+=== FILE: src/components/AddDebtModal.jsx ===
+import { motion, AnimatePresence } from "framer-motion";
+import { useState } from "react";
+import { X } from "lucide-react";
+import { supabase } from "@/lib/supabaseClient";
+
+export default function AddDebtModal({ isOpen, onClose, onSuccess }) {
+  const [formData, setFormData] = useState({ person: '', amount: '', type: 'debt', dueDate: '' });
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const { error } = await supabase.from('debts').insert([{
+        user_id: session.user.id,
+        wallet_id: localStorage.getItem("arta_active_wallet") ? JSON.parse(localStorage.getItem("arta_active_wallet")).id : null,
+        person_name: formData.person,
+        amount: parseFloat(formData.amount), // Bisa di-tweak pakai parseFlexibleNumber jika ingin smart input
+        type: formData.type,
+        due_date: formData.dueDate || null
+      }]);
+
+      if (error) throw error;
+      onSuccess();
+      onClose();
+    } catch (err) {
+      alert("Gagal menyimpan: " + err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md p-4">
+          <motion.div
+            initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
+            className="w-full max-w-sm bg-white dark:bg-[#121827] rounded-[32px] p-6 shadow-2xl border border-gray-100 dark:border-gray-800/80 relative"
+          >
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-base font-black text-gray-900 dark:text-white uppercase tracking-widest">Catat Hutang/Piutang</h3>
+              <button onClick={onClose} className="p-2 text-gray-400 hover:text-red-500 bg-gray-50 dark:bg-gray-800/50 rounded-full transition-colors"><X size={18} /></button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-[9px] font-black text-gray-500 uppercase tracking-widest mb-1.5 ml-1">Nama Orang</label>
+                <input type="text" required value={formData.person} onChange={e => setFormData({...formData, person: e.target.value})} className="w-full bg-gray-50 dark:bg-[#0a0f1c] border border-gray-200 dark:border-gray-800 rounded-2xl py-3 px-4 text-sm font-bold text-gray-900 dark:text-white outline-none focus:border-blue-500" placeholder="Contoh: Budi" />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[9px] font-black text-gray-500 uppercase tracking-widest mb-1.5 ml-1">Nominal</label>
+                  <input type="number" required value={formData.amount} onChange={e => setFormData({...formData, amount: e.target.value})} className="w-full bg-gray-50 dark:bg-[#0a0f1c] border border-gray-200 dark:border-gray-800 rounded-2xl py-3 px-4 text-sm font-bold text-gray-900 dark:text-white outline-none focus:border-blue-500" placeholder="100000" />
+                </div>
+                <div>
+                  <label className="block text-[9px] font-black text-gray-500 uppercase tracking-widest mb-1.5 ml-1">Jenis</label>
+                  <select value={formData.type} onChange={e => setFormData({...formData, type: e.target.value})} className="w-full bg-gray-50 dark:bg-[#0a0f1c] border border-gray-200 dark:border-gray-800 rounded-2xl py-3 px-4 text-sm font-bold text-gray-900 dark:text-white outline-none focus:border-blue-500">
+                    <option value="debt">Hutang (Saya)</option>
+                    <option value="receivable">Piutang (Orang Lain)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[9px] font-black text-gray-500 uppercase tracking-widest mb-1.5 ml-1">Jatuh Tempo (Opsional)</label>
+                <input type="date" value={formData.dueDate} onChange={e => setFormData({...formData, dueDate: e.target.value})} className="w-full bg-gray-50 dark:bg-[#0a0f1c] border border-gray-200 dark:border-gray-800 rounded-2xl py-3 px-4 text-sm font-bold text-gray-900 dark:text-white outline-none focus:border-blue-500" />
+              </div>
+
+              <button type="submit" disabled={isLoading} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black text-xs uppercase tracking-widest py-4 rounded-2xl transition-all shadow-lg shadow-blue-500/30 mt-2">
+                {isLoading ? "Menyimpan..." : "Simpan Catatan"}
+              </button>
+            </form>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+
+=== FILE: src/components/BudgetAlert.jsx ===
+import React from 'react';
+import { AlertTriangle, TrendingUp, Smile } from 'lucide-react';
+import { motion } from 'framer-motion';
+
+export default function BudgetAlert({ budgets, transactions }) {
+  const expensesByCategory = transactions
+    .filter(t => t.type === 'expense' || !t.type)
+    .reduce((acc, curr) => {
+      acc[curr.category] = (acc[curr.category] || 0) + Number(curr.amount);
+      return acc;
+    }, {});
+
+  // Cari kategori yang paling boros (di atas 80%)
+  const criticalBudget = budgets.find(b => {
+    const spent = expensesByCategory[b.category_name] || 0;
+    return (spent / Number(b.limit_amount)) >= 0.8;
+  });
+
+  if (!criticalBudget) return null;
+
+  const spent = expensesByCategory[criticalBudget.category_name] || 0;
+  const limit = Number(criticalBudget.limit_amount);
+  const remaining = limit - spent;
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
+      className="bg-red-500/10 border border-red-500/20 p-4 rounded-[24px] mb-6 flex items-start gap-3"
+    >
+      <AlertTriangle className="text-red-500 mt-0.5 shrink-0" size={20} />
+      <div>
+        <h4 className="text-[10px] font-black text-red-500 uppercase tracking-widest">Teguran AI</h4>
+        <p className="text-xs text-red-400 font-medium leading-relaxed">
+          Anggaran <span className="font-bold">{criticalBudget.category_name}</span> Anda sudah terpakai 80% lebih. Sisa Rp {remaining.toLocaleString('id-ID')}. Atur kembali pengeluaranmu ya!
+        </p>
+      </div>
+    </motion.div>
+  );
+}
+
+
+=== FILE: src/components/BudgetProgress.jsx ===
+import React, { useState, useEffect } from 'react';
+import { supabase } from "@/lib/supabaseClient";
+import { motion, AnimatePresence } from 'framer-motion';
+import { AlertTriangle, TrendingUp, CheckCircle2, ChevronDown } from 'lucide-react';
+
+export default function BudgetProgress({ selectedMonth, transactions }) {
+  const [budgets, setBudgets] = useState([]);
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  useEffect(() => {
+    fetchBudgets();
+  }, [selectedMonth]);
+
+  const fetchBudgets = async () => {
+    const { data, error } = await supabase.from('budgets').select('*').eq('month_year', selectedMonth);
+    if (!error && data) setBudgets(data);
+  };
+
+  const expensesByCategory = transactions
+    .filter(t => t.type === 'expense' || !t.type)
+    .reduce((acc, curr) => {
+      acc[curr.category] = (acc[curr.category] || 0) + Number(curr.amount);
+      return acc;
+    }, {});
+
+  // Jika belum ada anggaran diset untuk bulan ini, jangan tampilkan komponennya sama sekali
+  if (budgets.length === 0) return null; 
+
+  return (
+    <div className="bg-white dark:bg-[#121827] rounded-[32px] p-6 shadow-xl border border-gray-100 dark:border-gray-800/60 mb-6 w-full">
+      <button onClick={() => setIsExpanded(!isExpanded)} className="w-full flex justify-between items-center outline-none">
+        <div className="flex items-center gap-3">
+          <h3 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-widest">Monitor Anggaran</h3>
+          <span className="text-[9px] font-black bg-blue-500/10 text-blue-500 px-2 py-1 rounded-md tracking-widest">{selectedMonth}</span>
+        </div>
+        <motion.div animate={{ rotate: isExpanded ? 180 : 0 }} transition={{ duration: 0.3 }}>
+          <ChevronDown size={20} className="text-gray-400 hover:text-blue-500 transition-colors" />
+        </motion.div>
+      </button>
+
+      <AnimatePresence>
+        {isExpanded && (
+          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+            <div className="pt-6 space-y-5">
+              {budgets.map((budget) => {
+                const spent = expensesByCategory[budget.category_name] || 0;
+                const limit = Number(budget.limit_amount);
+                const percentage = Math.min((spent / limit) * 100, 100).toFixed(0);
+                
+                let statusColor = "bg-green-500 shadow-md shadow-green-500/30";
+                let textColor = "text-green-500";
+                let StatusIcon = CheckCircle2;
+                
+                if (percentage >= 80) {
+                  statusColor = "bg-red-500 shadow-lg shadow-red-500/50";
+                  textColor = "text-red-500";
+                  StatusIcon = AlertTriangle;
+                } else if (percentage >= 50) {
+                  statusColor = "bg-amber-500 shadow-md shadow-amber-500/40";
+                  textColor = "text-amber-500";
+                  StatusIcon = TrendingUp;
+                }
+
+                return (
+                  <div key={budget.id} className="relative">
+                    <div className="flex justify-between items-end mb-2">
+                      <div>
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <StatusIcon size={14} className={textColor} />
+                          <span className="font-bold text-sm text-gray-800 dark:text-gray-200">{budget.category_name}</span>
+                        </div>
+                        <span className="text-[10px] font-black text-gray-400 tracking-widest uppercase">
+                          Terpakai: Rp {spent.toLocaleString('id-ID')}
+                        </span>
+                      </div>
+                      <div className="text-right">
+                        <span className={`text-xs font-black ${textColor}`}>{percentage}%</span>
+                        <div className="text-[9px] font-black text-gray-500 tracking-widest uppercase">
+                          Limit: Rp {limit.toLocaleString('id-ID')}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="h-2.5 w-full bg-gray-100 dark:bg-gray-800/80 rounded-full overflow-hidden">
+                      <motion.div initial={{ width: 0 }} animate={{ width: `${percentage}%` }} transition={{ duration: 1, ease: "easeOut" }} className={`h-full ${statusColor} rounded-full`} />
+                    </div>
+
+                    {percentage >= 80 && (
+                      <p className="text-[9px] font-black text-red-500 mt-1.5 tracking-widest uppercase animate-pulse">
+                        âš ï¸ Peringatan: Anggaran hampir habis!
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+
+=== FILE: src/components/DebtsPage.jsx ===
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { supabase } from "@/lib/supabaseClient";
+import {
+  Plus, Trash2, ChevronDown, ArrowDownLeft, ArrowUpRight,
+  CheckCircle2, Wallet, TrendingDown, TrendingUp, X
+} from "lucide-react";
+
+// â”€â”€ Helper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+const parseFlexibleNumber = (val) => {
+  if (!val) return 0;
+  const str = String(val).toLowerCase().trim();
+  const isNegative = str.includes("-");
+  const match = str.match(/([\d\.,]+)\s*(k|rb|ribu|m|jt|juta)?/);
+  if (!match) return 0;
+  let numStr = match[1].replace(/\./g, "").replace(/,/g, ".");
+  let num = parseFloat(numStr);
+  const mult = match[2];
+  if (["k", "rb", "ribu"].includes(mult)) num *= 1000;
+  if (["m", "jt", "juta"].includes(mult)) num *= 1000000;
+  return isNegative ? -num : num;
+};
+
+const fmt = (n) => Number(n || 0).toLocaleString("id-ID");
+
+// â”€â”€ Mini Bar Chart â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+const DebtChart = ({ debts, balance }) => {
+  const totalDebt       = debts.filter(d => d.type === "debt").reduce((a, c) => a + Number(c.amount), 0);
+  const totalReceivable = debts.filter(d => d.type === "receivable").reduce((a, c) => a + Number(c.amount), 0);
+  const totalInitDebt   = debts.filter(d => d.type === "debt").reduce((a, c) => a + Number(c.initial_amount), 0);
+  const totalInitRec    = debts.filter(d => d.type === "receivable").reduce((a, c) => a + Number(c.initial_amount), 0);
+
+  const paidDebt = totalInitDebt - totalDebt;
+  const paidRec  = totalInitRec  - totalReceivable;
+
+  const maxVal = Math.max(totalInitDebt, totalInitRec, balance, 1);
+
+  const bars = [
+    { label: "Saldo",    value: balance,        color: "bg-blue-500",    glow: "shadow-blue-500/30" },
+    { label: "Hutang",   value: totalDebt,       color: "bg-red-500",     glow: "shadow-red-500/30" },
+    { label: "Piutang",  value: totalReceivable, color: "bg-emerald-500", glow: "shadow-emerald-500/30" },
+  ];
+
+  return (
+    <div className="bg-white dark:bg-[#121827] border border-gray-100 dark:border-gray-800/60 rounded-[28px] p-5 mb-4 shadow-sm">
+      <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.3em] mb-4">
+        Ringkasan Visual
+      </p>
+
+      {/* Bar Chart */}
+      <div className="flex items-end gap-3 h-28 mb-3">
+        {bars.map((bar, i) => {
+          const pct = Math.max((bar.value / maxVal) * 100, 2);
+          return (
+            <div key={i} className="flex-1 flex flex-col items-center gap-1.5 h-full justify-end">
+              <span className="text-[9px] font-black text-gray-500 dark:text-gray-400">
+                {bar.value >= 1000000
+                  ? `${(bar.value / 1000000).toFixed(1)}jt`
+                  : bar.value >= 1000
+                  ? `${(bar.value / 1000).toFixed(0)}k`
+                  : `${bar.value}`}
+              </span>
+              <div className="w-full flex items-end" style={{ height: "80px" }}>
+                <motion.div
+                  initial={{ height: 0 }}
+                  animate={{ height: `${pct}%` }}
+                  transition={{ duration: 0.8, ease: "easeOut", delay: i * 0.1 }}
+                  className={`w-full rounded-xl ${bar.color} shadow-lg ${bar.glow} relative overflow-hidden`}
+                >
+                  {/* Shimmer */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-white/20" />
+                </motion.div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Legend */}
+      <div className="flex gap-3 justify-center">
+        {bars.map((bar, i) => (
+          <div key={i} className="flex items-center gap-1.5">
+            <div className={`w-2 h-2 rounded-full ${bar.color}`} />
+            <span className="text-[9px] font-black text-gray-400 uppercase tracking-wider">{bar.label}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Progress pelunasan */}
+      {(totalInitDebt > 0 || totalInitRec > 0) && (
+        <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800/60 space-y-2.5">
+          {totalInitDebt > 0 && (
+            <div>
+              <div className="flex justify-between mb-1">
+                <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Pelunasan Hutang</span>
+                <span className="text-[9px] font-black text-red-400">
+                  {totalInitDebt > 0 ? ((paidDebt / totalInitDebt) * 100).toFixed(0) : 0}%
+                </span>
+              </div>
+              <div className="w-full h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${totalInitDebt > 0 ? (paidDebt / totalInitDebt) * 100 : 0}%` }}
+                  transition={{ duration: 1, ease: "easeOut" }}
+                  className="h-full bg-red-500 rounded-full"
+                />
+              </div>
+            </div>
+          )}
+          {totalInitRec > 0 && (
+            <div>
+              <div className="flex justify-between mb-1">
+                <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Penerimaan Piutang</span>
+                <span className="text-[9px] font-black text-emerald-400">
+                  {totalInitRec > 0 ? ((paidRec / totalInitRec) * 100).toFixed(0) : 0}%
+                </span>
+              </div>
+              <div className="w-full h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${totalInitRec > 0 ? (paidRec / totalInitRec) * 100 : 0}%` }}
+                  transition={{ duration: 1, ease: "easeOut", delay: 0.1 }}
+                  className="h-full bg-emerald-500 rounded-full"
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// â”€â”€ Main Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+export default function DebtsPage({ activeWallet, balance }) {
+  const [debts, setDebts]               = useState([]);
+  const [isFormOpen, setIsFormOpen]     = useState(false);
+  const [activePayment, setActivePayment] = useState(null);
+  const [paymentAmount, setPaymentAmount] = useState("");
+  const [paymentError, setPaymentError]   = useState("");
+  const [isPayLoading, setIsPayLoading]   = useState(false);
+  const [formData, setFormData]           = useState({ person: "", amount: "", type: "debt" });
+  const [isAddLoading, setIsAddLoading]   = useState(false);
+  const [filterType, setFilterType]       = useState("all"); // all | debt | receivable
+  const [toast, setToast]                 = useState({ show: false, message: "", type: "error" });
+
+  const showToast = (message, type = "error") => {
+    setToast({ show: true, message, type });
+    setTimeout(() => setToast({ show: false, message: "", type: "error" }), 3500);
+  };
+
+  // State modal konfirmasi hapus
+  const [deleteModal, setDeleteModal] = useState({ show: false, id: null });
+
+  // â”€â”€ Fetch â€” filter by wallet_id â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  const fetchDebts = async () => {
+    if (!activeWallet?.id) return;
+    const { data } = await supabase
+      .from("debts")
+      .select("*")
+      .eq("wallet_id", activeWallet.id)
+      .order("created_at", { ascending: false });
+    if (data) setDebts(data);
+  };
+
+  useEffect(() => {
+    fetchDebts();
+  }, [activeWallet?.id]);
+
+  // â”€â”€ Add â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  const handleAdd = async (e) => {
+    e.preventDefault();
+    if (!activeWallet?.id) { showToast("Pilih dompet terlebih dahulu."); return; }
+    if (!formData.person.trim() || !formData.amount) return;
+    // Math.abs â€” paksa selalu positif, tidak bisa negatif
+    const parsed = Math.abs(parseFlexibleNumber(formData.amount));
+    if (parsed <= 0) { showToast("Nominal harus lebih dari 0."); return; }
+
+    setIsAddLoading(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    const { error } = await supabase.from("debts").insert([{
+      person_name:    formData.person,
+      amount:         parsed,
+      initial_amount: parsed,
+      type:           formData.type,
+      wallet_id:      activeWallet.id,
+      user_id:        user.id,           // â† wajib untuk RLS policy
+    }]);
+    setIsAddLoading(false);
+
+    if (!error) {
+      setIsFormOpen(false);
+      setFormData({ person: "", amount: "", type: "debt" });
+      fetchDebts();
+    } else {
+      showToast("Gagal menyimpan: " + error.message, "error");
+    }
+  };
+
+  // â”€â”€ Payment â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  const handlePayment = async (debt) => {
+    const amount = parseFlexibleNumber(paymentAmount);
+    setPaymentError("");
+
+    if (amount <= 0) {
+      setPaymentError("Nominal harus lebih dari 0.");
+      return;
+    }
+    if (amount > Math.abs(Number(debt.amount))) {
+      setPaymentError(`Melebihi sisa ${debt.type === "debt" ? "hutang" : "piutang"}: Rp ${fmt(Math.abs(debt.amount))}`);
+      return;
+    }
+    // Khusus hutang: validasi saldo dompet mencukupi
+    if (debt.type === "debt" && amount > balance) {
+      setPaymentError(`Saldo dompet tidak cukup! Saldo: Rp ${fmt(balance)}`);
+      return;
+    }
+
+    setIsPayLoading(true);
+    const rpcName = debt.type === "debt"
+      ? "process_debt_payment"
+      : "process_receivable_payment";
+
+    const { error } = await supabase.rpc(rpcName, {
+      debt_id_input:  debt.id,
+      payment_amount: amount,
+    });
+    setIsPayLoading(false);
+
+    if (!error) {
+      setActivePayment(null);
+      setPaymentAmount("");
+      setPaymentError("");
+      fetchDebts();
+    } else {
+      setPaymentError("Gagal: " + error.message);
+    }
+  };
+
+  // â”€â”€ Delete â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  const handleDelete = (id) => {
+    setDeleteModal({ show: true, id });
+  };
+
+  const confirmDelete = async () => {
+    if (deleteModal.id) {
+      await supabase.from("debts").delete().eq("id", deleteModal.id);
+      fetchDebts();
+    }
+    setDeleteModal({ show: false, id: null });
+  };
+
+  // â”€â”€ Derived â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  const filteredDebts = filterType === "all"
+    ? debts
+    : debts.filter(d => d.type === filterType);
+
+  const totalDebt       = debts.filter(d => d.type === "debt").reduce((a, c) => a + Number(c.amount), 0);
+  const totalReceivable = debts.filter(d => d.type === "receivable").reduce((a, c) => a + Number(c.amount), 0);
+
+  // â”€â”€ Render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  return (
+    <div className="pt-8 px-3 pb-32 h-[100dvh] overflow-y-auto no-scrollbar w-full flex flex-col">
+
+      {/* â”€â”€ Header â”€â”€ */}
+      <div className="flex-none mb-6">
+        <h2 className="text-xl font-black text-gray-900 dark:text-white tracking-tight">
+          Hutang & Piutang
+        </h2>
+        <div className="flex items-center gap-2 mt-1">
+          <Wallet size={11} className="text-blue-400" />
+          <p className="text-[10px] font-black text-blue-400 uppercase tracking-[0.2em]">
+            {activeWallet?.name}
+          </p>
+        </div>
+      </div>
+
+      {/* â”€â”€ Summary Pills â”€â”€ */}
+      <div className="grid grid-cols-2 gap-3 mb-4 flex-none">
+        <div className="bg-white dark:bg-[#121827] border border-gray-100 dark:border-gray-800/60 rounded-[20px] p-4 shadow-sm">
+          <div className="flex items-center gap-1.5 text-red-500 mb-1.5">
+            <TrendingDown size={13} />
+            <span className="text-[9px] font-black uppercase tracking-widest">Total Hutang</span>
+          </div>
+          <p className="font-black text-base text-gray-900 dark:text-white leading-tight">
+            Rp {fmt(totalDebt)}
+          </p>
+          <p className="text-[9px] text-gray-400 mt-0.5">
+            {debts.filter(d => d.type === "debt").length} catatan
+          </p>
+        </div>
+        <div className="bg-white dark:bg-[#121827] border border-gray-100 dark:border-gray-800/60 rounded-[20px] p-4 shadow-sm">
+          <div className="flex items-center gap-1.5 text-emerald-500 mb-1.5">
+            <TrendingUp size={13} />
+            <span className="text-[9px] font-black uppercase tracking-widest">Total Piutang</span>
+          </div>
+          <p className="font-black text-base text-gray-900 dark:text-white leading-tight">
+            Rp {fmt(totalReceivable)}
+          </p>
+          <p className="text-[9px] text-gray-400 mt-0.5">
+            {debts.filter(d => d.type === "receivable").length} catatan
+          </p>
+        </div>
+      </div>
+
+      {/* â”€â”€ Chart â”€â”€ */}
+      {debts.length > 0 && (
+        <DebtChart debts={debts} balance={balance} />
+      )}
+
+      {/* â”€â”€ Filter Tabs â”€â”€ */}
+      <div className="flex bg-gray-100 dark:bg-[#121827] p-1 rounded-[16px] mb-4 border border-gray-200 dark:border-gray-800/60 shadow-inner flex-none">
+        {[
+          { key: "all",        label: "Semua" },
+          { key: "debt",       label: "Hutang" },
+          { key: "receivable", label: "Piutang" },
+        ].map(({ key, label }) => (
+          <button
+            key={key}
+            onClick={() => setFilterType(key)}
+            className={`flex-1 text-[9px] font-black uppercase tracking-widest py-2.5 rounded-xl transition-all duration-300 ${
+              filterType === key
+                ? "bg-white dark:bg-blue-600 text-blue-600 dark:text-white shadow-sm"
+                : "text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* â”€â”€ Debt List â”€â”€ */}
+      <div className="space-y-3 flex-1">
+        {filteredDebts.length === 0 && (
+          <div className="text-center py-16 bg-gray-50/50 dark:bg-gray-900/10 rounded-[28px] border border-dashed border-gray-200 dark:border-gray-800">
+            <p className="text-[10px] font-black text-gray-300 dark:text-gray-700 uppercase tracking-[0.4em]">
+              Belum Ada Catatan
+            </p>
+          </div>
+        )}
+
+        {filteredDebts.map((d, index) => {
+          const rawAmount  = Math.abs(Number(d.amount));
+          const rawInitial = Math.abs(Number(d.initial_amount));
+          const paid       = Math.max(0, rawInitial - rawAmount);
+          const progress   = rawInitial > 0 ? Math.min((paid / rawInitial) * 100, 100) : 0;
+          const isDebt     = d.type === "debt";
+          const isLunas    = progress >= 100 && rawAmount <= 0;
+          const isActive = activePayment === d.id;
+
+          return (
+            <motion.div
+              key={d.id}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.04 }}
+              className="bg-white dark:bg-[#121827] border border-gray-100 dark:border-gray-800/60 rounded-[24px] p-5 shadow-sm relative overflow-hidden"
+            >
+              {/* Accent strip kiri */}
+              <div className={`absolute left-0 top-5 bottom-5 w-[3px] rounded-full ${
+                isLunas ? "bg-emerald-500" : isDebt ? "bg-red-500" : "bg-blue-500"
+              }`} />
+
+              <div className="pl-4">
+                {/* Row atas */}
+                <div className="flex justify-between items-start mb-3">
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="font-black text-sm text-gray-900 dark:text-white tracking-tight">
+                        {d.person_name}
+                      </p>
+                      {isLunas && (
+                        <span className="flex items-center gap-1 text-[8px] font-black text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full uppercase tracking-widest">
+                          <CheckCircle2 size={9} /> Lunas
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1.5 mt-1">
+                      {isDebt
+                        ? <ArrowUpRight size={10} className="text-red-400" />
+                        : <ArrowDownLeft size={10} className="text-blue-400" />
+                      }
+                      <span className={`text-[9px] font-black uppercase tracking-widest ${
+                        isDebt ? "text-red-400" : "text-blue-400"
+                      }`}>
+                        {isDebt ? "Hutang" : "Piutang"}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="text-right">
+                    <p className="font-black text-sm text-gray-900 dark:text-white">
+                      Rp {fmt(d.amount)}
+                    </p>
+                    <p className="text-[9px] text-gray-400 mt-0.5">
+                      dari Rp {fmt(d.initial_amount)}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Progress bar */}
+                <div className="w-full h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden mb-1.5">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${progress}%` }}
+                    transition={{ duration: 1, ease: "easeOut" }}
+                    className={`h-full rounded-full ${
+                      isLunas ? "bg-emerald-500"
+                        : progress < 30 ? "bg-red-500"
+                        : progress < 70 ? "bg-amber-500"
+                        : "bg-emerald-500"
+                    }`}
+                  />
+                </div>
+
+                <div className="flex justify-between items-center mb-4">
+                  <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">
+                    Terbayar {progress.toFixed(0)}%
+                  </span>
+                  <span className="text-[9px] text-gray-400">
+                    Rp {fmt(paid)} / Rp {fmt(d.initial_amount)}
+                  </span>
+                </div>
+
+                {/* Action buttons */}
+                {!isLunas && (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleDelete(d.id)}
+                      className="p-2.5 text-gray-400 hover:text-red-500 bg-gray-50 dark:bg-gray-800/50 rounded-xl transition-colors"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                    <button
+                      onClick={() => {
+                        setActivePayment(isActive ? null : d.id);
+                        setPaymentAmount("");
+                        setPaymentError("");
+                      }}
+                      className={`flex-1 font-black text-[10px] uppercase tracking-widest rounded-xl py-2.5 transition-all active:scale-95 ${
+                        isActive
+                          ? "bg-gray-100 dark:bg-gray-800 text-gray-500"
+                          : isDebt
+                          ? "bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white border border-red-500/20 shadow-sm"
+                          : "bg-blue-500/10 hover:bg-blue-500 text-blue-500 hover:text-white border border-blue-500/20 shadow-sm"
+                      }`}
+                    >
+                      {isActive ? "Batal" : isDebt ? "Bayar Hutang" : "Terima Piutang"}
+                    </button>
+                  </div>
+                )}
+
+                {/* Tombol hapus jika lunas */}
+                {isLunas && (
+                  <button
+                    onClick={() => handleDelete(d.id)}
+                    className="w-full py-2 text-[10px] font-black text-gray-400 hover:text-red-500 uppercase tracking-widest transition-colors text-center rounded-xl hover:bg-red-500/5"
+                  >
+                    Hapus Catatan
+                  </button>
+                )}
+
+                {/* Payment Panel */}
+                <AnimatePresence>
+                  {isActive && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-800/60">
+                        {/* Info saldo dompet (untuk hutang) */}
+                        {isDebt && (
+                          <div className="flex items-center gap-1.5 mb-2">
+                            <Wallet size={11} className="text-gray-400" />
+                            <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">
+                              Saldo dompet: Rp {fmt(balance)}
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Info sisa hutang */}
+                        <div className="flex items-center gap-1.5 mb-3">
+                          {isDebt
+                            ? <TrendingDown size={11} className="text-red-400" />
+                            : <TrendingUp size={11} className="text-emerald-400" />
+                          }
+                          <span className={`text-[9px] font-black uppercase tracking-widest ${
+                            isDebt ? "text-red-400" : "text-emerald-400"
+                          }`}>
+                            Sisa {isDebt ? "hutang" : "piutang"}: Rp {fmt(Math.abs(d.amount))}
+                          </span>
+                        </div>
+
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            autoFocus
+                            placeholder="Nominal (Cth: 50k, 1jt)"
+                            value={paymentAmount}
+                            onChange={(e) => {
+                              setPaymentAmount(e.target.value);
+                              setPaymentError("");
+                            }}
+                            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handlePayment(d); }}}
+                            className="flex-1 bg-gray-50 dark:bg-[#0a0f1c] border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white text-sm font-bold p-3 rounded-xl outline-none focus:border-blue-500 transition-all placeholder-gray-400"
+                          />
+                          <button
+                            onClick={() => handlePayment(d)}
+                            disabled={isPayLoading}
+                            className={`px-4 rounded-xl font-black text-xs uppercase tracking-widest transition-all active:scale-95 disabled:opacity-50 ${
+                              isDebt
+                                ? "bg-red-500 hover:bg-red-400 text-white shadow-lg shadow-red-500/20"
+                                : "bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-500/20"
+                            }`}
+                          >
+                            {isPayLoading ? "..." : "OK"}
+                          </button>
+                        </div>
+
+                        {/* Error message */}
+                        <AnimatePresence>
+                          {paymentError && (
+                            <motion.p
+                              initial={{ opacity: 0, y: -4 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0 }}
+                              className="text-[10px] font-bold text-red-500 mt-2 bg-red-500/10 px-3 py-1.5 rounded-lg"
+                            >
+                              {paymentError}
+                            </motion.p>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </motion.div>
+          );
+        })}
+      </div>
+
+      {/* â”€â”€ FAB Tambah â”€â”€ */}
+      <AnimatePresence>
+        {!isFormOpen && (
+          <motion.button
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0, opacity: 0 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={() => setIsFormOpen(true)}
+            className="fixed bottom-24 right-6 w-14 h-14 bg-blue-600 hover:bg-blue-500 rounded-full shadow-2xl shadow-blue-600/40 flex items-center justify-center text-white z-40 transition-colors"
+          >
+            <Plus size={24} />
+          </motion.button>
+        )}
+      </AnimatePresence>
+
+      {/* â”€â”€ Bottom Sheet Form â”€â”€ */}
+      <AnimatePresence>
+        {isFormOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40"
+              onClick={() => setIsFormOpen(false)}
+            />
+
+            <motion.form
+              initial={{ y: 400, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 400, opacity: 0 }}
+              transition={{ type: "spring", damping: 28, stiffness: 300 }}
+              onSubmit={handleAdd}
+              className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto bg-white dark:bg-[#0a0f1c] border-t border-gray-100 dark:border-gray-800 p-6 rounded-t-[32px] shadow-2xl z-50"
+            >
+              {/* Handle bar */}
+              <div className="w-10 h-1 bg-gray-200 dark:bg-gray-700 rounded-full mx-auto mb-5" />
+
+              <div className="flex justify-between items-center mb-5">
+                <div>
+                  <h3 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-widest">
+                    Catatan Baru
+                  </h3>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <Wallet size={10} className="text-blue-400" />
+                    <span className="text-[9px] font-black text-blue-400 uppercase tracking-widest">
+                      {activeWallet?.name}
+                    </span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsFormOpen(false)}
+                  className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 bg-gray-50 dark:bg-gray-800 rounded-full transition-colors"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Tipe toggle */}
+              <div className="flex bg-gray-100 dark:bg-gray-800/60 p-1 rounded-2xl mb-4">
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, type: "debt" })}
+                  className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${
+                    formData.type === "debt"
+                      ? "bg-white dark:bg-red-500/20 text-red-500 shadow-sm border border-red-500/20"
+                      : "text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  }`}
+                >
+                  <TrendingDown size={13} /> Hutang
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, type: "receivable" })}
+                  className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${
+                    formData.type === "receivable"
+                      ? "bg-white dark:bg-emerald-500/20 text-emerald-500 shadow-sm border border-emerald-500/20"
+                      : "text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  }`}
+                >
+                  <TrendingUp size={13} /> Piutang
+                </button>
+              </div>
+
+              {/* Nama */}
+              <div className="mb-3">
+                <label className="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">
+                  Nama Orang
+                </label>
+                <input
+                  type="text"
+                  required
+                  autoFocus
+                  placeholder="Cth: Budi, Ani, dsb."
+                  value={formData.person}
+                  onChange={(e) => setFormData({ ...formData, person: e.target.value })}
+                  className="w-full bg-gray-50 dark:bg-[#121827] border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white font-bold text-sm p-4 rounded-2xl outline-none focus:border-blue-500 transition-all placeholder-gray-400"
+                />
+              </div>
+
+              {/* Nominal */}
+              <div className="mb-5">
+                <label className="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">
+                  Nominal
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="50k, 1jt, 100rb.."
+                  value={formData.amount}
+                  onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                  className="w-full bg-gray-50 dark:bg-[#121827] border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white font-bold text-sm p-4 rounded-2xl outline-none focus:border-blue-500 transition-all placeholder-gray-400"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={isAddLoading}
+                className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg transition-all active:scale-95 disabled:opacity-50 ${
+                  formData.type === "debt"
+                    ? "bg-red-500 hover:bg-red-400 text-white shadow-red-500/30"
+                    : "bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-500/30"
+                }`}
+              >
+                {isAddLoading ? "Menyimpan..." : `Catat ${formData.type === "debt" ? "Hutang" : "Piutang"}`}
+              </button>
+            </motion.form>
+          </>
+        )}
+      </AnimatePresence>
+      {/* â”€â”€ Toast Notification â”€â”€ */}
+      <AnimatePresence>
+        {toast.show && (
+          <motion.div
+            initial={{ opacity: 0, y: -40, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.9 }}
+            className="fixed top-6 left-0 right-0 z-[999999] flex justify-center px-4 pointer-events-none"
+          >
+            <div className={`flex items-center gap-3 px-5 py-3.5 rounded-full shadow-2xl backdrop-blur-xl border ${
+              toast.type === "error"
+                ? "bg-red-500/10 border-red-500/20 text-red-500"
+                : "bg-green-500/10 border-green-500/20 text-green-500"
+            }`}>
+              <X size={15} />
+              <span className="text-xs font-bold tracking-wide">{toast.message}</span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* â”€â”€ Modal Konfirmasi Hapus â”€â”€ */}
+      <AnimatePresence>
+        {deleteModal.show && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="w-full max-w-sm bg-white dark:bg-[#121827] rounded-[32px] p-6 shadow-2xl border border-red-100 dark:border-red-900/30 text-center"
+            >
+              <div className="w-14 h-14 bg-red-100 dark:bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Trash2 className="text-red-500" size={24} />
+              </div>
+              <h3 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-widest mb-2">
+                Hapus Catatan?
+              </h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-6">
+                Tindakan ini permanen dan tidak dapat dibatalkan.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setDeleteModal({ show: false, id: null })}
+                  className="flex-1 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-black text-xs uppercase tracking-widest py-3.5 rounded-2xl transition-all hover:bg-gray-200 dark:hover:bg-gray-700"
+                >
+                  Batal
+                </button>
+                <button
+                  onClick={confirmDelete}
+                  className="flex-1 bg-red-600 hover:bg-red-500 text-white font-black text-xs uppercase tracking-widest py-3.5 rounded-2xl transition-all shadow-lg shadow-red-500/30"
+                >
+                  Hapus
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+    </div>
+  );
+}
+
+
+
+=== FILE: src/components/EditWalletModal.jsx ===
+import React, { useState } from 'react';
+import { motion } from 'framer-motion';
+import { X, Save } from 'lucide-react';
+import { supabase } from "@/lib/supabaseClient";
+
+export default function EditWalletModal({ wallet, onClose, onRefresh }) {
+  const [name, setName] = useState(wallet?.name || '');
+  const [loading, setLoading] = useState(false);
+
+  const handleUpdate = async (e) => {
+    e.preventDefault();
+    if (!name.trim()) return;
+    setLoading(true);
+
+    const { error } = await supabase
+      .from('wallets')
+      .update({ name: name })
+      .eq('id', wallet.id);
+
+    setLoading(false);
+
+    if (error) {
+      alert("Gagal mengupdate dompet: " + error.message);
+    } else {
+      onRefresh(); 
+      onClose();   
+    }
+  };
+
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 backdrop-blur-md p-4"
+    >
+      <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} transition={{ type: "spring", damping: 25, stiffness: 300 }}
+        className="w-full max-w-sm bg-white dark:bg-[#121827] rounded-[32px] p-6 shadow-2xl border border-gray-100 dark:border-gray-800/80"
+      >
+        <div className="flex justify-between items-center mb-6">
+          <h3 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-widest">Edit Dompet</h3>
+          <button onClick={onClose} className="p-2 text-gray-400 hover:text-red-500 bg-gray-50 dark:bg-gray-800/50 rounded-full transition-colors">
+            <X size={16} />
+          </button>
+        </div>
+
+        <form onSubmit={handleUpdate} className="space-y-4">
+          <div>
+            <label className="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Nama Rekening Baru</label>
+            <input 
+              type="text" 
+              value={name} 
+              onChange={(e) => setName(e.target.value)} 
+              required 
+              className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 rounded-2xl py-3 px-4 text-gray-900 dark:text-white outline-none focus:border-blue-500 font-bold"
+            />
+          </div>
+
+          <button type="submit" disabled={loading} className="w-full flex justify-center items-center gap-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-400 text-white font-bold text-xs uppercase tracking-widest py-3.5 rounded-2xl transition-all shadow-lg shadow-blue-500/30 mt-2">
+            <Save size={16} />
+            {loading ? 'Menyimpan...' : 'Simpan Perubahan'}
+          </button>
+        </form>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+
+=== FILE: src/components/ShareWallet.jsx ===
+"use client";
+import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabaseClient";
+
+export default function ShareWallet({ walletId, onClose }) {
+  const [users, setUsers] = useState([]);
+  const [selectedUid, setSelectedUid] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [isFetching, setIsFetching] = useState(true);
+
+  // Mengambil daftar user dari API saat modal dibuka
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        // Panggil alamat khusus yang baru saja kita buat
+        const res = await fetch('/api/get-users'); 
+        const data = await res.json();
+        
+        if (data.success) {
+          setUsers(data.users);
+        }
+      } catch (err) {
+        console.error("Gagal memuat daftar user", err);
+      } finally {
+        setIsFetching(false);
+      }
+    };
+    fetchUsers();
+  }, []);
+  
+  const handleShareWallet = async (e) => {
+    e.preventDefault();
+    if (!selectedUid) {
+      alert("Pilih pengguna terlebih dahulu!");
+      return;
+    }
+    setIsLoading(true);
+
+    try {
+      // âš ï¸ GANTI 'wallet_members' DENGAN NAMA TABEL SHARE ANDA (JIKA BERBEDA)
+      const { error } = await supabase
+        .from('wallet_members') 
+        .insert({
+          wallet_id: walletId,
+          user_id: selectedUid,
+          role: 'member' // Atur role default
+        });
+
+      if (error) throw error;
+
+      alert("Berhasil! Akses dompet telah dibagikan.");
+      if (onClose) onClose(); // Tutup modal otomatis setelah berhasil
+      
+    } catch (err) {
+      alert("Gagal membagikan dompet: " + err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div>
+      <div className="text-center mb-6">
+        <h3 className="text-base font-black text-gray-900 dark:text-white uppercase tracking-widest">Bagikan Akses</h3>
+        <p className="text-xs font-bold text-gray-500 mt-1">Kolaborasi pencatatan dompet</p>
+      </div>
+
+      {/* WARNING BOX MEWAH */}
+      <div className="bg-orange-500/10 border border-orange-500/30 p-4 rounded-2xl flex items-start gap-3 mb-6">
+        <div className="mt-0.5 text-orange-500">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+        </div>
+        <div>
+          <p className="text-[10px] font-black text-orange-600 dark:text-orange-500 uppercase tracking-widest mb-1">Peringatan Keamanan</p>
+          <p className="text-xs font-bold text-gray-700 dark:text-gray-300 leading-relaxed">
+            Pengguna yang Anda pilih akan memiliki hak akses penuh untuk <strong>melihat, menambah, dan mengedit</strong> transaksi di dalam dompet ini.
+          </p>
+        </div>
+      </div>
+
+      <form onSubmit={handleShareWallet} className="space-y-4">
+        <div>
+          <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 ml-1">Pilih Rekan</label>
+          
+          {isFetching ? (
+            <div className="w-full bg-gray-50 dark:bg-[#0a0f1c] border border-gray-200 dark:border-gray-800 rounded-2xl py-4 px-5 text-sm text-gray-400 font-bold animate-pulse">
+              Memuat daftar kontak...
+            </div>
+          ) : (
+            <div className="relative">
+              <select 
+                value={selectedUid} 
+                onChange={(e) => setSelectedUid(e.target.value)} 
+                required
+                className="appearance-none w-full bg-gray-50 dark:bg-[#0a0f1c] border border-gray-200 dark:border-gray-800 rounded-2xl py-4 pl-5 pr-10 text-sm text-gray-900 dark:text-white outline-none focus:border-blue-500 font-bold transition-all cursor-pointer"
+              >
+                <option value="" disabled>-- Pilih Pengguna Terdaftar --</option>
+                {users.map(user => (
+                  <option key={user.uid} value={user.uid} className="bg-white dark:bg-[#121827]">
+                    @{user.username}
+                  </option>
+                ))}
+              </select>
+              {/* Ikon Dropdown Custom */}
+              <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-gray-400">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <button 
+          type="submit" 
+          disabled={isLoading || isFetching || !selectedUid}
+          className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-gray-400 dark:disabled:bg-gray-800 text-white font-black text-xs uppercase tracking-widest py-4 rounded-2xl transition-all shadow-lg shadow-blue-500/30 mt-2"
+        >
+          {isLoading ? 'Memproses Akses...' : 'Bagikan Akses Sekarang'}
+        </button>
+      </form>
+    </div>
+  );
+}
+
+
+=== FILE: src/components/QuickCommandBar.jsx ===
+"use client";
+import { useState, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Mic, Send, X, TerminalSquare } from "lucide-react";
+import { supabase } from "@/lib/supabaseClient";
+
+// isSmartLoading = prop dari page.jsx, default false agar tidak crash jika tidak dikirim
+export default function QuickCommandBar({ onProcessTransaction, isSmartLoading = false }) {
+  const [isActive, setIsActive] = useState(false);
+  const [inputText, setInputText] = useState("");
+  const [isListening, setIsListening] = useState(false);
+  const [category, setCategory] = useState("");
+
+  const recognitionRef = useRef(null);
+
+  // ==========================================
+  // âš™ï¸ CORE AI LOGIC: TEXT PARSER
+  // ==========================================
+  const parseNLP = async (text) => {
+    const cleanText = text.toLowerCase().trim();
+
+    // 1. Deteksi Nominal Uang (Contoh: 5k -> 5000, 50k -> 50000, atau angka murni)
+    let amount = 0;
+    const kMatch = cleanText.match(/(\d+)\s*k/);
+    if (kMatch) {
+      amount = parseInt(kMatch[1]) * 1000;
+    } else {
+      const numMatch = cleanText.match(/\d+/);
+      if (numMatch) amount = parseInt(numMatch[0]);
+    }
+
+    // Ekstrak kata kunci mentah (menghapus nominal uang dari teks)
+    let phraseWithoutAmount = cleanText.replace(/[\d+]\s*k|[\d+]/g, '').trim();
+
+    let categoryName = "Lain-lain";
+
+    // 2. DETEKSI COMMAND "POS" (Proses Pembelajaran AI ke Supabase)
+    if (phraseWithoutAmount.includes('pos ')) {
+      const parts = phraseWithoutAmount.split('pos ');
+      const itemText = parts[0].replace(/(beli|bayar|untuk)\s*/g, '').trim();
+      const targetCategory = parts[1].trim();
+
+      if (targetCategory && itemText) {
+        categoryName = targetCategory;
+
+        // AI Belajar: Simpan ke Supabase secara asinkronus (background)
+        setTimeout(async () => {
+          try {
+            // A. Pastikan kategori utama ada di user_categories
+            let { data: catData } = await supabase
+              .from('user_categories')
+              .select('id')
+              .eq('name', categoryName)
+              .single();
+
+            if (!catData) {
+              const { data: newCat } = await supabase
+                .from('user_categories')
+                .insert([{ name: categoryName }])
+                .select('id')
+                .single();
+              catData = newCat;
+            }
+
+            // B. Masukkan kata benda ke ai_keywords agar AI ingat di masa depan
+            if (catData) {
+              await supabase
+                .from('ai_keywords')
+                .insert([{ category_id: catData.id, keyword: itemText }]);
+            }
+          } catch (err) {
+            console.log("AI sudah hafal kata kunci ini.");
+          }
+        }, 500);
+
+        phraseWithoutAmount = itemText;
+      }
+    }
+    // 3. DETEKSI OTOMATIS dari Supabase (hasil pembelajaran masa lalu)
+    else {
+      const { data: keywords } = await supabase
+        .from('ai_keywords')
+        .select('keyword, category_id(name)');
+
+      if (keywords) {
+        const coreWords = phraseWithoutAmount.replace(/(beli|bayar|untuk)\s*/g, '').trim().split(' ');
+        const matchKey = keywords.find(k => coreWords.includes(k.keyword));
+        if (matchKey) {
+          categoryName = matchKey.category_id.name;
+        }
+      }
+    }
+
+    const finalNote = phraseWithoutAmount.charAt(0).toUpperCase() + phraseWithoutAmount.slice(1);
+
+    return {
+      amount,
+      category: categoryName.charAt(0).toUpperCase() + categoryName.slice(1),
+      note: finalNote
+    };
+  };
+
+  // Preview kategori otomatis saat user mengetik (query Supabase)
+  const autoClassifyCategory = async (note) => {
+    if (!note || note.length < 3) return;
+
+    const { data: keywords } = await supabase
+      .from('ai_keywords')
+      .select('keyword, category_id(name)');
+
+    const noteLower = note.toLowerCase();
+    const match = keywords?.find(k => noteLower.includes(k.keyword.toLowerCase()));
+
+    if (match) {
+      setCategory(match.category_id.name);
+    } else {
+      setCategory("");
+    }
+  };
+
+  const extractAmount = (text) => {
+    const match = text.match(/\d+/);
+    return match ? parseInt(match[0]) : 0;
+  };
+
+  // ==========================================
+  // âš¡ EKSEKUTOR UTAMA
+  // ==========================================
+  const processDirectText = (text) => {
+    if (!text.trim() || text === "Mendengarkan...") return;
+
+    const { amount, category, note, type, shouldLearn } = parseNLP(text);
+
+    if (amount === 0) {
+      alert("âš ï¸ ArtaKita: Maaf, saya tidak mendeteksi jumlah nominal transaksinya.");
+      return;
+    }
+
+    // Kirim raw text ke handleSmartSubmit di page.jsx untuk diproses lengkap
+    onProcessTransaction(inputText);
+
+    setInputText("");
+    setIsActive(false);
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    processDirectText(inputText);
+  };
+
+  // ==========================================
+  // ðŸŽ™ï¸ FITUR SUARA (SPEECH RECOGNITION)
+  // ==========================================
+  const toggleListening = () => {
+    if (isListening) {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+      setIsListening(false);
+      setInputText("");
+      return;
+    }
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      alert("Maaf, browser Anda belum mendukung fitur perintah suara.");
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognitionRef.current = recognition;
+    recognition.lang = 'id-ID';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onstart = () => {
+      setIsListening(true);
+      setInputText("Mendengarkan...");
+    };
+
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      setIsListening(false);
+      // Teks hasil suara masuk ke input â€” user bisa review/edit dulu sebelum kirim
+      setInputText(transcript);
+    };
+
+    recognition.onerror = (event) => {
+      if (event.error === 'aborted' || event.error === 'no-speech') {
+        setIsListening(false);
+        setInputText("");
+        return;
+      }
+
+      console.error("Error suara:", event.error);
+      setIsListening(false);
+      setInputText("");
+      if (event.error === 'not-allowed') {
+        alert("Mohon izinkan akses mikrofon di pengaturan browser Anda.");
+      }
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+
+    recognition.start();
+  };
+
+  return (
+    <>
+      <AnimatePresence>
+        {isActive && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40"
+            onClick={() => {
+              if (isListening && recognitionRef.current) recognitionRef.current.stop();
+              setIsActive(false);
+              setIsListening(false);
+            }}
+          />
+        )}
+      </AnimatePresence>
+
+      <motion.form
+        layout
+        onSubmit={handleSubmit}
+        transition={{ type: "spring", stiffness: 300, damping: 26 }}
+        className={`fixed z-50 flex items-center bg-blue-600 text-white shadow-2xl shadow-blue-600/40 overflow-hidden ${
+          isActive ? 'bottom-28 left-6 right-6 h-16 rounded-2xl px-2' : 'bottom-28 right-6 w-14 h-14 rounded-full cursor-pointer justify-center'
+        }`}
+      >
+        {!isActive ? (
+          <button type="button" onClick={() => setIsActive(true)} className="w-full h-full flex items-center justify-center">
+            <TerminalSquare size={24} className="text-white" />
+          </button>
+        ) : (
+          <>
+            <button type="button" onClick={(e) => {
+              e.stopPropagation();
+              if (isListening && recognitionRef.current) recognitionRef.current.stop();
+              setIsActive(false);
+              setIsListening(false);
+            }} className="p-3 text-white/70 hover:text-white transition-colors">
+              <X size={20} />
+            </button>
+
+            <input
+              type="text"
+              value={inputText}
+              onChange={(e) => {
+                const val = e.target.value;
+                setInputText(val);
+                autoClassifyCategory(val); // Preview kategori AI dari Supabase
+              }}
+              placeholder="Contoh: Beli pentol 10000"
+              className="flex-1 bg-transparent outline-none text-sm font-bold text-white placeholder-white/40 px-2 h-full"
+            />
+
+            <button
+              type="button"
+              onClick={toggleListening}
+              className={`p-3 transition-all ${isListening ? 'text-red-300 animate-pulse scale-110' : 'text-white/70 hover:text-white'}`}
+              title="Perintah Suara"
+            >
+              <Mic size={20} />
+            </button>
+
+            {/* isSmartLoading dari prop page.jsx â€” tidak akan crash lagi */}
+            <button
+              type="submit"
+              disabled={isSmartLoading}
+              className="p-3 text-white/70 hover:text-white disabled:opacity-40 transition-colors"
+            >
+              {isSmartLoading ? "Memproses..." : <Send size={20} />}
+            </button>
+          </>
+        )}
+      </motion.form>
+    </>
+  );
+}
+
+
+
+=== FILE: src/components/ManageCategories.jsx ===
+import React, { useState, useEffect } from 'react';
+import { supabase } from "@/lib/supabaseClient";
+import { BrainCircuit, ChevronDown, Check, Database } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+
+let aiHasRun = false;
+
+export default function ManageCategories() {
+  const [categories, setCategories] = useState([]);
+  const [selectedCat, setSelectedCat] = useState(null);
+  const [keywordsInput, setKeywordsInput] = useState('');
+  
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    fetchAiBrainData();
+
+    if (!aiHasRun) {
+      aiHasRun = true;
+      runAmbientAI().then(() => fetchAiBrainData());
+    }
+  }, []);
+
+  // =========================================================================
+  // ðŸ¤– AI CORE: BATCH UPSERT (100% ANTI 409 CONFLICT)
+  // =========================================================================
+  const runAmbientAI = async () => {
+    try {
+      const { data: trxData } = await supabase.from('transactions').select('note, category');
+      if (!trxData || trxData.length === 0) return;
+
+      // 1. Ambil data kategori & kunci yang sudah ada (untuk filter lokal)
+      const { data: dbCats } = await supabase.from('user_categories').select('id, name');
+      const { data: dbKeys } = await supabase.from('ai_keywords').select('category_id, keyword');
+      
+      const catMap = new Map(dbCats.map(c => [c.name.toLowerCase().trim(), c.id]));
+      const existingKeys = new Set(dbKeys.map(k => `${k.category_id}-${k.keyword.toLowerCase()}`));
+
+      const finalKeywordsToInsert = [];
+
+      // 2. Proses data di memori (Tanpa menunggu database sama sekali)
+      for (const trx of trxData) {
+        if (!trx.category || !trx.note) continue;
+
+        let catId = catMap.get(trx.category.toLowerCase().trim());
+
+        // Jika kategori baru, buat ID baru secara lokal
+        if (!catId) {
+          const { data: newCat } = await supabase.from('user_categories').insert([{ name: trx.category }]).select('id').single();
+          if (newCat) {
+            catId = newCat.id;
+            catMap.set(trx.category.toLowerCase().trim(), catId);
+          }
+        }
+
+        const words = trx.note.toLowerCase().replace(/(beli|bayar|untuk|buat|lagi|dari|ke|di)\s+/g, '').replace(/[0-9]/g, '').trim().split(/\s+/);
+        
+        for (const kw of words) {
+          if (kw.length > 2) {
+            const keyHash = `${catId}-${kw}`;
+            // Hanya masukkan ke antrean jika belum ada di Set Lokal
+            if (!existingKeys.has(keyHash)) {
+              existingKeys.add(keyHash);
+              finalKeywordsToInsert.push({ category_id: catId, keyword: kw });
+            }
+          }
+        }
+      }
+
+      // 3. KIRIM SEKALIGUS DALAM 1 REQUEST (Batch Upsert)
+      if (finalKeywordsToInsert.length > 0) {
+        console.log("Mengirim batch data ke Supabase:", finalKeywordsToInsert.length, "item");
+        await supabase.from('ai_keywords').upsert(finalKeywordsToInsert, { 
+          onConflict: 'category_id, keyword', 
+          ignoreDuplicates: true 
+        });
+        console.log("Sinkronisasi AI Selesai!");
+      }
+    } catch (e) {
+      console.error("AI Learning Error:", e);
+    }
+  };
+
+  const fetchAiBrainData = async () => {
+    const { data: cats } = await supabase.from('user_categories').select('*').order('name', { ascending: true });
+    const { data: keys } = await supabase.from('ai_keywords').select('*');
+
+    if (cats && keys) {
+      const combinedData = cats.map(c => {
+        const relatedKeys = keys.filter(k => k.category_id === c.id).map(k => k.keyword);
+        return { id: c.id, name: c.name, keywords: relatedKeys.join(', ') };
+      });
+      setCategories(combinedData);
+    }
+  };
+
+  const handleSelectCategory = (cat) => {
+    setSelectedCat(cat);
+    setKeywordsInput(cat.keywords || ''); 
+    setIsDropdownOpen(false);
+  };
+
+  const handleUpdateMemory = async (e) => {
+    e.preventDefault();
+    if (!selectedCat) return;
+    setLoading(true);
+
+    await supabase.from('ai_keywords').delete().eq('category_id', selectedCat.id);
+    
+    if (keywordsInput.trim()) {
+      const keywordArray = [...new Set(keywordsInput.split(',').map(k => k.trim().toLowerCase()).filter(k => k))];
+      const insertData = keywordArray.map(kw => ({ category_id: selectedCat.id, keyword: kw }));
+      if (insertData.length > 0) await supabase.from('ai_keywords').insert(insertData);
+    }
+    
+    setSelectedCat(null);
+    setKeywordsInput('');
+    setLoading(false);
+    fetchAiBrainData();
+  };
+
+  return (
+    <div className="bg-white dark:bg-[#121827] rounded-[32px] p-6 sm:p-8 shadow-2xl shadow-blue-500/5 border border-gray-100 dark:border-gray-800/60 w-full transition-all">
+      <button onClick={() => setIsExpanded(!isExpanded)} className="w-full flex justify-between items-center outline-none group">
+        <div className="flex items-center gap-4">
+          <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-2xl shadow-lg shadow-blue-500/30 group-hover:scale-105 transition-transform">
+            <BrainCircuit size={20} />
+          </div>
+          <div className="text-left">
+            <h3 className="text-sm sm:text-base font-black text-gray-900 dark:text-white uppercase tracking-widest">Memori Otak AI</h3>
+            <p className="text-[10px] sm:text-xs font-bold text-gray-400 dark:text-gray-500 mt-0.5">Automasi & Intervensi Data</p>
+          </div>
+        </div>
+        <motion.div animate={{ rotate: isExpanded ? 180 : 0 }} transition={{ duration: 0.3 }} className="bg-gray-50 dark:bg-gray-800 p-2 rounded-full">
+          <ChevronDown size={20} className="text-gray-400 group-hover:text-blue-500 transition-colors" />
+        </motion.div>
+      </button>
+
+      <AnimatePresence>
+        {isExpanded && (
+          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+            <div className="pt-8">
+              
+              <form onSubmit={handleUpdateMemory} className="flex flex-col gap-5 bg-gray-50/80 dark:bg-gray-900/40 p-5 sm:p-6 rounded-[24px] border border-gray-100 dark:border-gray-800/50 relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
+                  <Database size={100} />
+                </div>
+                
+                <div className="relative z-20">
+                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1.5 ml-1">Kategori (Dari AI)</label>
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                      className="w-full bg-white dark:bg-[#0a0f1c] border border-gray-200 dark:border-gray-800 rounded-2xl py-3.5 px-4 text-left text-sm font-bold text-gray-900 dark:text-white shadow-sm flex justify-between items-center outline-none focus:border-blue-500 hover:border-blue-500/50 transition-all"
+                    >
+                      {selectedCat ? (
+                        <span className="text-gray-900 dark:text-white">{selectedCat.name}</span>
+                      ) : (
+                        <span className="text-gray-400 font-normal">-- Pilih kategori --</span>
+                      )}
+                      <ChevronDown size={18} className={`text-gray-400 transition-transform duration-300 ${isDropdownOpen ? 'rotate-180 text-blue-500' : ''}`} />
+                    </button>
+
+                    <AnimatePresence>
+                      {isDropdownOpen && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -10, scale: 0.98 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: -10, scale: 0.98 }}
+                          transition={{ duration: 0.15 }}
+                          className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#121827] border border-gray-100 dark:border-gray-800 rounded-2xl shadow-2xl overflow-hidden z-[99]"
+                        >
+                          <div className="max-h-56 overflow-y-auto no-scrollbar py-2">
+                            {categories.length === 0 ? (
+                              <div className="px-5 py-4 text-xs font-bold text-gray-400 text-center">AI belum mempelajari data.</div>
+                            ) : (
+                              categories.map((cat) => (
+                                <button
+                                  key={cat.id}
+                                  type="button"
+                                  onClick={() => handleSelectCategory(cat)}
+                                  className={`w-full text-left px-5 py-3.5 text-sm font-bold transition-all ${
+                                    selectedCat?.id === cat.id 
+                                      ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10 border-l-4 border-blue-500' 
+                                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 border-l-4 border-transparent'
+                                  }`}
+                                >
+                                  {cat.name}
+                                </button>
+                              ))
+                            )}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                </div>
+                
+                <div className="relative z-10 border-t border-gray-200/50 dark:border-gray-800/50 pt-4 mt-2">
+                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1.5 ml-1">Kosakata Tersimpan (Koma)</label>
+                  <input 
+                    type="text" 
+                    placeholder="Pilih kategori di atas untuk memuat kosakata..." 
+                    value={keywordsInput} 
+                    onChange={(e) => setKeywordsInput(e.target.value)} 
+                    disabled={!selectedCat}
+                    className="w-full bg-white dark:bg-[#0a0f1c] border border-gray-200 dark:border-gray-800 rounded-2xl py-3.5 px-4 text-gray-900 dark:text-white outline-none focus:border-blue-500 text-sm font-bold shadow-sm transition-all disabled:opacity-50" 
+                  />
+                </div>
+                
+                <button type="submit" disabled={loading || !selectedCat} className="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white font-black text-[10px] sm:text-xs uppercase tracking-widest rounded-2xl transition-all shadow-lg shadow-blue-500/30 flex items-center justify-center gap-2 disabled:opacity-50 relative z-10">
+                  <Check size={16} /> Simpan Perubahan
+                </button>
+              </form>
+
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+
+=== FILE: src/components/ManageBudgets.jsx ===
+import React, { useState, useEffect } from 'react';
+import { supabase } from "@/lib/supabaseClient";
+import { Trash2, Plus, Target, ChevronDown, PieChart, X as XIcon } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+
+export default function ManageBudgets({ selectedMonth }) {
+  const [budgets, setBudgets] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [limitAmount, setLimitAmount] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  
+  // STATE BARU: Untuk Inline Confirm Delete ala AI Memory
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+
+  useEffect(() => {
+    if (isExpanded) {
+      fetchData();
+    }
+  }, [isExpanded, selectedMonth]); 
+
+  const fetchData = async () => {
+    const { data: aiData } = await supabase.from('user_categories').select('name');
+    const { data: trxData } = await supabase.from('transactions').select('category');
+
+    const aiCats = aiData ? aiData.map(c => c.name) : [];
+    const trxCats = trxData ? trxData.map(t => t.category) : [];
+
+    const merged = [...new Set([...aiCats, ...trxCats])].filter(Boolean).sort();
+    setCategories(merged);
+
+    const { data: budData } = await supabase.from('budgets').select('*').eq('month_year', selectedMonth);
+    if (budData) setBudgets(budData);
+  };
+
+  const handleAddBudget = async (e) => {
+    e.preventDefault();
+    if (!selectedCategory || !limitAmount) return;
+    setLoading(true);
+
+    const { error } = await supabase.from('budgets').insert([{ 
+      category_name: selectedCategory, 
+      month_year: selectedMonth,
+      limit_amount: limitAmount 
+    }]);
+    
+    setLoading(false);
+
+    if (error) {
+      if (error.code === '23505') alert("Anggaran untuk kategori ini sudah ada di bulan ini!");
+      else alert("Gagal: " + error.message);
+    } else {
+      setSelectedCategory('');
+      setLimitAmount('');
+      setIsDropdownOpen(false); 
+      fetchData(); 
+    }
+  };
+
+  const handleDelete = async (id) => {
+    const { error } = await supabase.from('budgets').delete().eq('id', id);
+    if (!error) {
+      setDeleteConfirmId(null);
+      fetchData(); 
+    }
+  };
+
+  return (
+    <div className="bg-white dark:bg-[#121827] rounded-[32px] p-6 sm:p-8 shadow-2xl shadow-emerald-500/5 border border-gray-100 dark:border-gray-800/60 w-full transition-all">
+      <button onClick={() => setIsExpanded(!isExpanded)} className="w-full flex justify-between items-center outline-none group">
+        <div className="flex items-center gap-4">
+          <div className="p-3 bg-gradient-to-br from-emerald-400 to-teal-600 text-white rounded-2xl shadow-lg shadow-emerald-500/30 group-hover:scale-105 transition-transform">
+            <Target size={20} />
+          </div>
+          <div className="text-left">
+            <h3 className="text-sm sm:text-base font-black text-gray-900 dark:text-white uppercase tracking-widest">Alokasi Anggaran</h3>
+            <span className="text-[10px] sm:text-xs font-bold text-gray-400 dark:text-gray-500 mt-0.5">Periode: {selectedMonth}</span>
+          </div>
+        </div>
+        <motion.div animate={{ rotate: isExpanded ? 180 : 0 }} transition={{ duration: 0.3 }} className="bg-gray-50 dark:bg-gray-800 p-2 rounded-full">
+          <ChevronDown size={20} className="text-gray-400 group-hover:text-emerald-500 transition-colors" />
+        </motion.div>
+      </button>
+
+      <AnimatePresence>
+        {isExpanded && (
+          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+            <div className="pt-8">
+              <form onSubmit={handleAddBudget} className="flex flex-col gap-5 mb-6 bg-gray-50/80 dark:bg-gray-900/40 p-5 rounded-[24px] border border-gray-100 dark:border-gray-800/50 relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
+                  <PieChart size={100} />
+                </div>
+                
+                {/* CUSTOM LUXURY DROPDOWN UI */}
+                <div className="relative z-20">
+                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1.5 ml-1">Pilih Kategori</label>
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                      className="w-full bg-white dark:bg-[#0a0f1c] border border-gray-200 dark:border-gray-800 rounded-2xl py-3.5 px-4 text-left text-sm font-bold text-gray-900 dark:text-white shadow-sm flex justify-between items-center outline-none focus:border-emerald-500 hover:border-emerald-500/50 transition-all"
+                    >
+                      {selectedCategory ? (
+                        <span className="text-gray-900 dark:text-white">{selectedCategory}</span>
+                      ) : (
+                        <span className="text-gray-400 font-normal">-- Ketuk untuk memilih --</span>
+                      )}
+                      <ChevronDown size={18} className={`text-gray-400 transition-transform duration-300 ${isDropdownOpen ? 'rotate-180 text-emerald-500' : ''}`} />
+                    </button>
+
+                    <AnimatePresence>
+                      {isDropdownOpen && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -10, scale: 0.98 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: -10, scale: 0.98 }}
+                          transition={{ duration: 0.15 }}
+                          className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#121827] border border-gray-100 dark:border-gray-800 rounded-2xl shadow-2xl overflow-hidden z-[99]"
+                        >
+                          <div className="max-h-56 overflow-y-auto no-scrollbar py-2">
+                            {categories.length === 0 ? (
+                              <div className="px-5 py-4 text-xs font-bold text-gray-400 text-center">Belum ada kategori terdeteksi.</div>
+                            ) : (
+                              categories.map((cat, idx) => (
+                                <button
+                                  key={idx}
+                                  type="button"
+                                  onClick={() => { setSelectedCategory(cat); setIsDropdownOpen(false); }}
+                                  className={`w-full text-left px-5 py-3.5 text-sm font-bold transition-all ${
+                                    selectedCategory === cat 
+                                      ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 border-l-4 border-emerald-500' 
+                                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 border-l-4 border-transparent'
+                                  }`}
+                                >
+                                  {cat}
+                                </button>
+                              ))
+                            )}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                </div>
+                
+                <div className="relative z-10 border-t border-gray-200/50 dark:border-gray-800/50 pt-4 mt-2">
+                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1.5 ml-1">Batas Maksimal (Rp)</label>
+                  <input type="number" placeholder="Contoh: 500000" value={limitAmount} onChange={(e) => setLimitAmount(e.target.value)} required className="w-full bg-white dark:bg-[#0a0f1c] border border-gray-200 dark:border-gray-800 rounded-2xl py-3.5 px-4 text-gray-900 dark:text-white outline-none focus:border-emerald-500 text-sm font-bold shadow-sm transition-all" />
+                </div>
+                
+                <button type="submit" disabled={loading} className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-[10px] sm:text-xs uppercase tracking-widest rounded-2xl transition-all shadow-lg shadow-emerald-500/30 flex items-center justify-center gap-2 disabled:opacity-50 relative z-10">
+                  <Plus size={16} /> Tetapkan Pos Anggaran
+                </button>
+              </form>
+
+              {/* DESAIN LIST ULTRA-MINIMALIS (SAMA PERSIS DENGAN AI MEMORY) */}
+              <div className="flex flex-col border border-gray-100 dark:border-gray-800/80 rounded-[20px] overflow-hidden">
+                <AnimatePresence>
+                  {budgets.length === 0 ? (
+                    <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-8 text-[10px] font-black text-gray-400 dark:text-gray-600 uppercase tracking-[0.3em] bg-gray-50/50 dark:bg-gray-900/20">
+                      Belum Ada Pos Anggaran
+                    </motion.p>
+                  ) : (
+                    budgets.map((budget, index) => (
+                      <motion.div key={budget.id} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, height: 0 }}
+                        className={`group flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/40 ${index !== budgets.length - 1 ? 'border-b border-gray-100 dark:border-gray-800/60' : ''}`}
+                      >
+                        <div className="flex-1 w-full sm:pr-4">
+                          <span className="font-bold text-sm text-gray-900 dark:text-white">{budget.category_name}</span>
+                          <div className="mt-1.5 flex items-center gap-2">
+                            <span className="bg-emerald-500/10 text-emerald-500 text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider">LIMIT</span>
+                            <span className="text-[11px] text-gray-500 dark:text-gray-400 font-bold">Rp {Number(budget.limit_amount).toLocaleString('id-ID')}</span>
+                          </div>
+                        </div>
+
+                        {/* INLINE ACTIONS: Bersih & Tanpa Popup */}
+                        <div className="flex items-center gap-1 mt-3 sm:mt-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity self-end sm:self-center shrink-0">
+                          {deleteConfirmId === budget.id ? (
+                            <div className="flex items-center bg-red-50 dark:bg-red-500/10 rounded-lg overflow-hidden border border-red-100 dark:border-red-500/20">
+                              <button onClick={() => handleDelete(budget.id)} className="px-3 py-1.5 text-[9px] font-black text-red-500 hover:bg-red-500 hover:text-white uppercase tracking-widest transition-colors">
+                                Yakin?
+                              </button>
+                              <button onClick={() => setDeleteConfirmId(null)} className="px-2 py-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors border-l border-red-100 dark:border-red-500/20">
+                                <XIcon size={12} />
+                              </button>
+                            </div>
+                          ) : (
+                            <button onClick={() => setDeleteConfirmId(budget.id)} className="p-2 text-gray-400 hover:text-red-500 rounded-lg transition-colors">
+                              <Trash2 size={14} />
+                            </button>
+                          )}
+                        </div>
+                      </motion.div>
+                    ))
+                  )}
+                </AnimatePresence>
+              </div>
+
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+
+=== FILE: src/hooks/useFinData.js ===
+import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabaseClient";
+import { z } from "zod";
+
+// Skema Zod dipindahkan ke luar hook agar bisa diakses secara global
+const transactionSchema = z.object({
+  note: z.string().min(2, "Catatan minimal 2 karakter").max(100, "Catatan terlalu panjang"),
+  amount: z.number().positive("Nominal tidak boleh minus atau nol!"),
+  category: z.string().min(1, "Kategori tidak valid"),
+  type: z.enum(['income', 'expense'], { required_error: "Tipe transaksi harus 'income' atau 'expense'" })
+});
+
+export const useFinData = (walletId) => {
+  const [transactions, setTransactions] = useState([]);
+  const [balance, setBalance] = useState(0);
+  const [totalIncome, setTotalIncome] = useState(0);
+  const [totalExpense, setTotalExpense] = useState(0);
+
+  // --- 1. AMBIL DATA TRANSAKSI RIIL ---
+  useEffect(() => {
+    const fetchTransactions = async () => {
+      if (!walletId) return;
+
+      const { data, error } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('wallet_id', walletId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error("Gagal menarik data transaksi:", error.message);
+      } else {
+        setTransactions(data || []);
+      }
+    };
+
+    fetchTransactions();
+  }, [walletId]);
+
+  // --- 2. KALKULASI SALDO ---
+  useEffect(() => {
+    let calcExpense = 0;
+    let calcIncome = 0;
+
+    transactions.forEach(t => {
+      if (t.type === 'income') {
+        calcIncome += Number(t.amount);
+      } else if (t.type === 'expense' || !t.type) {
+        calcExpense += Number(t.amount);
+      }
+    });
+
+    setTotalIncome(calcIncome);
+    setTotalExpense(calcExpense);
+    setBalance(calcIncome - calcExpense);
+  }, [transactions]);
+
+  // --- 3. SIMPAN TRANSAKSI KE SUPABASE ---
+  const addTransaction = async (note, amount, category, trxType = "expense") => {
+    try {
+      // Data difilter dan divalidasi oleh Zod terlebih dahulu
+      const validatedData = transactionSchema.parse({ 
+        note, 
+        amount: Number(amount), 
+        category, 
+        type: trxType 
+      });
+
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session) {
+        alert("Sesi login kedaluwarsa. Silakan login kembali.");
+        return;
+      }
+
+      const newTrx = {
+        user_id: session.user.id,
+        wallet_id: walletId,
+        note: validatedData.note,
+        amount: validatedData.amount,
+        category: validatedData.category,
+        type: validatedData.type
+      };
+
+      const { data, error } = await supabase
+        .from('transactions')
+        .insert([newTrx])
+        .select();
+
+      if (error) throw error;
+
+      if (data) {
+        setTransactions(prev => [data[0], ...prev]);
+      }
+    } catch (error) {
+      // Penanganan khusus untuk error Zod agar pesan rapi
+      if (error instanceof z.ZodError) {
+        throw new Error(error.errors[0].message);
+      }
+      throw error; // Lempar error Supabase ke fungsi pemanggil
+    }
+  };
+
+  // --- 4. HAPUS TRANSAKSI ---
+  const deleteTransaction = async (id) => {
+    try {
+      const { error } = await supabase
+        .from('transactions')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      setTransactions(prev => prev.filter(t => t.id !== id));
+    } catch (error) {
+      alert("Gagal menghapus data: " + error.message);
+    }
+  };
+
+  // --- 5. UPDATE TRANSAKSI ---
+  const updateTransaction = async (id, note, category, amount) => {
+    try {
+      const { error } = await supabase
+        .from('transactions')
+        .update({ note, category, amount: Number(amount) })
+        .eq('id', id);
+
+      if (error) throw error;
+      setTransactions(prev => prev.map(t => t.id === id ? { ...t, note, category, amount: Number(amount) } : t));
+    } catch (error) {
+      alert("Gagal mengubah: " + error.message);
+    }
+  };
+
+  return { balance, totalIncome, totalExpense, transactions, addTransaction, deleteTransaction, updateTransaction };
+};
+
+
+=== FILE: src/hooks/useTheme.js ===
+import { useState, useEffect } from 'react';
+
+export function useTheme() {
+  const [theme, setTheme] = useState('light');
+
+  // Mengecek tema yang tersimpan saat aplikasi pertama kali dimuat
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('artakita-theme') || 'light';
+    setTheme(savedTheme);
+    
+    // Menerapkan tema ke tag paling luar (html/body)
+    if (savedTheme === 'dark') {
+      document.documentElement.classList.add('dark-mode');
+    } else {
+      document.documentElement.classList.remove('dark-mode');
+    }
+  }, []);
+
+  // Fungsi untuk mengubah tema
+  const toggleTheme = () => {
+    const newTheme = theme === 'light' ? 'dark' : 'light';
+    setTheme(newTheme);
+    localStorage.setItem('artakita-theme', newTheme);
+    
+    if (newTheme === 'dark') {
+      document.documentElement.classList.add('dark-mode');
+    } else {
+      document.documentElement.classList.remove('dark-mode');
+    }
+  };
+
+  return { theme, toggleTheme };
+}
+
+
+=== FILE: src/hooks/useWallets.js ===
+import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabaseClient";
+
+export const useWallets = () => {
+  const [wallets, setWallets] = useState([]);
+
+  useEffect(() => {
+    const fetchWallets = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      
+      const { data, error } = await supabase
+        .from('wallets')
+        .select('*')
+        .order('created_at', { ascending: true });
+      
+      if (data) setWallets(data);
+    };
+    
+    fetchWallets();
+  }, []);
+
+  const addWallet = async (name) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Sesi tidak valid");
+
+      const newWallet = {
+        user_id: session.user.id,
+        name: name
+      };
+
+      const { data, error } = await supabase.from('wallets').insert([newWallet]).select();
+      if (error) throw error;
+      
+      if (data) {
+        setWallets(prev => [...prev, data[0]]);
+        return data[0]; // Kembalikan data dompet baru untuk langsung dipakai
+      }
+    } catch (error) {
+      alert("Gagal menambah dompet: " + error.message);
+      return null;
+    }
+  };
+
+  const deleteWallet = async (id) => {
+    const confirmDelete = window.confirm("Yakin hapus dompet ini? Pastikan tidak ada transaksi penting di dalamnya.");
+    if (!confirmDelete) return;
+
+    try {
+      const { error } = await supabase.from('wallets').delete().eq('id', id);
+      if (error) throw error;
+      setWallets(prev => prev.filter(w => w.id !== id));
+    } catch(error) {
+      alert("Gagal menghapus dompet: " + error.message);
+    }
+  };
+
+  return { wallets, addWallet, deleteWallet };
+};
+
+
+=== FILE: src/lib/supabaseClient.js ===
+import { createBrowserClient } from '@supabase/ssr'
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+// Kita tetap gunakan pengecekan ini, tapi jangan pakai throw agar tidak crash saat build awal
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error("Supabase environment variables are missing!")
+}
+
+export const supabase = createBrowserClient(
+  supabaseUrl || "",
+  supabaseAnonKey || ""
+)
+
+
+=== FILE: src/app/globals.css ===
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Utilitas Kustom: Menyembunyikan Scrollbar */
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+}
+
+/* --- PENGATURAN HEADER FIX --- */
+.header-fixed {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 70px; /* Tinggi header */
+  background-color: #ffffff;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  z-index: 9999; /* Angka besar agar selalu berada di lapisan paling atas */
+}
+
+.header-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 20px;
+  height: 100%;
+}
+
+/* --- PENTING: PENGATURAN KONTEN UTAMA --- */
+/* Bungkus semua konten aplikasi Anda (selain header) dengan class ini */
+.main-content {
+  /* Margin atas harus sama atau sedikit lebih besar dari tinggi header */
+  margin-top: 80px; 
+  padding: 20px;
+}
+
+/* --- PENGATURAN TEMA (DARK MODE) --- */
+/* Saat class 'dark-mode' aktif di HTML, ubah warna elemen-elemen ini */
+.dark-mode body {
+  background-color: #121212;
+  color: #ffffff;
+}
+
+.dark-mode .header-fixed {
+  background-color: #1e1e1e;
+  border-bottom: 1px solid #333;
+}
+
+.dark-mode .theme-toggle-btn {
+  background-color: #333;
+  color: #fff;
+}
+
+/* --- TAMPILAN MODAL (POP-UP) --- */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5); /* Efek gelap di belakang (backdrop) */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000; /* Pastikan di atas header */
+}
+
+.modal-content {
+  background-color: #fff;
+  padding: 24px;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 400px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.dark-mode .modal-content {
+  background-color: #1e1e1e;
+  color: #fff;
+}
+
+.form-group {
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group input {
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  margin-top: 4px;
+}
+
+.dark-mode .form-group input {
+  background-color: #333;
+  color: #fff;
+  border-color: #555;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+/* --- TAMPILAN KELOLA KATEGORI --- */
+.category-manager {
+  background-color: #f9fafb;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 24px;
+}
+
+.dark-mode .category-manager {
+  background-color: #1e1e1e;
+}
+
+.category-form {
+  background-color: #fff;
+  padding: 16px;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  margin-bottom: 20px;
+}
+
+.dark-mode .category-form {
+  background-color: #2a2a2a;
+  border-color: #444;
+}
+
+.category-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.dark-mode .category-item {
+  border-bottom-color: #444;
+}
+
+.category-alias {
+  color: #6b7280;
+  font-size: 0.9em;
+}
+
+.dark-mode .category-alias {
+  color: #9ca3af;
+}
+
+.btn-save {
+  background-color: #3b82f6;
+  color: white;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.btn-delete {
+  background-color: #ef4444;
+  color: white;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85em;
+}
+
+.mt-2 {
+  margin-top: 12px;
+}
+
+/* Menghilangkan scrollbar pada elemen yang tak terduga */
+.overflow-y-auto, .overflow-x-auto {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+/* Memastikan tidak ada ruang ekstra untuk scroll horizontal */
+body, main {
+  overflow-x: hidden;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* BASMI SEMUA SCROLLBAR DI SELURUH ELEMEN APLIKASI */
+* {
+  -ms-overflow-style: none !important;  /* IE and Edge */
+  scrollbar-width: none !important;  /* Firefox */
+}
+
+*::-webkit-scrollbar {
+  display: none !important; /* Chrome, Safari, Edge, Opera */
+  width: 0 !important;
+  height: 0 !important;
+}
+
+body, main {
+  overflow-x: hidden !important;
+}
+
+/* ========================================================== */
+/* MEMBUNUH SPIN BUTTON (PANAH) BAWAAN BROWSER DI INPUT ANGKA */
+/* ========================================================== */
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield; /* Khusus untuk browser Firefox */
+}
+
+

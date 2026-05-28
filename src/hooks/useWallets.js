@@ -8,15 +8,15 @@ export const useWallets = () => {
     const fetchWallets = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
-      
-      const { data, error } = await supabase
-        .from('wallets')
-        .select('*')
-        .order('created_at', { ascending: true });
-      
+
+      const { data } = await supabase
+        .from("wallets")
+        .select("*")
+        .order("created_at", { ascending: true });
+
       if (data) setWallets(data);
     };
-    
+
     fetchWallets();
   }, []);
 
@@ -25,34 +25,28 @@ export const useWallets = () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Sesi tidak valid");
 
-      const newWallet = {
-        user_id: session.user.id,
-        name: name
-      };
+      const { data, error } = await supabase
+        .from("wallets")
+        .insert([{ user_id: session.user.id, name }])
+        .select();
 
-      const { data, error } = await supabase.from('wallets').insert([newWallet]).select();
       if (error) throw error;
-      
       if (data) {
-        setWallets(prev => [...prev, data[0]]);
-        return data[0]; // Kembalikan data dompet baru untuk langsung dipakai
+        setWallets((prev) => [...prev, data[0]]);
+        return data[0];
       }
     } catch (error) {
-      alert("Gagal menambah dompet: " + error.message);
-      return null;
+      throw error; // Lempar ke pemanggil, bukan alert()
     }
   };
 
   const deleteWallet = async (id) => {
-    const confirmDelete = window.confirm("Yakin hapus dompet ini? Pastikan tidak ada transaksi penting di dalamnya.");
-    if (!confirmDelete) return;
-
     try {
-      const { error } = await supabase.from('wallets').delete().eq('id', id);
+      const { error } = await supabase.from("wallets").delete().eq("id", id);
       if (error) throw error;
-      setWallets(prev => prev.filter(w => w.id !== id));
-    } catch(error) {
-      alert("Gagal menghapus dompet: " + error.message);
+      setWallets((prev) => prev.filter((w) => w.id !== id));
+    } catch (error) {
+      throw error; // Lempar ke pemanggil
     }
   };
 

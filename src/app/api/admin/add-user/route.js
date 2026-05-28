@@ -5,7 +5,6 @@ export async function POST(request) {
   try {
     const { username, password } = await request.json();
 
-    // Menggunakan KUNCI MASTER agar bisa membuat user tanpa merusak sesi admin
     const supabaseAdmin = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL,
       process.env.SUPABASE_SERVICE_ROLE_KEY,
@@ -14,11 +13,10 @@ export async function POST(request) {
 
     const email = `${username.trim().toLowerCase()}@artakita.internal`;
 
-    // Bypass proses daftar normal langsung via admin auth
     const { data, error } = await supabaseAdmin.auth.admin.createUser({
-      email: email,
-      password: password,
-      email_confirm: true, // Langsung aktif tanpa klik email
+      email,
+      password,
+      email_confirm: true,
     });
 
     if (error) throw error;

@@ -2,226 +2,40 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Utilitas Kustom: Menyembunyikan Scrollbar */
+/* ── Custom utilities ───────────────────────────────────────────────────── */
 @layer utilities {
+  /* Sembunyikan scrollbar di semua browser */
   .no-scrollbar::-webkit-scrollbar { display: none; }
   .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 }
 
-/* --- PENGATURAN HEADER FIX --- */
-.header-fixed {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 70px; /* Tinggi header */
-  background-color: #ffffff;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-  z-index: 9999; /* Angka besar agar selalu berada di lapisan paling atas */
-}
-
-.header-container {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0 20px;
-  height: 100%;
-}
-
-/* --- PENTING: PENGATURAN KONTEN UTAMA --- */
-/* Bungkus semua konten aplikasi Anda (selain header) dengan class ini */
-.main-content {
-  /* Margin atas harus sama atau sedikit lebih besar dari tinggi header */
-  margin-top: 80px; 
-  padding: 20px;
-}
-
-/* --- PENGATURAN TEMA (DARK MODE) --- */
-/* Saat class 'dark-mode' aktif di HTML, ubah warna elemen-elemen ini */
-.dark-mode body {
-  background-color: #121212;
-  color: #ffffff;
-}
-
-.dark-mode .header-fixed {
-  background-color: #1e1e1e;
-  border-bottom: 1px solid #333;
-}
-
-.dark-mode .theme-toggle-btn {
-  background-color: #333;
-  color: #fff;
-}
-
-/* --- TAMPILAN MODAL (POP-UP) --- */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.5); /* Efek gelap di belakang (backdrop) */
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 10000; /* Pastikan di atas header */
-}
-
-.modal-content {
-  background-color: #fff;
-  padding: 24px;
-  border-radius: 8px;
-  width: 90%;
-  max-width: 400px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-}
-
-.dark-mode .modal-content {
-  background-color: #1e1e1e;
-  color: #fff;
-}
-
-.form-group {
-  margin-bottom: 16px;
-  display: flex;
-  flex-direction: column;
-}
-
-.form-group input {
-  padding: 8px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  margin-top: 4px;
-}
-
-.dark-mode .form-group input {
-  background-color: #333;
-  color: #fff;
-  border-color: #555;
-}
-
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  margin-top: 24px;
-}
-
-/* --- TAMPILAN KELOLA KATEGORI --- */
-.category-manager {
-  background-color: #f9fafb;
-  padding: 20px;
-  border-radius: 8px;
-  margin-bottom: 24px;
-}
-
-.dark-mode .category-manager {
-  background-color: #1e1e1e;
-}
-
-.category-form {
-  background-color: #fff;
-  padding: 16px;
-  border-radius: 6px;
-  border: 1px solid #e5e7eb;
-  margin-bottom: 20px;
-}
-
-.dark-mode .category-form {
-  background-color: #2a2a2a;
-  border-color: #444;
-}
-
-.category-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.dark-mode .category-item {
-  border-bottom-color: #444;
-}
-
-.category-alias {
-  color: #6b7280;
-  font-size: 0.9em;
-}
-
-.dark-mode .category-alias {
-  color: #9ca3af;
-}
-
-.btn-save {
-  background-color: #3b82f6;
-  color: white;
-  padding: 8px 16px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: 500;
-}
-
-.btn-delete {
-  background-color: #ef4444;
-  color: white;
-  padding: 6px 12px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.85em;
-}
-
-.mt-2 {
-  margin-top: 12px;
-}
-
-/* Menghilangkan scrollbar pada elemen yang tak terduga */
-.overflow-y-auto, .overflow-x-auto {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
-}
-
-/* Memastikan tidak ada ruang ekstra untuk scroll horizontal */
-body, main {
-  overflow-x: hidden;
-}
-
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-/* BASMI SEMUA SCROLLBAR DI SELURUH ELEMEN APLIKASI */
+/* ── Global scrollbar removal ───────────────────────────────────────────── */
 * {
-  -ms-overflow-style: none !important;  /* IE and Edge */
-  scrollbar-width: none !important;  /* Firefox */
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
 }
-
 *::-webkit-scrollbar {
-  display: none !important; /* Chrome, Safari, Edge, Opera */
+  display: none !important;
   width: 0 !important;
   height: 0 !important;
 }
 
+/* ── Prevent horizontal scroll ──────────────────────────────────────────── */
 body, main {
   overflow-x: hidden !important;
 }
 
-/* ========================================================== */
-/* MEMBUNUH SPIN BUTTON (PANAH) BAWAAN BROWSER DI INPUT ANGKA */
-/* ========================================================== */
-
+/* ── Remove number input spin buttons ───────────────────────────────────── */
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
-
 input[type="number"] {
-  -moz-appearance: textfield; /* Khusus untuk browser Firefox */
+  -moz-appearance: textfield;
+}
+
+/* ── Safe area padding untuk notch/home indicator (iOS) ─────────────────── */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
