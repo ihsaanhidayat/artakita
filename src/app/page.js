@@ -551,6 +551,8 @@ export default function Home() {
           {activeTab === "home" && (
             <HomeTab
               key="home"
+              isDarkMode={isDarkMode}
+              setIsDarkMode={setIsDarkMode}
               activeWallet={activeWallet}
               balance={balance}
               filteredIncome={filteredIncome} filteredExpense={filteredExpense}

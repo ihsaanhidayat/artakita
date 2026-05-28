@@ -2,7 +2,7 @@
 import { memo, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ArrowUpCircle, ArrowDownCircle,
+  Moon, Sun, ArrowUpCircle, ArrowDownCircle,
   Coffee, ShoppingBag, Receipt, Layers,
   Edit3, Trash2, Search, X, Eye, Loader2
 } from "lucide-react";
@@ -37,6 +37,7 @@ const TransactionSkeleton = () => (
 
 // ── HomeTab ───────────────────────────────────────────────────────────────────
 const HomeTabComponent = memo(function HomeTab({
+  isDarkMode, setIsDarkMode,
   activeWallet,
   balance,
   filteredIncome, filteredExpense,
