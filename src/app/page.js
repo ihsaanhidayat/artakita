@@ -1,9 +1,9 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Home as HomeIcon, BarChart3, Landmark, Package, Settings,
-  CreditCard, Receipt, X, RefreshCw
+  Home as HomeIcon, Landmark, Settings,
+  CreditCard, X
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -30,9 +30,9 @@ import ForcePasswordModal from "@/components/modals/ForcePasswordModal";
 // Shared components
 import Toast        from "@/components/Toast";
 import DeleteModal  from "@/components/DeleteModal";
-import DebtsTab       from "@/components/tabs/DebtsTab";
-import AssetsTab      from "@/components/tabs/AssetsTab";
-import RecurringTab   from "@/components/tabs/RecurringTab";
+import FinanceTab     from "@/components/tabs/FinanceTab";
+import MoreDrawer     from "@/components/MoreDrawer";
+import WalletSwitcher from "@/components/WalletSwitcher";
 import EditWalletModal from "@/components/EditWalletModal";
 import ShareWallet  from "@/components/ShareWallet";
 import QuickCommandBar from "@/components/QuickCommandBar";
@@ -117,7 +117,7 @@ export default function Home() {
   // ── UI State ──────────────────────────────────────────────────────────────
   const [mounted, setMounted]         = useState(false);
   const [isDarkMode, setIsDarkMode]   = useState(true);
-  const [activeTab, setActiveTab]       = useState("home");
+  const [activeTab, setActiveTab]       = useState(() => (typeof window !== 'undefined' ? sessionStorage.getItem('arta_last_tab') || 'home' : 'home'));
   const [financeSubTab, setFinanceSubTab] = useState("debts"); // "debts" | "recurring"
   const [recentMonths]                = useState(getRecentMonths);
   const [selectedMonth, setSelectedMonth] = useState(
@@ -133,6 +133,7 @@ export default function Home() {
     balance, transactions,
     addTransaction, deleteTransaction, updateTransaction,
     hasMore, loadMore, isLoading,
+    isOnline, isSyncing, pendingCount,
     refetch,
   } = useFinData(activeWallet?.id ?? null);
 
@@ -141,6 +142,7 @@ export default function Home() {
   const [aiKeywords, setAiKeywords]         = useState([]);
   const [isSmartLoading, setIsSmartLoading] = useState(false);
   const [isAdmin, setIsAdmin]                 = useState(false);
+  const [isMoreOpen, setIsMoreOpen]           = useState(false);
 
   // ── Filter State ──────────────────────────────────────────────────────────
   const [typeFilter, setTypeFilter]         = useState("all");
@@ -179,6 +181,21 @@ export default function Home() {
 
   // ── Effects ───────────────────────────────────────────────────────────────
   useEffect(() => { setMounted(true); }, []);
+
+  // Persist tab aktif ke sessionStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') sessionStorage.setItem('arta_last_tab', activeTab);
+  }, [activeTab]);
+
+  // Reset scroll ke atas setiap kali pindah tab
+  useEffect(() => {
+    // Cari semua element yang bisa scroll dan reset ke atas
+    window.scrollTo({ top: 0, behavior: "instant" });
+    // Reset scroll di dalam tab container juga
+    document.querySelectorAll(".overflow-y-auto").forEach(el => {
+      el.scrollTop = 0;
+    });
+  }, [activeTab]);
 
   // Dark mode: apply to html element
   useEffect(() => {
@@ -249,45 +266,60 @@ export default function Home() {
     fetchGoals();
   }, [activeTab]);
 
-  // ── Derived Data ─────────────────────────────────────────────────────────
-  const transactionsThisMonth = transactions.filter((t) =>
-    t.created_at?.startsWith(selectedMonth)
+  // ── Derived Data — useMemo agar tidak recalculate setiap render ─────────
+  const transactionsThisMonth = useMemo(() =>
+    transactions.filter(t => t.created_at?.startsWith(selectedMonth)),
+    [transactions, selectedMonth]
   );
 
-  const existingCategories = [...new Set(transactionsThisMonth.map((t) => t.category))];
-  const dynamicCategories  = ["Semua", ...existingCategories];
+  const existingCategories = useMemo(() =>
+    [...new Set(transactionsThisMonth.map(t => t.category))],
+    [transactionsThisMonth]
+  );
 
-  const filteredTransactions = transactionsThisMonth.filter((t) => {
-    const matchType = typeFilter === "all" ? true
-      : typeFilter === "income" ? t.type === "income"
-      : (t.type === "expense" || !t.type);
-    const matchCat    = categoryFilter === "Semua" ? true : t.category === categoryFilter;
-    const searchLow   = searchQuery.toLowerCase();
-    const matchSearch = searchQuery === "" ||
-      t.note.toLowerCase().includes(searchLow) ||
-      t.category.toLowerCase().includes(searchLow);
+  const dynamicCategories = useMemo(() =>
+    ["Semua", ...existingCategories],
+    [existingCategories]
+  );
 
-    let matchTime = true;
-    if (quickTimeFilter !== "month" && t.created_at) {
-      const trxDate = new Date(t.created_at);
-      const today   = new Date();
-      if (quickTimeFilter === "today") {
-        matchTime = trxDate.toDateString() === today.toDateString();
-      } else if (quickTimeFilter === "week") {
-        const pastWeek = new Date(today);
-        pastWeek.setDate(today.getDate() - 7);
-        matchTime = trxDate >= pastWeek && trxDate <= today;
+  const filteredTransactions = useMemo(() => {
+    return transactionsThisMonth.filter((t) => {
+      const matchType = typeFilter === "all" ? true
+        : typeFilter === "income" ? t.type === "income"
+        : (t.type === "expense" || !t.type);
+      const matchCat    = categoryFilter === "Semua" ? true : t.category === categoryFilter;
+      const searchLow   = searchQuery.toLowerCase();
+      const matchSearch = searchQuery === "" ||
+        t.note.toLowerCase().includes(searchLow) ||
+        t.category.toLowerCase().includes(searchLow);
+      let matchTime = true;
+      if (quickTimeFilter !== "month" && t.created_at) {
+        const trxDate = new Date(t.created_at);
+        const today   = new Date();
+        if (quickTimeFilter === "today") {
+          matchTime = trxDate.toDateString() === today.toDateString();
+        } else if (quickTimeFilter === "week") {
+          const pastWeek = new Date(today);
+          pastWeek.setDate(today.getDate() - 7);
+          matchTime = trxDate >= pastWeek && trxDate <= today;
+        }
       }
-    }
-    return matchType && matchCat && matchSearch && matchTime;
-  });
+      return matchType && matchCat && matchSearch && matchTime;
+    });
+  }, [transactionsThisMonth, typeFilter, categoryFilter, searchQuery, quickTimeFilter]);
 
-  const filteredIncome  = filteredTransactions.filter((t) => t.type === "income").reduce((a, c) => a + Number(c.amount), 0);
-  const filteredExpense = filteredTransactions.filter((t) => t.type === "expense" || !t.type).reduce((a, c) => a + Number(c.amount), 0);
+  const filteredIncome  = useMemo(() =>
+    filteredTransactions.filter(t => t.type === "income").reduce((a, c) => a + Number(c.amount), 0),
+    [filteredTransactions]
+  );
+  const filteredExpense = useMemo(() =>
+    filteredTransactions.filter(t => t.type === "expense" || !t.type).reduce((a, c) => a + Number(c.amount), 0),
+    [filteredTransactions]
+  );
 
   // ── Functions ─────────────────────────────────────────────────────────────
 
-  const exportToCSV = () => {
+  const exportToCSV = useCallback(() => {
     if (!transactions?.length) {
       showNotification("Tidak ada data transaksi untuk diekspor.", "error");
       return;
@@ -311,9 +343,9 @@ export default function Home() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-  };
+  }, [transactions]);
 
-  const handleCreateWallet = async (e) => {
+  const handleCreateWallet = useCallback(async (e) => {
     e.preventDefault();
     if (!newWalletName.trim()) return;
     try {
@@ -327,9 +359,9 @@ export default function Home() {
     } catch (err) {
       showNotification("Gagal membuat rekening: " + err.message, "error");
     }
-  };
+  }, [addWallet, newWalletName, showNotification]);
 
-  const handleSaveTrxEdit = async (e) => {
+  const handleSaveTrxEdit = useCallback(async (e) => {
     e.preventDefault();
     const d = editTrxModal.data;
     if (!d?.note || !d?.amount || !d?.category) return;
@@ -340,17 +372,18 @@ export default function Home() {
     } catch (err) {
       showNotification("Gagal mengubah: " + err.message, "error");
     }
-  };
+  }, [editTrxModal, updateTransaction, showNotification]);
 
   const handleSmartSubmit = async (command) => {
     if (!command.trim()) return;
     setIsSmartLoading(true);
     try {
       const cleanText      = command.toLowerCase().trim();
-      let type             = "expense";
+      let type             = "expense"; // Default = expense
       let textWithoutType  = cleanText;
-      if (cleanText.startsWith("in "))  { type = "income";  textWithoutType = cleanText.substring(3).trim(); }
-      if (cleanText.startsWith("out ")) { type = "expense"; textWithoutType = cleanText.substring(4).trim(); }
+      // Hanya "in" yang perlu prefix — semua lainnya otomatis expense
+      if (cleanText.startsWith("in ")) { type = "income"; textWithoutType = cleanText.substring(3).trim(); }
+      else if (cleanText.startsWith("out ")) { textWithoutType = cleanText.substring(4).trim(); } // opsional, tetap expense
 
       const regexNominal = /^(\d+(?:[.,]\d+)?(?:k|rb|ribu|m|jt|juta)?)\s+(.+)$/i;
       const matchNominal = textWithoutType.match(regexNominal);
@@ -437,9 +470,9 @@ export default function Home() {
     }
   };
 
-  const triggerDeleteGoal = (id, name) => {
+  const triggerDeleteGoal = useCallback((id, name) => {
     setGoalDeleteModal({ isOpen: true, goalId: id, goalName: name });
-  };
+  }, []);
 
   const executeDeleteGoal = async () => {
     if (goalDeleteModal.goalId) {
@@ -518,7 +551,6 @@ export default function Home() {
           {activeTab === "home" && (
             <HomeTab
               key="home"
-              isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode}
               activeWallet={activeWallet}
               balance={balance}
               filteredIncome={filteredIncome} filteredExpense={filteredExpense}
@@ -539,17 +571,41 @@ export default function Home() {
               hasMore={hasMore}
               loadMore={loadMore}
               isLoading={isLoading}
+              isOnline={isOnline}
+              pendingCount={pendingCount}
+              isSyncing={isSyncing}
+              wallets={wallets}
+              session={auth.session}
+              onSwitchWallet={(w) => { setActiveWallet(w); }}
             />
           )}
 
           {activeTab === "analytics" && (
-            <AnalyticsTab
+            <motion.div
               key="analytics"
-              filteredTransactions={filteredTransactions}
-              transactions={transactionsThisMonth}
-              selectedMonth={selectedMonth}
-              balance={balance}
-            />
+              initial={{ opacity: 0, x: 40 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 40 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 z-[90] bg-white dark:bg-black overflow-y-auto no-scrollbar"
+            >
+              <div className="w-full max-w-lg mx-auto">
+                <div className="flex items-center gap-3 pt-8 px-3 pb-0">
+                  <button
+                    onClick={() => setActiveTab('home')}
+                    className="p-2.5 bg-gray-50 dark:bg-gray-800/50 rounded-2xl text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-all active:scale-90"
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+                  </button>
+                </div>
+                <AnalyticsTab
+                  filteredTransactions={filteredTransactions}
+                  transactions={transactionsThisMonth}
+                  selectedMonth={selectedMonth}
+                  balance={balance}
+                />
+              </div>
+            </motion.div>
           )}
 
           {activeTab === "wallets" && (
@@ -574,47 +630,12 @@ export default function Home() {
           )}
 
           {activeTab === "finance" && (
-            <motion.div
+            <FinanceTab
               key="finance"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.15 }}
-              className="pt-8 px-0 h-[100dvh] w-full flex flex-col overflow-hidden"
-            >
-              {/* Sub-tab toggle */}
-              <div className="flex bg-gray-100 dark:bg-[#121827] p-1 rounded-[16px] mx-3 mb-0 border border-gray-200 dark:border-gray-800/60 shadow-inner flex-none">
-                {[
-                  { key: "debts",     label: "Debt & Receivable" },
-                  { key: "recurring", label: "Recurring" },
-                ].map(({ key, label }) => (
-                  <button
-                    key={key}
-                    onClick={() => setFinanceSubTab(key)}
-                    className={`flex-1 text-[9px] font-black uppercase tracking-widest py-2.5 rounded-xl transition-all duration-300 ${
-                      financeSubTab === key
-                        ? "bg-white dark:bg-blue-600 text-blue-600 dark:text-white shadow-sm"
-                        : "text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
-                    }`}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-              {/* Content */}
-              <div className="flex-1 overflow-hidden min-h-0">
-                {financeSubTab === "debts" && (
-                  <DebtsTab activeWallet={activeWallet} balance={balance} />
-                )}
-                {financeSubTab === "recurring" && (
-                  <RecurringTab activeWallet={activeWallet} onNotify={showNotification} />
-                )}
-              </div>
-            </motion.div>
-          )}
-
-          {activeTab === "assets" && (
-            <AssetsTab key="assets" activeWallet={activeWallet} />
+              activeWallet={activeWallet}
+              balance={balance}
+              onNotify={showNotification}
+            />
           )}
 
           {activeTab === "settings" && (
@@ -649,6 +670,25 @@ export default function Home() {
             />
           )}
         </AnimatePresence>
+
+        {/* ── More Drawer ── */}
+        <MoreDrawer
+          isOpen={isMoreOpen}
+          onClose={() => setIsMoreOpen(false)}
+          onNavigate={(tab) => {
+            if (tab === "adduser") {
+              setAddUserModal({ isOpen: true, username: "", password: "", isLoading: false });
+            } else {
+              setActiveTab(tab);
+            }
+            setIsMoreOpen(false);
+          }}
+          isAdmin={isAdmin}
+          isDarkMode={isDarkMode}
+          setIsDarkMode={setIsDarkMode}
+          exportToCSV={exportToCSV}
+          handleLogout={auth.handleLogout}
+        />
 
         {/* ── QuickCommandBar ── */}
         {activeTab === "home" && (
@@ -742,17 +782,18 @@ export default function Home() {
         <nav className="fixed bottom-0 left-0 right-0 z-[9999] bg-white/80 dark:bg-[#0a0f1c]/90 backdrop-blur-xl border-t border-gray-200 dark:border-gray-800 pb-safe">
           <div className="w-full max-w-lg mx-auto flex justify-center items-center px-4 py-3 gap-2">
             {[
-              { id: "home",      label: "Home",    Icon: HomeIcon },
-              { id: "analytics", label: "Stats",   Icon: BarChart3 },
-              { id: "finance",   label: "Finance", Icon: Landmark },
-              { id: "assets",    label: "Assets",  Icon: Package },
-              { id: "settings",  label: "More",    Icon: Settings },
+              { id: "home",    label: "Home",    Icon: HomeIcon },
+              { id: "finance", label: "Finance", Icon: Landmark },
+              { id: "more",    label: "More",    Icon: Settings },
             ].map(({ id, label, Icon }) => {
-              const isActive = activeTab === id;
+              const isActive = id === "more" ? isMoreOpen : activeTab === id;
+              const handleClick = id === "more"
+                ? () => setIsMoreOpen(true)
+                : () => setActiveTab(id);
               return (
                 <motion.button
                   key={id}
-                  onClick={() => setActiveTab(id)}
+                  onClick={handleClick}
                   whileTap={{ scale: 0.9 }}
                   animate={{ y: isActive ? -4 : 0 }}
                   transition={{ type: "spring", stiffness: 400, damping: 20 }}

@@ -1,16 +1,9 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { uploadPhoto, deletePhoto } from "@/lib/imageUtils";
-import { z } from "zod";
+import { useOfflineSync } from "@/hooks/useOfflineSync";
 
 const PAGE_SIZE = 10;
-
-const transactionSchema = z.object({
-  note:     z.string().min(2, "Catatan minimal 2 karakter").max(100),
-  amount:   z.number().positive("Nominal tidak boleh minus atau nol!"),
-  category: z.string().min(1, "Kategori tidak valid"),
-  type:     z.enum(["income", "expense"]),
-});
 
 export const useFinData = (walletId) => {
   const [transactions, setTransactions] = useState([]);
@@ -21,7 +14,16 @@ export const useFinData = (walletId) => {
   const [hasMore,      setHasMore]      = useState(false);
   const [page,         setPage]         = useState(0);
 
-  // ── Fetch dengan pagination ───────────────────────────────────────────────
+  const {
+    isOnline, isSyncing, pendingCount,
+    addToQueue, syncQueue, updateCache, getCached,
+  } = useOfflineSync(walletId, (count) => {
+    // Setelah sync berhasil, refresh data
+    fetchPage(0);
+    fetchBalance();
+  });
+
+  // ── Fetch transaksi dengan pagination ─────────────────────────────────────
   const fetchPage = useCallback(async (pageIndex = 0, append = false) => {
     if (!walletId) return;
     setIsLoading(true);
@@ -31,50 +33,78 @@ export const useFinData = (walletId) => {
 
       const { data, error } = await supabase
         .from("transactions")
-        .select("*")
+        .select("id, wallet_id, user_id, note, amount, category, type, created_at, receipt_url, debt_id")
         .eq("wallet_id", walletId)
         .order("created_at", { ascending: false })
         .range(from, to);
 
       if (error) throw error;
 
-      setHasMore((data?.length || 0) === PAGE_SIZE);
-      setTransactions(prev => append ? [...prev, ...(data || [])] : (data || []));
+      const result = data || [];
+      setHasMore(result.length === PAGE_SIZE);
+      setTransactions(prev => {
+        const merged = append ? [...prev, ...result] : result;
+        return merged;
+      });
       setPage(pageIndex);
+
+      // Update cache dengan data fresh
+      if (!append && result.length > 0) {
+        updateCache(result);
+      }
     } catch (err) {
       console.error("Gagal fetch transaksi:", err.message);
+      // Fallback ke cache jika offline
+      if (!navigator.onLine) {
+        const cached = getCached();
+        if (cached.length > 0 && !append) {
+          setTransactions(cached);
+          setHasMore(false);
+        }
+      }
     } finally {
       setIsLoading(false);
     }
-  }, [walletId]);
+  }, [walletId, updateCache, getCached]);
 
-  // ── Fetch saldo (semua waktu, tanpa pagination) ───────────────────────────
+  // ── Fetch saldo total (semua waktu) ────────────────────────────────────────
   const fetchBalance = useCallback(async () => {
     if (!walletId) return;
-    const { data } = await supabase
-      .from("transactions")
-      .select("amount, type")
-      .eq("wallet_id", walletId);
+    try {
+      const { data } = await supabase
+        .from("transactions")
+        .select("amount, type")
+        .eq("wallet_id", walletId);
 
-    if (!data) return;
-    let inc = 0, exp = 0;
-    data.forEach(t => {
-      if (t.type === "income") inc += Number(t.amount);
-      else exp += Number(t.amount);
-    });
-    setTotalIncome(inc);
-    setTotalExpense(exp);
-    setBalance(inc - exp);
+      if (!data) return;
+      let inc = 0, exp = 0;
+      data.forEach(t => {
+        if (t.type === "income") inc += Number(t.amount);
+        else exp += Number(t.amount);
+      });
+      setTotalIncome(inc);
+      setTotalExpense(exp);
+      setBalance(inc - exp);
+    } catch (err) {
+      console.error("Gagal fetch balance:", err.message);
+    }
   }, [walletId]);
 
-  // ── Initial load ──────────────────────────────────────────────────────────
+  // ── Initial load ───────────────────────────────────────────────────────────
   useEffect(() => {
     if (!walletId) return;
+
+    // Tampilkan cache dulu agar UI tidak kosong
+    const cached = getCached();
+    if (cached.length > 0) {
+      setTransactions(cached);
+    }
+
     fetchPage(0);
     fetchBalance();
-  }, [walletId, fetchPage, fetchBalance]);
+  }, [walletId]);
 
-  // ── Realtime subscription ─────────────────────────────────────────────────
+  // ── Realtime subscription ──────────────────────────────────────────────────
   useEffect(() => {
     if (!walletId) return;
 
@@ -94,7 +124,6 @@ export const useFinData = (walletId) => {
         } else if (payload.eventType === "DELETE") {
           setTransactions(prev => prev.filter(t => t.id !== payload.old.id));
         }
-        // Recalculate balance on any change
         fetchBalance();
       })
       .subscribe();
@@ -102,74 +131,94 @@ export const useFinData = (walletId) => {
     return () => { supabase.removeChannel(channel); };
   }, [walletId, fetchBalance]);
 
-  // ── Load more ─────────────────────────────────────────────────────────────
+  // ── Load more ──────────────────────────────────────────────────────────────
   const loadMore = useCallback(() => {
     fetchPage(page + 1, true);
   }, [page, fetchPage]);
 
-  // ── Add transaction ───────────────────────────────────────────────────────
-  const addTransaction = async (note, amount, category, trxType = "expense", receiptFile = null) => {
-    const validated = transactionSchema.parse({
-      note, amount: Number(amount), category, type: trxType,
-    });
-
+  // ── Add transaction ────────────────────────────────────────────────────────
+  const addTransaction = useCallback(async (note, amount, category, trxType = "expense", receiptFile = null) => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) throw new Error("Sesi login kedaluwarsa.");
 
-    // Insert dulu, dapat ID
+    const payload = {
+      user_id:   session.user.id,
+      wallet_id: walletId,
+      note:      note.trim(),
+      amount:    Number(amount),
+      category,
+      type:      trxType,
+    };
+
+    // Jika offline → masuk queue
+    if (!navigator.onLine) {
+      const pending = addToQueue(payload);
+      // Tambah ke state lokal sebagai optimistic update
+      const optimistic = { ...payload, id: pending.id, created_at: pending.createdAt, _pending: true };
+      setTransactions(prev => [optimistic, ...prev]);
+      return optimistic;
+    }
+
+    // Online → langsung ke DB
     const { data, error } = await supabase
       .from("transactions")
-      .insert([{
-        user_id:   session.user.id,
-        wallet_id: walletId,
-        note:      validated.note,
-        amount:    validated.amount,
-        category:  validated.category,
-        type:      validated.type,
-      }])
+      .insert([payload])
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      // Gagal padahal online → masuk queue juga
+      const pending = addToQueue(payload);
+      const optimistic = { ...payload, id: pending.id, created_at: pending.createdAt, _pending: true };
+      setTransactions(prev => [optimistic, ...prev]);
+      return optimistic;
+    }
 
     // Upload foto jika ada
     if (receiptFile && data) {
       try {
+        const { uploadPhoto: upload } = await import("@/lib/imageUtils");
         const path = `receipts/${session.user.id}/${data.id}.jpg`;
-        const url  = await uploadPhoto(receiptFile, path, supabase);
+        const url  = await upload(receiptFile, path, supabase);
         await supabase.from("transactions").update({ receipt_url: url }).eq("id", data.id);
         data.receipt_url = url;
       } catch (uploadErr) {
         console.error("Upload receipt gagal:", uploadErr.message);
-        // Transaksi tetap berhasil meski foto gagal
       }
     }
 
     fetchBalance();
     return data;
-  };
+  }, [walletId, addToQueue, fetchBalance]);
 
-  // ── Delete transaction ────────────────────────────────────────────────────
-  const deleteTransaction = async (id) => {
-    // Hapus foto di storage jika ada
+  // ── Delete transaction ─────────────────────────────────────────────────────
+  const deleteTransaction = useCallback(async (id) => {
     const trx = transactions.find(t => t.id === id);
-    if (trx?.receipt_url) {
+
+    // Hapus foto di storage jika ada
+    if (trx?.receipt_url && !trx._pending) {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         const path = `receipts/${session.user.id}/${id}.jpg`;
-        await deletePhoto(path, supabase).catch(() => {}); // ignore error
+        deletePhoto(path, supabase).catch(() => {});
       }
     }
 
-    const { error } = await supabase.from("transactions").delete().eq("id", id);
-    if (error) throw error;
+    // Jika pending item → hapus dari queue saja
+    if (trx?._pending) {
+      const queue = JSON.parse(localStorage.getItem("arta_pending_queue") || "[]");
+      localStorage.setItem("arta_pending_queue", JSON.stringify(queue.filter(q => q.id !== id)));
+    } else {
+      const { error } = await supabase.from("transactions").delete().eq("id", id);
+      if (error) throw error;
+    }
 
     setTransactions(prev => prev.filter(t => t.id !== id));
     fetchBalance();
-  };
+  }, [transactions, fetchBalance]);
 
-  // ── Update transaction ────────────────────────────────────────────────────
-  const updateTransaction = async (id, note, category, amount) => {
+  // ── Update transaction ─────────────────────────────────────────────────────
+  const updateTransaction = useCallback(async (id, note, category, amount) => {
     const { error } = await supabase
       .from("transactions")
       .update({ note, category, amount: Number(amount) })
@@ -180,14 +229,16 @@ export const useFinData = (walletId) => {
       prev.map(t => t.id === id ? { ...t, note, category, amount: Number(amount) } : t)
     );
     fetchBalance();
-  };
+  }, [fetchBalance]);
 
   return {
     balance, totalIncome, totalExpense,
     transactions,
     isLoading, hasMore,
+    isOnline, isSyncing, pendingCount,
     loadMore,
     addTransaction, deleteTransaction, updateTransaction,
+    syncQueue,
     refetch: () => { fetchPage(0); fetchBalance(); },
   };
 };

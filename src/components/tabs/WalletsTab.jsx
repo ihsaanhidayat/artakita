@@ -1,9 +1,11 @@
 "use client";
+import { memo, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowDownCircle, CreditCard, Edit3, Trash2, ArrowLeft } from "lucide-react";
 import { THEME_GRADIENTS } from "@/lib/utils";
+import { supabase } from "@/lib/supabaseClient";
 
-export default function WalletsTab({
+const WalletsTabComponent = memo(function WalletsTab({
   wallets, activeWallet, setActiveWallet, setActiveTab,
   session,
   onEditWallet, onShareWallet,
@@ -16,15 +18,67 @@ export default function WalletsTab({
   flexibleSavingsAmount, setFlexibleSavingsAmount,
   handleModifySavings, triggerDeleteGoal,
 }) {
+  // Fetch info shared per wallet: { wallet_id → { sharedWith, sharedBy } }
+  const [sharedInfo, setSharedInfo] = useState({});
+
+  useEffect(() => {
+    if (!wallets?.length || !session?.user?.id) return;
+
+    const fetchSharedInfo = async () => {
+      const info = {};
+      for (const wallet of wallets) {
+        const isOwner = session.user.id === wallet.user_id;
+        try {
+          if (isOwner) {
+            // Step 1: Cari user_id member dari wallet_members
+            const { data: memberData } = await supabase
+              .from("wallet_members")
+              .select("user_id")
+              .eq("wallet_id", wallet.id)
+              .neq("user_id", session.user.id)
+              .limit(1)
+              .single();
+
+            if (memberData?.user_id) {
+              // Step 2: Cari username dari profiles (cast uuid→text)
+              const { data: profileData } = await supabase
+                .from("profiles")
+                .select("username")
+                .eq("id", memberData.user_id) // Supabase auto-cast
+                .single();
+              const username = profileData?.username
+                || memberData.user_id.slice(0, 8);
+              info[wallet.id] = { type: "owner", sharedWith: username };
+            }
+          } else {
+            // Cari username pemilik wallet
+            const { data } = await supabase
+              .from("profiles")
+              .select("username")
+              .eq("id", wallet.user_id) // wallet.user_id bisa text atau uuid
+              .single();
+            const username = data?.username
+              || String(wallet.user_id).slice(0, 8);
+            info[wallet.id] = { type: "member", sharedBy: username };
+          }
+        } catch { /* tidak ada shared info */ }
+      }
+      setSharedInfo(info);
+    };
+
+    fetchSharedInfo();
+  }, [wallets, session?.user?.id]);
+
   return (
     <motion.div
       key="wallets"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.15 }}
-      className="pt-8 px-3 pb-32 h-[100dvh] overflow-y-auto no-scrollbar w-full flex flex-col"
+      initial={{ opacity: 0, x: 40 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: 40 }}
+      transition={{ duration: 0.2 }}
+      className="fixed inset-0 z-[90] bg-white dark:bg-black overflow-y-auto no-scrollbar"
     >
+      <div className="w-full max-w-lg mx-auto pt-8 px-3 pb-32 flex flex-col min-h-full">
       <div className="flex items-center gap-3 mb-6 flex-none">
         <button
           onClick={onBack}
@@ -245,6 +299,10 @@ export default function WalletsTab({
           </div>
         )}
       </div>
+      </div>
     </motion.div>
   );
-}
+
+});
+
+export default WalletsTabComponent;

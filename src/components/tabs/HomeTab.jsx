@@ -1,12 +1,15 @@
 "use client";
+import { memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Moon, Sun, ArrowUpCircle, ArrowDownCircle,
+  ArrowUpCircle, ArrowDownCircle,
   Coffee, ShoppingBag, Receipt, Layers,
-  Edit3, Trash2, Search, X
+  Edit3, Trash2, Search, X, Eye, Loader2
 } from "lucide-react";
+import PhotoViewer from "@/components/PhotoViewer";
 import { formatDateTime } from "@/lib/utils";
 import BudgetAlert from "@/components/BudgetAlert";
+import WalletSwitcher from "@/components/WalletSwitcher";
 
 // ── Icon helper ───────────────────────────────────────────────────────────────
 const getIcon = (category) => {
@@ -33,8 +36,7 @@ const TransactionSkeleton = () => (
 );
 
 // ── HomeTab ───────────────────────────────────────────────────────────────────
-export default function HomeTab({
-  isDarkMode, setIsDarkMode,
+const HomeTabComponent = memo(function HomeTab({
   activeWallet,
   balance,
   filteredIncome, filteredExpense,
@@ -52,7 +54,19 @@ export default function HomeTab({
   transactionsThisMonth,
   onEditTransaction,
   onDeleteTransaction,
+  hasMore,
+  loadMore,
+  isLoading,
+  isOnline,
+  pendingCount,
+  isSyncing,
+  wallets,
+  session,
+  onSwitchWallet,
 }) {
+  const [viewerUrl, setViewerUrl]   = React.useState(null);
+  const [viewerLabel, setViewerLabel] = React.useState("");
+
   return (
     <motion.div
       key="home"
@@ -95,6 +109,23 @@ export default function HomeTab({
           </div>
 
           <BudgetAlert budgets={allBudgets} transactions={transactionsThisMonth} />
+
+        {/* Offline / Sync strip */}
+        {(!isOnline || pendingCount > 0) && (
+          <div className={`flex items-center gap-2 px-3 py-2 rounded-xl text-[10px] font-bold mb-0 mt-1 ${
+            !isOnline
+              ? "bg-amber-500/10 border border-amber-500/20 text-amber-500"
+              : "bg-blue-500/10 border border-blue-500/20 text-blue-500"
+          }`}>
+            <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${!isOnline ? "bg-amber-500" : "bg-blue-500 animate-pulse"}`} />
+            {!isOnline
+              ? "Offline — transaksi akan disync saat online"
+              : isSyncing
+              ? `Menyinkronkan ${pendingCount} transaksi...`
+              : `${pendingCount} transaksi menunggu sinkronisasi`
+            }
+          </div>
+        )}
 
           <p className="text-[10px] sm:text-xs font-black text-blue-500/60 dark:text-blue-400/60 uppercase tracking-widest mb-3 sm:mb-4 border-t border-gray-100 dark:border-gray-800 pt-4 sm:pt-6">
             Sirkulasi Berjalan
@@ -296,13 +327,48 @@ export default function HomeTab({
                     >
                       <Trash2 size={12} />
                     </button>
+                    {/* Icon mata — hanya muncul jika ada foto */}
+                    {trx.receipt_url && (
+                      <button
+                        onClick={() => { setViewerUrl(trx.receipt_url); setViewerLabel(trx.note); }}
+                        className="p-1.5 text-gray-400 hover:text-violet-500 bg-gray-50 dark:bg-gray-800/50 rounded-lg transition-colors"
+                        title="Lihat nota"
+                      >
+                        <Eye size={12} />
+                      </button>
+                    )}
                   </div>
                 </div>
               </motion.div>
             ))
           )}
         </AnimatePresence>
+
+        {/* Load More */}
+        {hasMore && (
+          <div className="flex justify-center pt-2 pb-4">
+            <button
+              onClick={loadMore}
+              disabled={isLoading}
+              className="flex items-center gap-2 px-5 py-2.5 bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-800 text-gray-500 dark:text-gray-400 hover:text-blue-500 hover:border-blue-500/50 font-black text-[9px] uppercase tracking-widest rounded-2xl transition-all disabled:opacity-50"
+            >
+              {isLoading ? <Loader2 size={12} className="animate-spin" /> : null}
+              {isLoading ? "Memuat..." : "Muat Lebih"}
+            </button>
+          </div>
+        )}
       </div>
+
+      {/* Photo Viewer */}
+      <PhotoViewer
+        url={viewerUrl}
+        isOpen={!!viewerUrl}
+        onClose={() => setViewerUrl(null)}
+        label={viewerLabel}
+      />
     </motion.div>
   );
-}
+
+});
+
+export default HomeTabComponent;
