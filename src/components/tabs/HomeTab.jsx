@@ -1,5 +1,5 @@
 "use client";
-import { memo } from "react";
+import { memo, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowUpCircle, ArrowDownCircle,
