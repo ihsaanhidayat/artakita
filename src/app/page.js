@@ -1,92 +1,107 @@
 "use client";
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Home as HomeIcon, Landmark, Settings,
-  CreditCard, X
+  Home as HomeIcon, BarChart3,
+  Landmark, MoreHorizontal, X
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 
 // Hooks
-import { useAuth }     from "@/hooks/useAuth";
-import { useFinData }  from "@/hooks/useFinData";
-import { useWallets }  from "@/hooks/useWallets";
+import { useAuth } from "@/hooks/useAuth";
+import { useFinData } from "@/hooks/useFinData";
+import { useWallets } from "@/hooks/useWallets";
 
-// Shared utils
+// Utils
 import { parseFlexibleNumber, getRecentMonths } from "@/lib/utils";
+import { NAV } from "@/lib/constants";
 
 // Tab components
-import HomeTab      from "@/components/tabs/HomeTab";
-import AnalyticsTab from "@/components/tabs/AnalyticsTab";
-import WalletsTab   from "@/components/tabs/WalletsTab";
-import SettingsTab  from "@/components/tabs/SettingsTab";
+import HomeTab from "@/components/tabs/HomeTab";
+import StatsTab from "@/components/tabs/StatsTab";
+import FinanceTab from "@/components/tabs/FinanceTab";
+import MoreTab from "@/components/tabs/MoreTab";
 
 // Modal components
-import EditTrxModal      from "@/components/modals/EditTrxModal";
-import NewWalletModal    from "@/components/modals/NewWalletModal";
-import AddUserModal      from "@/components/modals/AddUserModal";
+import EditTrxModal from "@/components/modals/EditTrxModal";
+import NewWalletModal from "@/components/modals/NewWalletModal";
+import AddUserModal from "@/components/modals/AddUserModal";
 import ForcePasswordModal from "@/components/modals/ForcePasswordModal";
+import WalletModal from "@/components/modals/WalletModal";
 
 // Shared components
-import Toast        from "@/components/Toast";
-import DeleteModal  from "@/components/DeleteModal";
-import FinanceTab     from "@/components/tabs/FinanceTab";
-import MoreDrawer     from "@/components/MoreDrawer";
-import WalletSwitcher from "@/components/WalletSwitcher";
-import EditWalletModal from "@/components/EditWalletModal";
-import ShareWallet  from "@/components/ShareWallet";
+import Toast from "@/components/Toast";
+import DeleteModal from "@/components/DeleteModal";
 import QuickCommandBar from "@/components/QuickCommandBar";
 
+// ── Nav items — 4 tab statis ──────────────────────────────────────────────────
+const NAV_ITEMS = [
+  { id: "home", label: NAV.HOME, Icon: HomeIcon },
+  { id: "stats", label: NAV.STATS, Icon: BarChart3 },
+  { id: "finance", label: NAV.FINANCE, Icon: Landmark },
+  { id: "more", label: NAV.MORE, Icon: MoreHorizontal },
+];
+
 // ── Login Screen ──────────────────────────────────────────────────────────────
-function LoginScreen({ auth }) {
+const LoginScreen = memo(function LoginScreen({ auth }) {
   return (
     <main className="w-full max-w-lg mx-auto min-h-screen flex flex-col items-center justify-center p-6">
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: "easeOut" }}
         className="w-full bg-white dark:bg-[#121827] p-8 rounded-[32px] shadow-2xl border border-gray-100 dark:border-gray-800"
       >
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight mb-2">ArtaKita.</h1>
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Artaku Artamu</p>
+          <h1 className="text-4xl font-black text-gray-900 dark:text-white tracking-tight mb-1">
+            ArtaKita.
+          </h1>
+          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.3em]">
+            Artaku Artamu
+          </p>
         </div>
 
         <form onSubmit={auth.handleLogin} className="space-y-4">
           <div>
-            <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5 ml-1">
+            <label className="block text-[9px] font-black text-gray-500 uppercase tracking-widest mb-1.5 ml-1">
               Username / Email
             </label>
             <input
-              type="text" required
+              type="text" required autoFocus
               value={auth.authUsername}
-              onChange={(e) => auth.setAuthUsername(e.target.value)}
+              onChange={e => auth.setAuthUsername(e.target.value)}
               placeholder="Masukkan username atau email"
-              className="w-full bg-gray-50 dark:bg-black border border-gray-200 dark:border-gray-800 rounded-2xl py-3 px-4 text-sm font-bold text-gray-900 dark:text-white outline-none focus:border-blue-500 transition-all"
+              className="w-full bg-gray-50 dark:bg-black border border-gray-200 dark:border-gray-800 rounded-2xl py-3.5 px-4 text-sm font-bold text-gray-900 dark:text-white outline-none focus:border-blue-500 transition-all placeholder-gray-300 dark:placeholder-gray-700"
             />
           </div>
           <div>
-            <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5 ml-1">
-              Password
+            <label className="block text-[9px] font-black text-gray-500 uppercase tracking-widest mb-1.5 ml-1">
+              Kata Sandi
             </label>
             <input
               type="password" required
               value={auth.authPassword}
-              onChange={(e) => auth.setAuthPassword(e.target.value)}
+              onChange={e => auth.setAuthPassword(e.target.value)}
               placeholder="••••••••"
-              className="w-full bg-gray-50 dark:bg-black border border-gray-200 dark:border-gray-800 rounded-2xl py-3 px-4 text-sm font-bold text-gray-900 dark:text-white outline-none focus:border-blue-500 transition-all"
+              className="w-full bg-gray-50 dark:bg-black border border-gray-200 dark:border-gray-800 rounded-2xl py-3.5 px-4 text-sm font-bold text-gray-900 dark:text-white outline-none focus:border-blue-500 transition-all placeholder-gray-300 dark:placeholder-gray-700"
             />
           </div>
 
-          {auth.authError && (
-            <p className="text-xs font-bold text-red-500 text-center bg-red-500/10 py-2 rounded-xl">
-              {auth.authError}
-            </p>
-          )}
+          <AnimatePresence>
+            {auth.authError && (
+              <motion.p
+                initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                className="text-xs font-bold text-red-500 text-center bg-red-500/10 py-2.5 rounded-xl"
+              >
+                {auth.authError}
+              </motion.p>
+            )}
+          </AnimatePresence>
 
           <button
             type="submit"
             disabled={auth.isAuthLoading || auth.isLocked}
-            className="w-full py-3.5 mt-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-black uppercase tracking-widest rounded-2xl shadow-lg shadow-blue-500/30 transition-all disabled:opacity-50"
+            className="w-full py-3.5 mt-2 bg-blue-600 hover:bg-blue-500 active:scale-95 text-white text-xs font-black uppercase tracking-widest rounded-2xl shadow-lg shadow-blue-500/30 transition-all disabled:opacity-50"
           >
             {auth.isAuthLoading ? "Memproses..." : "Masuk"}
           </button>
@@ -94,19 +109,19 @@ function LoginScreen({ auth }) {
       </motion.div>
     </main>
   );
-}
+});
 
-// ── Loading wallet screen ─────────────────────────────────────────────────────
-function WalletLoader() {
+// ── Wallet Loader ─────────────────────────────────────────────────────────────
+const WalletLoader = memo(function WalletLoader() {
   return (
     <main className="w-full max-w-lg mx-auto min-h-screen flex items-center justify-center bg-white dark:bg-black">
       <div className="flex flex-col items-center gap-4">
-        <div className="w-10 h-10 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Memuat data...</p>
+        <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+        <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Memuat data...</p>
       </div>
     </main>
   );
-}
+});
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function Home() {
@@ -115,126 +130,120 @@ export default function Home() {
   const auth = useAuth();
 
   // ── UI State ──────────────────────────────────────────────────────────────
-  const [mounted, setMounted]         = useState(false);
-  const [isDarkMode, setIsDarkMode]   = useState(true);
-  const [activeTab, setActiveTab]       = useState(() => (typeof window !== 'undefined' ? sessionStorage.getItem('arta_last_tab') || 'home' : 'home'));
-  const [financeSubTab, setFinanceSubTab] = useState("debts"); // "debts" | "recurring"
-  const [recentMonths]                = useState(getRecentMonths);
-  const [selectedMonth, setSelectedMonth] = useState(
-    () => new Date().toISOString().slice(0, 7)
-  );
+  const [mounted, setMounted] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(true);
+  const [activeTab, setActiveTab] = useState(() => {
+    if (typeof window === "undefined") return "home";
+    const saved = sessionStorage.getItem("arta_last_tab");
+    // Finance sub-page tidak boleh jadi landing saat refresh
+    return saved && ["home", "stats", "finance", "more"].includes(saved) ? saved : "home";
+  });
 
-  // ── Wallet State ──────────────────────────────────────────────────────────
-  const { wallets, addWallet }        = useWallets();
+  // Finance sub-page state — dikelola di sini agar tap nav Finance bisa reset
+  const [financeSubPage, setFinanceSubPage] = useState(null); // null = rows, string = sub-page
+
+  // ── Wallet ────────────────────────────────────────────────────────────────
+  const { wallets, addWallet } = useWallets();
   const [activeWallet, setActiveWallet] = useState(null);
+  const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
 
-  // ── Financial Data (realtime) ─────────────────────────────────────────────
+  // ── Financial Data ────────────────────────────────────────────────────────
   const {
-    balance, transactions,
+    balance, transactions, allTransactions,
     addTransaction, deleteTransaction, updateTransaction,
     hasMore, loadMore, isLoading,
     isOnline, isSyncing, pendingCount,
-    refetch,
   } = useFinData(activeWallet?.id ?? null);
 
-  // ── AI Brain ──────────────────────────────────────────────────────────────
+  // ── AI & Role ─────────────────────────────────────────────────────────────
   const [userCategories, setUserCategories] = useState([]);
-  const [aiKeywords, setAiKeywords]         = useState([]);
+  const [aiKeywords, setAiKeywords] = useState([]);
   const [isSmartLoading, setIsSmartLoading] = useState(false);
-  const [isAdmin, setIsAdmin]                 = useState(false);
-  const [isMoreOpen, setIsMoreOpen]           = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
-  // ── Filter State ──────────────────────────────────────────────────────────
-  const [typeFilter, setTypeFilter]         = useState("all");
+  // ── Filter ────────────────────────────────────────────────────────────────
+  const [typeFilter, setTypeFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("Semua");
-  const [searchQuery, setSearchQuery]       = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [quickTimeFilter, setQuickTimeFilter] = useState("month");
-  const [allBudgets, setAllBudgets]         = useState([]);
+  const [dateRange, setDateRange] = useState({ from: "", to: "" });
+  const [selectedMonth, setSelectedMonth] = useState(() => new Date().toISOString().slice(0, 7));
+  const [recentMonths] = useState(getRecentMonths);
+  const [allBudgets, setAllBudgets] = useState([]);
 
-  // ── Goals State ───────────────────────────────────────────────────────────
-  const [goals, setGoals]                   = useState([]);
-  const [isNewGoalOpen, setIsNewGoalOpen]   = useState(false);
-  const [newGoalData, setNewGoalData]       = useState({ name: "", target: "", current: "" });
+  // ── Goals ─────────────────────────────────────────────────────────────────
+  const [goals, setGoals] = useState([]);
+  const [isNewGoalOpen, setIsNewGoalOpen] = useState(false);
+  const [newGoalData, setNewGoalData] = useState({ name: "", target: "", current: "" });
   const [goalDeleteModal, setGoalDeleteModal] = useState({ isOpen: false, goalId: null, goalName: "" });
   const [activeGoalInput, setActiveGoalInput] = useState(null);
-  const [flexibleSavingsAmount, setFlexibleSavingsAmount] = useState("");
+  const [flexibleSavingsAmt, setFlexibleSavingsAmt] = useState("");
 
-  // ── Modal State ───────────────────────────────────────────────────────────
-  const [editTrxModal, setEditTrxModal]     = useState({ isOpen: false, data: null });
-  const [newWalletName, setNewWalletName]   = useState("");
+  // ── Modals ────────────────────────────────────────────────────────────────
+  const [editTrxModal, setEditTrxModal] = useState({ isOpen: false, data: null });
+  const [newWalletName, setNewWalletName] = useState("");
   const [isNewWalletOpen, setIsNewWalletOpen] = useState(false);
-  const [isEditWalletOpen, setIsEditWalletOpen] = useState(false);
-  const [walletToEdit, setWalletToEdit]     = useState(null);
-  const [isShareWalletOpen, setIsShareWalletOpen] = useState(false);
-  const [walletToShare, setWalletToShare]   = useState(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [itemToDelete, setItemToDelete]     = useState(null);
-  const [addUserModal, setAddUserModal]     = useState({ isOpen: false, username: "", password: "", isLoading: false });
+  const [itemToDelete, setItemToDelete] = useState(null);
+  const [goalDeleteOpen, setGoalDeleteOpen] = useState(false);
+  const [addUserModal, setAddUserModal] = useState({ isOpen: false, username: "", password: "", isLoading: false });
 
   // ── Notification ──────────────────────────────────────────────────────────
-  const [notification, setNotification]     = useState({ isOpen: false, message: "", type: "error" });
+  const [notification, setNotification] = useState({ isOpen: false, message: "", type: "error" });
 
   const showNotification = useCallback((message, type = "error") => {
     setNotification({ isOpen: true, message, type });
-    setTimeout(() => setNotification({ isOpen: false, message: "", type: "error" }), 4000);
+    setTimeout(() => setNotification(p => ({ ...p, isOpen: false })), 4000);
   }, []);
 
   // ── Effects ───────────────────────────────────────────────────────────────
   useEffect(() => { setMounted(true); }, []);
 
-  // Persist tab aktif ke sessionStorage
+  // Persist tab
   useEffect(() => {
-    if (typeof window !== 'undefined') sessionStorage.setItem('arta_last_tab', activeTab);
+    if (typeof window !== "undefined") sessionStorage.setItem("arta_last_tab", activeTab);
   }, [activeTab]);
 
-  // Reset scroll ke atas setiap kali pindah tab
+  // Reset scroll saat pindah tab
   useEffect(() => {
-    // Cari semua element yang bisa scroll dan reset ke atas
     window.scrollTo({ top: 0, behavior: "instant" });
-    // Reset scroll di dalam tab container juga
-    document.querySelectorAll(".overflow-y-auto").forEach(el => {
-      el.scrollTop = 0;
-    });
+    document.querySelectorAll(".overflow-y-auto").forEach(el => { el.scrollTop = 0; });
+    // Reset finance sub-page saat tap nav finance lagi
   }, [activeTab]);
 
-  // Dark mode: apply to html element
+  // Dark mode
   useEffect(() => {
     document.documentElement.classList.toggle("dark", isDarkMode);
   }, [isDarkMode]);
 
-  // AI Brain + role fetch
+  // AI brain + role
   useEffect(() => {
     if (!auth.session?.user?.id) return;
-    const userId = auth.session.user.id;
+    const uid = auth.session.user.id;
 
-    const fetchAiBrain = async () => {
-      const { data: cats } = await supabase.from("user_categories").select("*").order("name", { ascending: true });
-      const { data: keys } = await supabase.from("ai_keywords").select("*").eq("user_id", userId);
+    const fetchAll = async () => {
+      const [{ data: cats }, { data: keys }, { data: profile }] = await Promise.all([
+        supabase.from("user_categories").select("*").order("name", { ascending: true }),
+        supabase.from("ai_keywords").select("*").eq("user_id", uid),
+        supabase.from("profiles").select("role").eq("id", uid).single(),
+      ]);
       if (cats) setUserCategories(cats);
       if (keys) setAiKeywords(keys);
+      if (profile?.role === "admin") setIsAdmin(true);
     };
-
-    const fetchRole = async () => {
-      const { data } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", userId)
-        .single();
-      if (data?.role === "admin") setIsAdmin(true);
-    };
-
-    fetchAiBrain();
-    fetchRole();
+    fetchAll();
   }, [auth.session]);
 
-  // Active wallet — baca localStorage, tidak tunggu wallets dari DB
+  // Active wallet dari localStorage
   useEffect(() => {
     if (typeof window === "undefined") return;
     const saved = localStorage.getItem("arta_active_wallet");
-    if (saved) setActiveWallet(JSON.parse(saved));
+    if (saved) {
+      try { setActiveWallet(JSON.parse(saved)); } catch { }
+    }
   }, []);
 
-  // Fallback: jika localStorage kosong, pakai wallet pertama
+  // Fallback wallet pertama
   useEffect(() => {
     if (activeWallet || wallets.length === 0) return;
     const first = { id: wallets[0].id, name: wallets[0].name };
@@ -242,34 +251,35 @@ export default function Home() {
     localStorage.setItem("arta_active_wallet", JSON.stringify(first));
   }, [wallets, activeWallet]);
 
-  // Persist wallet changes
+  // Persist active wallet
   useEffect(() => {
     if (!activeWallet) return;
     localStorage.setItem("arta_active_wallet", JSON.stringify(activeWallet));
   }, [activeWallet]);
 
-  // Fetch budgets
+  // Budgets
   useEffect(() => {
-    const fetchBudgets = async () => {
+    const fetch = async () => {
       const { data } = await supabase.from("budgets").select("*").eq("month_year", selectedMonth);
       if (data) setAllBudgets(data);
     };
-    fetchBudgets();
+    fetch();
   }, [selectedMonth]);
 
-  // Fetch goals
+  // Goals
   useEffect(() => {
-    const fetchGoals = async () => {
+    if (activeTab !== "more") return;
+    const fetch = async () => {
       const { data } = await supabase.from("savings_goals").select("*").order("created_at", { ascending: true });
       if (data) setGoals(data);
     };
-    fetchGoals();
+    fetch();
   }, [activeTab]);
 
-  // ── Derived Data — useMemo agar tidak recalculate setiap render ─────────
+  // ── Derived Data ──────────────────────────────────────────────────────────
   const transactionsThisMonth = useMemo(() =>
-    transactions.filter(t => t.created_at?.startsWith(selectedMonth)),
-    [transactions, selectedMonth]
+    (allTransactions || []).filter(t => t.created_at?.startsWith(selectedMonth)),
+    [allTransactions, selectedMonth]
   );
 
   const existingCategories = useMemo(() =>
@@ -283,20 +293,34 @@ export default function Home() {
   );
 
   const filteredTransactions = useMemo(() => {
-    return transactionsThisMonth.filter((t) => {
+    return transactionsThisMonth.filter(t => {
+      // Tipe
       const matchType = typeFilter === "all" ? true
         : typeFilter === "income" ? t.type === "income"
-        : (t.type === "expense" || !t.type);
-      const matchCat    = categoryFilter === "Semua" ? true : t.category === categoryFilter;
-      const searchLow   = searchQuery.toLowerCase();
-      const matchSearch = searchQuery === "" ||
-        t.note.toLowerCase().includes(searchLow) ||
-        t.category.toLowerCase().includes(searchLow);
+          : (t.type === "expense" || !t.type);
+
+      // Kategori
+      const matchCat = categoryFilter === "Semua" ? true : t.category === categoryFilter;
+
+      // Search
+      const sl = searchQuery.toLowerCase();
+      const matchSearch = !searchQuery ||
+        t.note.toLowerCase().includes(sl) ||
+        t.category.toLowerCase().includes(sl);
+
+      // Waktu
       let matchTime = true;
-      if (quickTimeFilter !== "month" && t.created_at) {
+      if (t.created_at) {
         const trxDate = new Date(t.created_at);
-        const today   = new Date();
-        if (quickTimeFilter === "today") {
+        const today = new Date();
+
+        if (dateRange.from && dateRange.to) {
+          // Custom date range override quick filter
+          const from = new Date(dateRange.from);
+          const to = new Date(dateRange.to);
+          to.setHours(23, 59, 59, 999);
+          matchTime = trxDate >= from && trxDate <= to;
+        } else if (quickTimeFilter === "today") {
           matchTime = trxDate.toDateString() === today.toDateString();
         } else if (quickTimeFilter === "week") {
           const pastWeek = new Date(today);
@@ -304,11 +328,12 @@ export default function Home() {
           matchTime = trxDate >= pastWeek && trxDate <= today;
         }
       }
+
       return matchType && matchCat && matchSearch && matchTime;
     });
-  }, [transactionsThisMonth, typeFilter, categoryFilter, searchQuery, quickTimeFilter]);
+  }, [transactionsThisMonth, typeFilter, categoryFilter, searchQuery, quickTimeFilter, dateRange]);
 
-  const filteredIncome  = useMemo(() =>
+  const filteredIncome = useMemo(() =>
     filteredTransactions.filter(t => t.type === "income").reduce((a, c) => a + Number(c.amount), 0),
     [filteredTransactions]
   );
@@ -317,35 +342,21 @@ export default function Home() {
     [filteredTransactions]
   );
 
-  // ── Functions ─────────────────────────────────────────────────────────────
-
-  const exportToCSV = useCallback(() => {
-    if (!transactions?.length) {
-      showNotification("Tidak ada data transaksi untuk diekspor.", "error");
-      return;
+  // ── Handlers ─────────────────────────────────────────────────────────────
+  const handleSaveTrxEdit = useCallback(async e => {
+    e.preventDefault();
+    const d = editTrxModal.data;
+    if (!d?.note || !d?.amount || !d?.category) return;
+    try {
+      await updateTransaction(d.id, d.note, d.category, d.amount);
+      setEditTrxModal(p => ({ ...p, isOpen: false }));
+      showNotification("Transaksi berhasil diubah!", "success");
+    } catch (err) {
+      showNotification("Gagal mengubah: " + err.message, "error");
     }
-    const headers = ["Tanggal", "Waktu", "Catatan", "Kategori", "Jenis", "Nominal (Rp)"];
-    const rows = transactions.map((trx) => {
-      const d       = new Date(trx.created_at);
-      const tanggal = d.toLocaleDateString("id-ID", { year: "numeric", month: "2-digit", day: "2-digit" });
-      const waktu   = d.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
-      const catatan = `"${trx.note.replace(/"/g, '""')}"`;
-      const jenis   = trx.type === "income" ? "Pemasukan" : "Pengeluaran";
-      return [tanggal, waktu, catatan, trx.category, jenis, trx.amount];
-    });
-    const csv  = "\uFEFF" + [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url  = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `Laporan_ArtaKita_${new Date().toLocaleDateString("id-ID").replace(/\//g, "-")}.csv`);
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  }, [transactions]);
+  }, [editTrxModal, updateTransaction, showNotification]);
 
-  const handleCreateWallet = useCallback(async (e) => {
+  const handleCreateWallet = useCallback(async e => {
     e.preventDefault();
     if (!newWalletName.trim()) return;
     try {
@@ -354,137 +365,105 @@ export default function Home() {
         setIsNewWalletOpen(false);
         setNewWalletName("");
         setActiveWallet({ id: result.id, name: result.name });
-        setActiveTab("home");
       }
     } catch (err) {
       showNotification("Gagal membuat rekening: " + err.message, "error");
     }
   }, [addWallet, newWalletName, showNotification]);
 
-  const handleSaveTrxEdit = useCallback(async (e) => {
-    e.preventDefault();
-    const d = editTrxModal.data;
-    if (!d?.note || !d?.amount || !d?.category) return;
-    try {
-      await updateTransaction(d.id, d.note, d.category, d.amount);
-      setEditTrxModal((prev) => ({ ...prev, isOpen: false }));
-      showNotification("Transaksi berhasil diubah!", "success");
-    } catch (err) {
-      showNotification("Gagal mengubah: " + err.message, "error");
-    }
-  }, [editTrxModal, updateTransaction, showNotification]);
-
-  const handleSmartSubmit = async (command) => {
+  const handleSmartSubmit = useCallback(async command => {
     if (!command.trim()) return;
     setIsSmartLoading(true);
     try {
-      const cleanText      = command.toLowerCase().trim();
-      let type             = "expense"; // Default = expense
-      let textWithoutType  = cleanText;
-      // Hanya "in" yang perlu prefix — semua lainnya otomatis expense
-      if (cleanText.startsWith("in ")) { type = "income"; textWithoutType = cleanText.substring(3).trim(); }
-      else if (cleanText.startsWith("out ")) { textWithoutType = cleanText.substring(4).trim(); } // opsional, tetap expense
+      const clean = command.toLowerCase().trim();
+      let type = "expense";
+      let text = clean;
 
-      const regexNominal = /^(\d+(?:[.,]\d+)?(?:k|rb|ribu|m|jt|juta)?)\s+(.+)$/i;
-      const matchNominal = textWithoutType.match(regexNominal);
-      if (!matchNominal) {
-        showNotification("Format salah! Gunakan: [in/out] [angka] [catatan]", "error");
-        return;
-      }
+      if (clean.startsWith("in ")) { type = "income"; text = clean.slice(3).trim(); }
+      else if (clean.startsWith("out ")) { text = clean.slice(4).trim(); }
 
-      const amount       = parseFlexibleNumber(matchNominal[1]);
-      let rawNote        = matchNominal[2].trim();
-      let categoryName   = "Lainnya";
-      let finalNote      = rawNote;
+      const match = text.match(/^([\d.,]+(?:k|rb|ribu|m|jt|juta)?)\s+(.+)$/i);
+      if (!match) { showNotification("Format salah! Cth: 50k makan siang", "error"); return; }
 
+      const amount = parseFlexibleNumber(match[1]);
+      let rawNote = match[2].trim();
+      let category = "Lainnya";
+      let finalNote = rawNote;
+
+      // Kategori manual: "50k makan pos Makanan"
       if (rawNote.includes(" pos ")) {
-        const parts          = rawNote.split(" pos ");
-        finalNote            = parts[0].trim();
-        const targetCategory = parts[1].trim();
-        if (targetCategory && finalNote) {
-          categoryName      = targetCategory.charAt(0).toUpperCase() + targetCategory.slice(1);
-          const coreKeyword = finalNote.replace(/(beli|bayar|untuk)\s*/g, "").trim();
-          setTimeout(async () => {
-            try {
-              let { data: catData } = await supabase.from("user_categories").select("id").eq("name", categoryName).single();
-              if (!catData) {
-                const { data: newCat } = await supabase.from("user_categories").insert([{ name: categoryName }]).select("id").single();
-                catData = newCat;
-              }
-              if (catData) {
-                await supabase.from("ai_keywords").insert([{ category_id: catData.id, keyword: coreKeyword }]);
-              }
-            } catch { /* kata kunci sudah ada */ }
-          }, 500);
-        }
+        const parts = rawNote.split(" pos ");
+        finalNote = parts[0].trim();
+        const targetCat = parts[1].trim();
+        category = targetCat.charAt(0).toUpperCase() + targetCat.slice(1);
+        const coreKw = finalNote.replace(/(beli|bayar|untuk)\s*/g, "").trim();
+        // Simpan keyword di background
+        setTimeout(async () => {
+          try {
+            let { data: catData } = await supabase.from("user_categories").select("id").eq("name", category).single();
+            if (!catData) {
+              const { data: newCat } = await supabase.from("user_categories").insert([{ name: category }]).select("id").single();
+              catData = newCat;
+            }
+            if (catData) await supabase.from("ai_keywords").insert([{ category_id: catData.id, keyword: coreKw }]);
+          } catch { }
+        }, 500);
       } else {
+        // AI auto-classify
         const coreWords = rawNote.replace(/(beli|bayar|untuk)\s*/g, "").trim().split(" ");
-        const matchKey  = aiKeywords.find((k) => coreWords.includes(k.keyword));
-        if (matchKey) {
-          const matchCat = userCategories.find((c) => c.id === matchKey.category_id);
-          if (matchCat) categoryName = matchCat.name;
+        const matched = aiKeywords.find(k => coreWords.includes(k.keyword));
+        if (matched) {
+          const cat = userCategories.find(c => c.id === matched.category_id);
+          if (cat) category = cat.name;
         }
       }
 
       finalNote = finalNote.charAt(0).toUpperCase() + finalNote.slice(1);
-      await addTransaction(finalNote, amount, categoryName, type);
+      await addTransaction(finalNote, amount, category, type);
       showNotification("Transaksi berhasil dicatat! ✨", "success");
-    } catch (error) {
-      showNotification("Gagal: " + error.message, "error");
+    } catch (err) {
+      showNotification("Gagal: " + err.message, "error");
     } finally {
       setIsSmartLoading(false);
     }
-  };
+  }, [aiKeywords, userCategories, addTransaction, showNotification]);
 
-  const handleAddGoal = async (e) => {
+  const handleAddGoal = useCallback(async e => {
     e.preventDefault();
     if (!newGoalData.name.trim() || !newGoalData.target) return;
-    const parsedTarget  = parseFlexibleNumber(newGoalData.target);
-    const parsedCurrent = parseFlexibleNumber(newGoalData.current);
     const { data, error } = await supabase
       .from("savings_goals")
-      .insert([{ name: newGoalData.name, target_amount: parsedTarget, current_amount: parsedCurrent }])
+      .insert([{
+        name: newGoalData.name,
+        target_amount: parseFlexibleNumber(newGoalData.target),
+        current_amount: parseFlexibleNumber(newGoalData.current),
+      }])
       .select();
     if (!error && data) {
-      setGoals((prev) => [...prev, data[0]]);
+      setGoals(p => [...p, data[0]]);
       setIsNewGoalOpen(false);
       setNewGoalData({ name: "", target: "", current: "" });
     }
-  };
+  }, [newGoalData]);
 
-  const handleModifySavings = async (id, currentAmt, mode) => {
+  const handleModifySavings = useCallback(async (id, currentAmt, mode) => {
     let nextAmt = 0;
-    if (mode === "reset") {
-      nextAmt = 0;
-    } else {
-      const parsed = parseFlexibleNumber(flexibleSavingsAmount);
-      if (parsed <= 0) { showNotification("Masukkan nominal yang valid (Contoh: 10k, 500k, 1jt)", "error"); return; }
-      nextAmt = mode === "add" ? Number(currentAmt) + parsed : Number(currentAmt) - parsed;
-      if (nextAmt < 0) nextAmt = 0;
+    if (mode !== "reset") {
+      const parsed = parseFlexibleNumber(flexibleSavingsAmt);
+      if (parsed <= 0) { showNotification("Masukkan nominal yang valid", "error"); return; }
+      nextAmt = mode === "add" ? Number(currentAmt) + parsed : Math.max(0, Number(currentAmt) - parsed);
     }
     const { error } = await supabase.from("savings_goals").update({ current_amount: nextAmt }).eq("id", id);
     if (!error) {
-      setGoals((prev) => prev.map((g) => (g.id === id ? { ...g, current_amount: nextAmt } : g)));
-      setFlexibleSavingsAmount("");
+      setGoals(p => p.map(g => g.id === id ? { ...g, current_amount: nextAmt } : g));
+      setFlexibleSavingsAmt("");
       setActiveGoalInput(null);
     }
-  };
+  }, [flexibleSavingsAmt, showNotification]);
 
-  const triggerDeleteGoal = useCallback((id, name) => {
-    setGoalDeleteModal({ isOpen: true, goalId: id, goalName: name });
-  }, []);
-
-  const executeDeleteGoal = async () => {
-    if (goalDeleteModal.goalId) {
-      await supabase.from("savings_goals").delete().eq("id", goalDeleteModal.goalId);
-      setGoals((prev) => prev.filter((g) => g.id !== goalDeleteModal.goalId));
-    }
-    setGoalDeleteModal({ isOpen: false, goalId: null, goalName: "" });
-  };
-
-  const handleCreateNewUser = async (e) => {
+  const handleCreateNewUser = useCallback(async e => {
     e.preventDefault();
-    setAddUserModal((prev) => ({ ...prev, isLoading: true }));
+    setAddUserModal(p => ({ ...p, isLoading: true }));
     try {
       const res = await fetch("/api/admin/add-user", {
         method: "POST",
@@ -493,51 +472,53 @@ export default function Home() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      showNotification(`Akses untuk ${addUserModal.username} berhasil dibuat!`, "success");
+      showNotification(`Akses untuk @${addUserModal.username} berhasil dibuat!`, "success");
       setAddUserModal({ isOpen: false, username: "", password: "", isLoading: false });
     } catch (err) {
       showNotification("Gagal: " + err.message, "error");
-      setAddUserModal((prev) => ({ ...prev, isLoading: false }));
+      setAddUserModal(p => ({ ...p, isLoading: false }));
     }
-  };
+  }, [addUserModal, showNotification]);
 
-  // ── Render ─────────────────────────────────────────────────────────────────
+  // Nav Finance tap → reset ke rows
+  const handleFinanceTabClick = useCallback(() => {
+    if (activeTab === "finance") {
+      setFinanceSubPage(null); // kembali ke 4 rows
+    } else {
+      setActiveTab("finance");
+      setFinanceSubPage(null);
+    }
+  }, [activeTab]);
+
+  // ── App class ─────────────────────────────────────────────────────────────
   const appClass = `min-h-screen transition-colors duration-300 ${isDarkMode ? "dark bg-[#0a0f1c]" : "bg-gray-50"}`;
 
-  if (!auth.session) {
-    return (
-      <div className={appClass}>
-        <LoginScreen auth={auth} />
-      </div>
-    );
-  }
-
-  if (!activeWallet) {
-    return (
-      <div className={appClass}>
-        <WalletLoader />
-      </div>
-    );
-  }
+  // ── Render guards ─────────────────────────────────────────────────────────
+  if (!auth.session) return <div className={appClass}><LoginScreen auth={auth} /></div>;
+  if (!activeWallet) return <div className={appClass}><WalletLoader /></div>;
 
   return (
     <div className={appClass}>
       <main className="w-full max-w-lg mx-auto relative min-h-screen overflow-x-hidden bg-white dark:bg-black">
 
         {/* ── Toast ── */}
-        <Toast isOpen={notification.isOpen} message={notification.message} type={notification.type} />
+        <Toast
+          isOpen={notification.isOpen}
+          message={notification.message}
+          type={notification.type}
+        />
 
-        {/* ── Force password modal ── */}
+        {/* ── Force Password Modal ── */}
         <ForcePasswordModal
           isOpen={auth.forcePasswordModal.isOpen}
           newPassword={auth.forcePasswordModal.newPassword}
-          setNewPassword={(val) => auth.setForcePasswordModal((p) => ({ ...p, newPassword: val }))}
+          setNewPassword={val => auth.setForcePasswordModal(p => ({ ...p, newPassword: val }))}
           onSubmit={auth.handleForceChangePassword}
           isLoading={auth.isAuthLoading}
           error={auth.authError}
         />
 
-        {/* ── Add user modal ── */}
+        {/* ── Add User Modal ── */}
         <AddUserModal
           isOpen={addUserModal.isOpen}
           data={addUserModal}
@@ -548,19 +529,23 @@ export default function Home() {
 
         {/* ── Tab content ── */}
         <AnimatePresence mode="wait" initial={false}>
+
           {activeTab === "home" && (
             <HomeTab
               key="home"
               isDarkMode={isDarkMode}
               setIsDarkMode={setIsDarkMode}
               activeWallet={activeWallet}
+              onOpenWalletModal={() => setIsWalletModalOpen(true)}
               balance={balance}
-              filteredIncome={filteredIncome} filteredExpense={filteredExpense}
+              filteredIncome={filteredIncome}
+              filteredExpense={filteredExpense}
               typeFilter={typeFilter} setTypeFilter={setTypeFilter}
               searchQuery={searchQuery} setSearchQuery={setSearchQuery}
               categoryFilter={categoryFilter} setCategoryFilter={setCategoryFilter}
               dynamicCategories={dynamicCategories}
               quickTimeFilter={quickTimeFilter} setQuickTimeFilter={setQuickTimeFilter}
+              dateRange={dateRange} setDateRange={setDateRange}
               selectedMonth={selectedMonth} setSelectedMonth={setSelectedMonth}
               recentMonths={recentMonths}
               filteredTransactions={filteredTransactions}
@@ -568,66 +553,24 @@ export default function Home() {
               mounted={mounted}
               allBudgets={allBudgets}
               transactionsThisMonth={transactionsThisMonth}
-              onEditTransaction={(trx) => setEditTrxModal({ isOpen: true, data: { ...trx } })}
-              onDeleteTransaction={(trx) => { setItemToDelete(trx); setIsDeleteModalOpen(true); }}
               hasMore={hasMore}
               loadMore={loadMore}
               isLoading={isLoading}
               isOnline={isOnline}
               pendingCount={pendingCount}
               isSyncing={isSyncing}
-              wallets={wallets}
-              session={auth.session}
-              onSwitchWallet={(w) => { setActiveWallet(w); }}
+              onEditTransaction={trx => setEditTrxModal({ isOpen: true, data: { ...trx } })}
+              onDeleteTransaction={trx => { setItemToDelete(trx); setIsDeleteModalOpen(true); }}
             />
           )}
 
-          {activeTab === "analytics" && (
-            <motion.div
-              key="analytics"
-              initial={{ opacity: 0, x: 40 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 40 }}
-              transition={{ duration: 0.2 }}
-              className="fixed inset-0 z-[90] bg-white dark:bg-black overflow-y-auto no-scrollbar"
-            >
-              <div className="w-full max-w-lg mx-auto">
-                <div className="flex items-center gap-3 pt-8 px-3 pb-0">
-                  <button
-                    onClick={() => setActiveTab('home')}
-                    className="p-2.5 bg-gray-50 dark:bg-gray-800/50 rounded-2xl text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-all active:scale-90"
-                  >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
-                  </button>
-                </div>
-                <AnalyticsTab
-                  filteredTransactions={filteredTransactions}
-                  transactions={transactionsThisMonth}
-                  selectedMonth={selectedMonth}
-                  balance={balance}
-                />
-              </div>
-            </motion.div>
-          )}
-
-          {activeTab === "wallets" && (
-            <WalletsTab
-              key="wallets"
-              wallets={wallets} activeWallet={activeWallet}
-              setActiveWallet={setActiveWallet} setActiveTab={setActiveTab}
-              session={auth.session}
-              onBack={() => setActiveTab("settings")}
-              onEditWallet={(w) => { setWalletToEdit(w); setIsEditWalletOpen(true); }}
-              onShareWallet={(w) => { setWalletToShare(w); setIsShareWalletOpen(true); }}
-              onNewWallet={() => setIsNewWalletOpen(true)}
-              goals={goals}
-              isNewGoalOpen={isNewGoalOpen} setIsNewGoalOpen={setIsNewGoalOpen}
-              newGoalData={newGoalData} setNewGoalData={setNewGoalData}
-              handleAddGoal={handleAddGoal}
-              activeGoalInput={activeGoalInput} setActiveGoalInput={setActiveGoalInput}
-              flexibleSavingsAmount={flexibleSavingsAmount} setFlexibleSavingsAmount={setFlexibleSavingsAmount}
-              handleModifySavings={handleModifySavings}
-              triggerDeleteGoal={triggerDeleteGoal}
+          {activeTab === "stats" && (
+            <StatsTab
+              key="stats"
+              filteredTransactions={transactionsThisMonth}
+              transactions={transactionsThisMonth}
+              selectedMonth={selectedMonth}
+              balance={balance}
             />
           )}
 
@@ -636,61 +579,38 @@ export default function Home() {
               key="finance"
               activeWallet={activeWallet}
               balance={balance}
+              subPage={financeSubPage}
+              setSubPage={setFinanceSubPage}
               onNotify={showNotification}
-            />
-          )}
-
-          {activeTab === "settings" && (
-            <SettingsTab
-              key="settings"
-              exportToCSV={exportToCSV}
-              handleLogout={auth.handleLogout}
-              isAdmin={isAdmin}
-              onNotify={showNotification}
-              onManageWallets={() => setActiveTab("wallets")}
-            />
-          )}
-
-          {activeTab === "wallets" && (
-            <WalletsTab
-              key="wallets"
-              wallets={wallets} activeWallet={activeWallet}
-              setActiveWallet={setActiveWallet} setActiveTab={setActiveTab}
-              session={auth.session}
-              onBack={() => setActiveTab("settings")}
-              onEditWallet={(w) => { setWalletToEdit(w); setIsEditWalletOpen(true); }}
-              onShareWallet={(w) => { setWalletToShare(w); setIsShareWalletOpen(true); }}
-              onNewWallet={() => setIsNewWalletOpen(true)}
               goals={goals}
-              isNewGoalOpen={isNewGoalOpen} setIsNewGoalOpen={setIsNewGoalOpen}
-              newGoalData={newGoalData} setNewGoalData={setNewGoalData}
+              setGoals={setGoals}
+              isNewGoalOpen={isNewGoalOpen}
+              setIsNewGoalOpen={setIsNewGoalOpen}
+              newGoalData={newGoalData}
+              setNewGoalData={setNewGoalData}
               handleAddGoal={handleAddGoal}
-              activeGoalInput={activeGoalInput} setActiveGoalInput={setActiveGoalInput}
-              flexibleSavingsAmount={flexibleSavingsAmount} setFlexibleSavingsAmount={setFlexibleSavingsAmount}
+              activeGoalInput={activeGoalInput}
+              setActiveGoalInput={setActiveGoalInput}
+              flexibleSavingsAmt={flexibleSavingsAmt}
+              setFlexibleSavingsAmt={setFlexibleSavingsAmt}
               handleModifySavings={handleModifySavings}
-              triggerDeleteGoal={triggerDeleteGoal}
+              triggerDeleteGoal={id => setGoalDeleteModal({ isOpen: true, goalId: id, goalName: goals.find(g => g.id === id)?.name || "" })}
             />
           )}
-        </AnimatePresence>
 
-        {/* ── More Drawer ── */}
-        <MoreDrawer
-          isOpen={isMoreOpen}
-          onClose={() => setIsMoreOpen(false)}
-          onNavigate={(tab) => {
-            if (tab === "adduser") {
-              setAddUserModal({ isOpen: true, username: "", password: "", isLoading: false });
-            } else {
-              setActiveTab(tab);
-            }
-            setIsMoreOpen(false);
-          }}
-          isAdmin={isAdmin}
-          isDarkMode={isDarkMode}
-          setIsDarkMode={setIsDarkMode}
-          exportToCSV={exportToCSV}
-          handleLogout={auth.handleLogout}
-        />
+          {activeTab === "more" && (
+            <MoreTab
+              key="more"
+              isAdmin={isAdmin}
+              activeWallet={activeWallet}
+              transactions={transactions}
+              handleLogout={auth.handleLogout}
+              onNotify={showNotification}
+              onOpenAddUser={() => setAddUserModal({ isOpen: true, username: "", password: "", isLoading: false })}
+            />
+          )}
+
+        </AnimatePresence>
 
         {/* ── QuickCommandBar ── */}
         {activeTab === "home" && (
@@ -700,14 +620,19 @@ export default function Home() {
           />
         )}
 
-        {/* ── Edit Transaction Modal ── */}
-        <EditTrxModal
-          isOpen={editTrxModal.isOpen}
-          data={editTrxModal.data}
-          setData={(data) => setEditTrxModal((p) => ({ ...p, data }))}
-          onSubmit={handleSaveTrxEdit}
-          onClose={() => setEditTrxModal((p) => ({ ...p, isOpen: false }))}
-          existingCategories={existingCategories}
+        {/* ── Wallet Modal ── */}
+        <WalletModal
+          isOpen={isWalletModalOpen}
+          onClose={() => setIsWalletModalOpen(false)}
+          wallets={wallets}
+          activeWallet={activeWallet}
+          session={auth.session}
+          onSelectWallet={w => {
+            setActiveWallet(w);
+            setIsWalletModalOpen(false);
+          }}
+          onAddWallet={() => { setIsWalletModalOpen(false); setIsNewWalletOpen(true); }}
+          onNotify={showNotification}
         />
 
         {/* ── New Wallet Modal ── */}
@@ -719,47 +644,21 @@ export default function Home() {
           onClose={() => { setIsNewWalletOpen(false); setNewWalletName(""); }}
         />
 
-        {/* ── Edit Wallet Modal ── */}
-        <AnimatePresence>
-          {isEditWalletOpen && (
-            <EditWalletModal
-              wallet={walletToEdit}
-              onClose={() => setIsEditWalletOpen(false)}
-              onRefresh={() => window.location.reload()}
-            />
-          )}
-        </AnimatePresence>
-
-        {/* ── Share Wallet Modal ── */}
-        <AnimatePresence>
-          {isShareWalletOpen && (
-            <motion.div
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md p-4"
-            >
-              <motion.div
-                initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
-                className="w-full max-w-md bg-white dark:bg-[#121827] rounded-[32px] p-6 shadow-2xl relative overflow-hidden border border-gray-100 dark:border-gray-800"
-              >
-                <button onClick={() => setIsShareWalletOpen(false)} className="absolute top-4 right-4 p-2 text-gray-400 hover:text-red-500 bg-gray-50 dark:bg-gray-800 rounded-full transition-colors">
-                  <X size={16} />
-                </button>
-                <ShareWallet
-                  walletId={walletToShare?.id}
-                  onClose={() => setIsShareWalletOpen(false)}
-                  onSuccess={(msg) => { setIsShareWalletOpen(false); showNotification(msg, "success"); }}
-                  onError={(msg) => showNotification(msg, "error")}
-                />
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {/* ── Edit Transaction Modal ── */}
+        <EditTrxModal
+          isOpen={editTrxModal.isOpen}
+          data={editTrxModal.data}
+          setData={data => setEditTrxModal(p => ({ ...p, data }))}
+          onSubmit={handleSaveTrxEdit}
+          onClose={() => setEditTrxModal(p => ({ ...p, isOpen: false }))}
+          existingCategories={existingCategories}
+        />
 
         {/* ── Delete Transaction Modal ── */}
         <DeleteModal
           isOpen={isDeleteModalOpen}
           title="Hapus Transaksi?"
-          message="Tindakan ini permanen dan tidak dapat dibatalkan. Apakah Anda yakin?"
+          message="Tindakan ini permanen dan tidak dapat dibatalkan."
           onConfirm={() => {
             if (itemToDelete) deleteTransaction(itemToDelete.id);
             setIsDeleteModalOpen(false);
@@ -771,59 +670,52 @@ export default function Home() {
         {/* ── Delete Goal Modal ── */}
         <DeleteModal
           isOpen={goalDeleteModal.isOpen}
-          title="Hapus Impian Anda?"
-          message={
-            <>Target <strong>"{goalDeleteModal.goalName}"</strong> beserta seluruh progres tabungannya akan dihapus permanen.</>
-          }
-          confirmLabel="Hapus Impian"
-          onConfirm={executeDeleteGoal}
+          title="Hapus Target Impian?"
+          message={<>Target <strong>"{goalDeleteModal.goalName}"</strong> akan dihapus permanen.</>}
+          confirmLabel="Hapus Target"
+          onConfirm={async () => {
+            if (goalDeleteModal.goalId) {
+              await supabase.from("savings_goals").delete().eq("id", goalDeleteModal.goalId);
+              setGoals(p => p.filter(g => g.id !== goalDeleteModal.goalId));
+            }
+            setGoalDeleteModal({ isOpen: false, goalId: null, goalName: "" });
+          }}
           onCancel={() => setGoalDeleteModal({ isOpen: false, goalId: null, goalName: "" })}
         />
 
-        {/* ── Bottom Navigation — 5 tab, centered, compact ── */}
-        <nav className="fixed bottom-0 left-0 right-0 z-[9999] bg-white/80 dark:bg-[#0a0f1c]/90 backdrop-blur-xl border-t border-gray-200 dark:border-gray-800 pb-safe">
-          <div className="w-full max-w-lg mx-auto flex justify-center items-center px-4 py-3 gap-2">
-            {[
-              { id: "home",    label: "Home",    Icon: HomeIcon },
-              { id: "finance", label: "Finance", Icon: Landmark },
-              { id: "more",    label: "More",    Icon: Settings },
-            ].map(({ id, label, Icon }) => {
-              const isActive = id === "more" ? isMoreOpen : activeTab === id;
-              const handleClick = id === "more"
-                ? () => setIsMoreOpen(true)
-                : () => setActiveTab(id);
+        {/* ── Bottom Navigation ── */}
+        <nav className="fixed bottom-0 left-0 right-0 z-[9999] bg-white/85 dark:bg-[#0a0f1c]/95 backdrop-blur-xl border-t border-gray-200/80 dark:border-gray-800/80 pb-safe">
+          <div className="w-full max-w-lg mx-auto flex justify-around items-end px-2 pt-2 pb-2">
+            {NAV_ITEMS.map(({ id, label, Icon }) => {
+              const isActive = activeTab === id;
               return (
                 <motion.button
                   key={id}
-                  onClick={handleClick}
-                  whileTap={{ scale: 0.9 }}
-                  animate={{ y: isActive ? -4 : 0 }}
-                  transition={{ type: "spring", stiffness: 400, damping: 20 }}
-                  className="flex flex-col items-center gap-1 relative flex-1 max-w-[64px]"
+                  onClick={() => {
+                    if (id === "finance") handleFinanceTabClick();
+                    else setActiveTab(id);
+                  }}
+                  whileTap={{ scale: 0.88 }}
+                  className="flex flex-col items-center gap-1 relative flex-1 py-1 outline-none"
                   style={{ WebkitTapHighlightColor: "transparent" }}
                 >
-                  {/* Active pill background */}
-                  <AnimatePresence>
-                    {isActive && (
-                      <motion.div
-                        layoutId="navPill"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="absolute -top-1 left-1/2 -translate-x-1/2 w-10 h-10 bg-blue-500/10 rounded-2xl -z-10"
-                      />
-                    )}
-                  </AnimatePresence>
+                  {/* Active indicator — pill di belakang icon */}
+                  {isActive && (
+                    <motion.div
+                      layoutId="navActive"
+                      className="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-8 bg-blue-500/10 dark:bg-blue-500/15 rounded-2xl"
+                      transition={{ type: "spring", stiffness: 500, damping: 35 }}
+                    />
+                  )}
+
                   <Icon
                     size={22}
-                    strokeWidth={isActive ? 2.5 : 1.8}
-                    className={`transition-all duration-300 ${
-                      isActive ? "text-blue-500" : "text-gray-400 dark:text-gray-600"
-                    }`}
+                    strokeWidth={isActive ? 2.5 : 1.7}
+                    className={`relative z-10 transition-colors duration-200 ${isActive ? "text-blue-500" : "text-gray-400 dark:text-gray-500"
+                      }`}
                   />
-                  <span className={`text-[8px] font-black uppercase tracking-widest transition-colors duration-300 ${
-                    isActive ? "text-blue-500" : "text-gray-400 dark:text-gray-600"
-                  }`}>
+                  <span className={`text-[9px] font-black uppercase tracking-widest transition-colors duration-200 ${isActive ? "text-blue-500" : "text-gray-400 dark:text-gray-500"
+                    }`}>
                     {label}
                   </span>
                 </motion.button>
