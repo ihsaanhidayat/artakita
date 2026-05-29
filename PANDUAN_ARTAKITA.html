@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panduan ArtaKita — Manajemen Keuangan</title>
+<style>
+  :root {
+    --blue: #3b82f6;
+    --indigo: #6366f1;
+    --green: #10b981;
+    --red: #ef4444;
+    --amber: #f59e0b;
+    --violet: #8b5cf6;
+    --gray-50: #f9fafb;
+    --gray-100: #f3f4f6;
+    --gray-200: #e5e7eb;
+    --gray-400: #9ca3af;
+    --gray-500: #6b7280;
+    --gray-700: #374151;
+    --gray-900: #111827;
+    --radius: 16px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #f0f4ff;
+    color: var(--gray-900);
+    min-height: 100vh;
+  }
+
+  /* ── Hero ── */
+  .hero {
+    background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
+    padding: 48px 24px 64px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    width: 300px; height: 300px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 50%;
+    top: -100px; right: -80px;
+  }
+  .hero-badge {
+    display: inline-block;
+    background: rgba(255,255,255,0.2);
+    color: white;
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    padding: 6px 14px;
+    border-radius: 999px;
+    margin-bottom: 16px;
+  }
+  .hero h1 {
+    font-size: 42px;
+    font-weight: 900;
+    color: white;
+    letter-spacing: -1px;
+    margin-bottom: 8px;
+  }
+  .hero p {
+    color: rgba(255,255,255,0.8);
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .hero-version {
+    display: inline-block;
+    background: rgba(255,255,255,0.15);
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 12px;
+    border-radius: 999px;
+    margin-top: 12px;
+  }
+
+  /* ── Container ── */
+  .container {
+    max-width: 720px;
+    margin: -24px auto 0;
+    padding: 0 16px 64px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ── Quick start ── */
+  .quickstart {
+    background: white;
+    border-radius: var(--radius);
+    border: 1.5px solid #fde68a;
+    padding: 20px;
+    margin-bottom: 24px;
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    box-shadow: 0 4px 24px rgba(245,158,11,0.1);
+  }
+  .quickstart-icon {
+    width: 40px; height: 40px;
+    background: #fef3c7;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+  .quickstart h3 {
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #d97706;
+    margin-bottom: 6px;
+  }
+  .quickstart p { font-size: 13px; color: var(--gray-700); line-height: 1.6; }
+  .quickstart code {
+    background: #fef3c7;
+    color: #92400e;
+    padding: 1px 6px;
+    border-radius: 6px;
+    font-family: monospace;
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  /* ── Section ── */
+  .section {
+    background: white;
+    border-radius: var(--radius);
+    border: 1px solid var(--gray-200);
+    margin-bottom: 16px;
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+  }
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 20px;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s;
+  }
+  .section-header:hover { background: var(--gray-50); }
+  .section-icon {
+    width: 44px; height: 44px;
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+  }
+  .section-header h2 {
+    font-size: 15px;
+    font-weight: 900;
+    color: var(--gray-900);
+    flex: 1;
+  }
+  .section-count {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--gray-400);
+    background: var(--gray-100);
+    padding: 3px 8px;
+    border-radius: 999px;
+  }
+  .section-chevron {
+    color: var(--gray-400);
+    font-size: 18px;
+    transition: transform 0.2s;
+    margin-left: 4px;
+  }
+  .section.open .section-chevron { transform: rotate(180deg); }
+  .section-body { display: none; border-top: 1px solid var(--gray-100); }
+  .section.open .section-body { display: block; }
+
+  /* ── Accordion item ── */
+  .item { border-bottom: 1px solid var(--gray-100); }
+  .item:last-child { border-bottom: none; }
+  .item-q {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    cursor: pointer;
+    gap: 12px;
+    transition: background 0.1s;
+  }
+  .item-q:hover { background: var(--gray-50); }
+  .item-q span {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--gray-700);
+    flex: 1;
+    line-height: 1.4;
+  }
+  .item.open .item-q span { color: var(--blue); }
+  .item-chevron {
+    color: var(--gray-400);
+    font-size: 14px;
+    flex-shrink: 0;
+    transition: transform 0.2s;
+  }
+  .item.open .item-chevron { transform: rotate(180deg); }
+  .item-a { display: none; padding: 0 20px 16px; }
+  .item.open .item-a { display: block; }
+  .item-a p {
+    font-size: 13px;
+    color: var(--gray-500);
+    line-height: 1.7;
+    white-space: pre-line;
+  }
+
+  /* ── Format badge ── */
+  .format-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .format-item {
+    background: var(--gray-50);
+    border: 1px solid var(--gray-200);
+    border-radius: 10px;
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .format-code {
+    background: #eff6ff;
+    color: #1d4ed8;
+    font-family: monospace;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 6px;
+    white-space: nowrap;
+  }
+  .format-val {
+    font-size: 12px;
+    color: var(--gray-500);
+    font-weight: 600;
+  }
+
+  /* ── Nav flow ── */
+  .nav-flow {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-top: 10px;
+  }
+  .nav-pill {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    color: #1d4ed8;
+    font-size: 11px;
+    font-weight: 800;
+    padding: 5px 10px;
+    border-radius: 999px;
+    letter-spacing: 0.05em;
+  }
+  .nav-pill.active {
+    background: var(--blue);
+    border-color: var(--blue);
+    color: white;
+  }
+  .nav-arrow { color: var(--gray-400); font-size: 12px; }
+
+  /* ── Grade table ── */
+  .grade-grid {
+    display: grid;
+    grid-template-columns: 48px 1fr;
+    gap: 6px;
+    margin-top: 10px;
+  }
+  .grade-badge {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    font-weight: 900;
+  }
+  .grade-desc {
+    display: flex;
+    align-items: center;
+    background: var(--gray-50);
+    border-radius: 10px;
+    padding: 8px 12px;
+    font-size: 12px;
+    color: var(--gray-700);
+    font-weight: 600;
+  }
+
+  /* ── Footer ── */
+  .footer {
+    text-align: center;
+    padding: 32px 16px;
+    color: var(--gray-400);
+    font-size: 12px;
+  }
+  .footer strong { color: var(--gray-500); }
+
+  /* ── Print ── */
+  @media print {
+    body { background: white; }
+    .hero { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .section.open .section-body, .item.open .item-a { display: block !important; }
+    .section-header { cursor: default; }
+    .item-q { cursor: default; }
+  }
+
+  @media (max-width: 480px) {
+    .hero h1 { font-size: 32px; }
+    .format-grid { grid-template-columns: 1fr; }
+    .grade-grid { grid-template-columns: 40px 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Hero -->
+<div class="hero">
+  <div class="hero-badge">📖 Panduan Pengguna</div>
+  <h1>ArtaKita.</h1>
+  <p>Manajemen Keuangan Pribadi & Bersama</p>
+  <div class="hero-version">Versi 2.0.0</div>
+</div>
+
+<div class="container">
+
+  <!-- Quick Start -->
+  <div class="quickstart">
+    <div class="quickstart-icon">⚡</div>
+    <div>
+      <h3>Mulai Cepat</h3>
+      <p>
+        Ketik <code>50k makan siang</code> di kolom bawah untuk catat pengeluaran.<br>
+        Ketik <code>in 5jt gaji</code> untuk catat pemasukan.<br>
+        Ketik <code>200k belanja pos Kebutuhan</code> untuk buat kategori baru otomatis.
+      </p>
+    </div>
+  </div>
+
+  <!-- Section 1: Memulai -->
+  <div class="section open" id="s1">
+    <div class="section-header" onclick="toggleSection('s1')">
+      <div class="section-icon" style="background:#fef3c7">⭐</div>
+      <h2>Memulai ArtaKita</h2>
+      <span class="section-count">3 topik</span>
+      <span class="section-chevron">▾</span>
+    </div>
+    <div class="section-body">
+      <div class="item open">
+        <div class="item-q" onclick="toggleItem(this)">
+          <span>Apa itu ArtaKita?</span>
+          <span class="item-chevron">▾</span>
+        </div>
+        <div class="item-a">
+          <p>ArtaKita adalah aplikasi manajemen keuangan pribadi & bersama. Fitur lengkap: pencatatan transaksi harian, pelacakan hutang piutang, manajemen aset, target tabungan, statistik pengeluaran, dan berbagi dompet dengan anggota keluarga/rekan.</p>
+        </div>
+      </div>
+      <div class="item">
+        <div class="item-q" onclick="toggleItem(this)">
+          <span>Cara login pertama kali</span>
+          <span class="item-chevron">▾</span>
+        </div>
+        <div class="item-a">
+          <p>Minta username dan password sementara dari admin. Saat pertama login, kamu akan diminta mengganti password. Gunakan format username saja (tanpa @email) atau email lengkap jika diberikan.</p>
+        </div>
+      </div>
+      <div class="item">
+        <div class="item-q" onclick="toggleItem(this)">
+          <span>Mengenal 4 tab utama</span>
+          <span class="item-chevron">▾</span>
+        </div>
+        <div class="item-a">
+          <div class="nav-flow">
+            <span class="nav-pill active">🏠 Beranda</span>
+            <span class="nav-arrow">→</span>
+            <span class="nav-pill">📊 Statistik</span>
+            <span class="nav-arrow">→</span>
+            <span class="nav-pill">🏦 Keuangan</span>
+            <span class="nav-arrow">→</span>
+            <span class="nav-pill">··· Lainnya</span>
+          </div>
+          <p style="margin-top:10px">
+            <strong>Beranda</strong> — Saldo & transaksi harian<br>
+            <strong>Statistik</strong> — Grafik & alokasi anggaran<br>
+            <strong>Keuangan</strong> — Hutang, rutin, aset, celengan, kategori<br>
+            <strong>Lainnya</strong> — Ekspor, panduan, pengaturan
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 2: Beranda -->
+  <div class="section" id="s2">
+    <div class="section-header" onclick="toggleSection('s2')">
+      <div class="section-icon" style="background:#eff6ff">🏠</div>
+      <h2>Tab Beranda</h2>
+      <span class="section-count">7 topik</span>
+      <span class="section-chevron">▾</span>
+    </div>
+    <div class="section-body">
+      <div class="item">
+        <div class="item-q" onclick="toggleItem(this)"><span>Cara mencatat transaksi cepat</span><span class="item-chevron">▾</span></div>
+        <div class="item-a">
+          <p>Gunakan Quick Command Bar di bagian bawah layar:</p>
+          <div class="format-grid" style="margin-top:10px">
+            <div class="format-item"><span class="format-code">50k makan</span><span class="format-val">→ Pengeluaran</span></div>
+            <div class="format-item"><span class="format-code">in 5jt gaji</span><span class="format-val">→ Pemasukan</span></div>
+            <div class="format-item"><span class="format-code">200k belanja pos Makanan</span><span class="format-val">→ Buat kategori</span></div>
+            <div class="format-item"><span class="format-code">1.5jt cicilan</span><span class="format-val">→ Nominal desimal</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="item">
+        <div class="item-q" onclick="toggleItem(this)"><span>Format nominal yang didukung</span><span class="item-chevron">▾</span></div>
+        <div class="item-a">
+          <div class="format-grid">
+            <div class="format-item"><span class="format-code">50k</span><span class="format-val">Rp 50.000</span></div>
+            <div class="format-item"><span class="format-code">500rb</span><span class="format-val">Rp 500.000</span></div>
+            <div class="format-item"><span class="format-code">1jt</span><span class="format-val">Rp 1.000.000</span></div>
+            <div class="format-item"><span class="format-code">1.5jt</span><span class="format-val">Rp 1.500.000</span></div>
+            <div class="format-item"><span class="format-code">500ribu</span><span class="format-val">Rp 500.000</span></div>
+            <div class="format-item"><span class="format-code">50000</span><span class="format-val">Angka biasa</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="item">
+        <div class="item-q" onclick="toggleItem(this)"><span>Filter dan pencarian transaksi</span><span class="item-chevron">▾</span></div>
+        <div class="item-a">
+          <p>• Kotak pencarian — cari berdasarkan nama/kategori<br>• Pill kategori — filter per kategori<br>• Hari Ini / 7 Hari / Bulan Ini — filter waktu cepat<br>• Pilih Tanggal — rentang tanggal custom<br>• Dropdown kanan — pilih bulan</p>
+        </div>
+      </div>
+      <div class="item">
+        <div class="item-q" onclick="toggleItem(this)"><span>Ganti dompet aktif</span><span class="item-chevron">▾</span></div>
+        <div class="item-a"><p>Tap icon 💼 di pojok kanan atas → modal dompet muncul di tengah layar → tap nama dompet yang diinginkan.</p></div>
+      </div>
+      <div class="item">
+        <div class="item-q" onclick="toggleItem(this)"><span>Mode gelap & terang</span><span class="item-chevron">▾</span></div>
+        <div class="item-a"><p>Tap icon 🌙/☀️ di pojok kanan atas header untuk toggle antara mode gelap dan terang. Preferensi tersimpan otomatis.</p></div>
+      </div>
+      <div class="item">
+        <div class="item-q" onclick="toggleItem(this)"><span>Edit atau hapus transaksi</span><span class="item-chevron">▾</span></div>
+        <div class="item-a"><p>Tap ✏️ pada transaksi → ubah nominal, catatan, atau kategori → Simpan Perubahan.<br>Tap 🗑️ untuk hapus (minta konfirmasi).<br>Tap 👁️ untuk lihat foto nota jika ada (fullscreen dengan zoom).</p></div>
+      </div>
+      <div class="item">
+        <div class="item-q" onclick="toggleItem(this)"><span>Foto nota transaksi</span><span class="item-chevron">▾</span></div>
+        <div class="item-a"><p>Saat edit transaksi, tap area foto atau tombol Kamera/Galeri untuk attach foto nota. Foto otomatis dikompres ke max 2MB. Tap 👁️ di card transaksi untuk lihat foto fullscreen dengan pinch-to-zoom.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 3: Statistik -->
+  <div class="section" id="s3">
+    <div class="section-header" onclick="toggleSection('s3')">
+      <div class="section-icon" style="background:#f5f3ff">📊</div>
+      <h2>Tab Statistik</h2>
+      <span class="section-count">5 topik</span>
+      <span class="section-chevron">▾</span>
+    </div>
+    <div class="section-body">
+      <div class="item">
+        <div class="item-q" onclick="toggleItem(this)"><span>Grade kesehatan keuangan</span><span class="item-chevron">▾</span></div>
+        <div class="item-a">
+          <div class="grade-grid">
+            <div class="grade-badge" style="background:#dcfce7;color:#16a34a">A</div>
+            <div class="grade-desc">Pengeluaran &lt; 50% pemasukan — Sangat sehat</div>
+            <div class="grade-badge" style="background:#dbeafe;color:#1d4ed8">B</div>
+            <div class="grade-desc">Pengeluaran 50-70% — Bagus, cukup stabil</div>
+            <div class="grade-badge" style="background:#ffedd5;color:#c2410c">C</div>
+            <div class="grade-desc">Pengeluaran 70-90% — Waspada</div>
+            <div class="grade-badge" style="background:#fee2e2;color:#b91c1c">D</div>
+            <div class="grade-desc">Pengeluaran &gt; 90% — Bahaya!</div>
+            <div class="grade-badge" style="background:#fee2e2;color:#b91c1c">F</div>
+            <div class="grade-desc">Tidak ada pemasukan — Defisit</div>
+          </div>
+        </div>
+      </div>
+      <div class="item">
+        <div class="item-q" onclick="toggleItem(this)"><span>Cara mengatur batas anggaran</span><span class="item-chevron">▾</span></div>
+        <div class="item-a"><p>Tab Statistik → tap Alokasi → tap ✏️ pada kategori → isi nominal batas → Simpan Batas. Berlaku untuk bulan yang dipilih. Hapus limit dengan tap 'Hapus Batas'.</p></div>
+      </div>
+      <div class="item">
+        <div class="item-q" onclick="toggleItem(this)"><span>Arti warna progress bar anggaran</span><span class="item-chevron">▾</span></div>
+        <div class="item-a"><p>🟢 Hijau — aman (&lt;50% terpakai)<br>🟡 Kuning — waspada (50-80% terpakai)<br>🔴 Merah — hampir habis (&gt;80%)<br>🔴 Merah tebal — melebihi batas!</p></div>
+      </div>
+      <div class="item">
+        <div class="item-q" onclick="toggleItem(this)"><span>Rincian kategori collapsible</span><span class="item-chevron">▾</span></div>
+        <div class="item-a"><p>Tap header 'Rincian Kategori' di tab Pengeluaran untuk collapse/expand daftar kategori. Berguna saat ingin fokus melihat total saja.</p></div>
+      </div>
+      <div class="item">
+        <div class="item-q" onclick="toggleItem(this)"><span>Peringatan alokasi melebihi saldo</span><span class="item-chevron">▾</span></div>
+        <div class="item-a"><p>Jika total semua batas anggaran melebihi saldo dompet, banner peringatan merah muncul di tab Alokasi. Kurangi batas anggaran beberapa kategori agar tidak defisit.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 4: Keuangan -->
+  <div class="section" id="s4">
+    <div class="section-header" onclick="toggleSection('s4')">
+      <div class="section-icon" style="background:#ecfdf5">🏦</div>
+      <h2>Tab Keuangan</h2>
+      <span class="section-count">9 topik</span>
+      <span class="section-chevron">▾</span>
+    </div>
+    <div class="section-body">
+      <div class="item">
+        <div class="item-q" onclick="toggleItem(this)"><span>Navigasi menu Keuangan</span><span class="item-chevron">▾</span></div>
+        <div class="item-a">
+          <p>Tab Keuangan berisi 5 menu:</p>
+          <div class="format-grid" style="margin-top:10px">
+            <div class="format-item">↑↓ <span style="margin-left:8px"><strong>Hutang & Piutang</strong></span></div>
+            <div class="format-item">🔄 <span style="margin-left:8px"><strong>Transaksi Rutin</strong></span></div>
+            <div class="format-item">📦 <span style="margin-left:8px"><strong>Manajemen Aset</strong></span></div>
+            <div class="format-item">🐷 <span style="margin-left:8px"><strong>Celengan & Target</strong></span></div>
+            <div class="format-item">🏷️ <span style="margin-left:8px"><strong>Kategori</strong></span></div>
+          </div>
+          <p style="margin-top:10px">Tap breadcrumb <strong>Keuangan</strong> di atas atau tap tab Keuangan di navbar untuk kembali ke daftar menu.</p>
+        </div>
+      </div>
+      <div class="item">
+        <div class="item-q" onclick="toggleItem(this)"><span>Mencatat & membayar hutang</span><span class="item-chevron">▾</span></div>
+        <div class="item-a"><p>Tap + untuk catat baru → pilih Hutang atau Piutang → isi nama, nominal, jatuh tempo → Simpan.<br><br>Untuk bayar: tap card → expand → tap 'Bayar Hutang' → isi nominal → OK. Transaksi otomatis tercatat di dompet. Saat lunas, hutang pindah ke tab Lunas.</p></div>
+      </div>
+      <div class="item">
+        <div class="item-q" onclick="toggleItem(this)"><span>Mengurutkan daftar hutang</span><span class="item-chevron">▾</span></div>
+        <div class="item-a"><p>Tap icon ↕️ di pojok kanan atas daftar → pilih urutan:<br>• Nominal Terbesar<br>• Persentase Terbayar<br>• Jatuh Tempo Terdekat</p></div>
+      </div>
+      <div class="item">
+        <div class="item-q" onclick="toggleItem(this)"><span>Tab Lunas — riwayat pembayaran</span><span class="item-chevron">▾</span></div>
+        <div class="item-a"><p>Menampilkan hutang/piutang yang sudah selesai. Tap card untuk expand → lihat detail riwayat setiap pembayaran. Tap 'Hapus Riwayat' untuk menghapus dari daftar.</p></div>
+      </div>
+      <div class="item">
+        <div class="item-q" onclick="toggleItem(this)"><span>Transaksi Rutin</span><span class="item-chevron">▾</span></div>
+        <div class="item-a"><p>Untuk transaksi berulang (gaji, cicilan, Netflix, dll). Tap + → isi nama, nominal, kategori, frekuensi (harian/mingguan/bulanan), dan jadwal pertama.<br><br>Tap 'Jalankan' untuk mencatat transaksi sekarang dan auto-update jadwal berikutnya. Badge kuning muncul jika ada jadwal yang jatuh tempo.</p></div>
+      </div>
+      <div class="item">
+        <div class="item-q" onclick="toggleItem(this)"><span>Manajemen Aset</span><span class="item-chevron">▾</span></div>
+        <div class="item-a"><p>Catat inventaris barang dengan foto, nama toko, tanggal beli, harga beli, kondisi (Baru/Baik/Perlu Servis/Rusak), dan catatan (serial number, garansi, dll).<br><br>Tap 👁️ pada card aset untuk lihat foto fullscreen dengan zoom.</p></div>
+      </div>
+      <div class="item">
+        <div class="item-q" onclick="toggleItem(this)"><span>Celengan & Target Impian</span><span class="item-chevron">▾</span></div>
+        <div class="item-a"><p>Buat target tabungan dengan nama dan nominal target. Isi saldo awal opsional.<br><br>Tap 'Mutasi Saldo' → isi nominal → tap + Tabung untuk menambah atau - Pakai untuk mengurangi. Tap Reset untuk nolkan kembali.</p></div>
+      </div>
+      <div class="item">
+        <div class="item-q" onclick="toggleItem(this)"><span>Kelola Kategori</span><span class="item-chevron">▾</span></div>
+        <div class="item-a"><p>Tambah, edit, atau hapus kategori transaksi kustom. Kategori yang sudah dipakai di transaksi tidak bisa dihapus langsung. Kategori juga terbentuk otomatis saat menggunakan format <code>pos NamaKategori</code> di Quick Command Bar.</p></div>
+      </div>
+      <div class="item">
+        <div class="item-q" onclick="toggleItem(this)"><span>AI Auto-Kategori</span><span class="item-chevron">▾</span></div>
+        <div class="item-a"><p>ArtaKita belajar dari kebiasaan input kamu. Saat pertama kali ketik <code>200k belanja pos Makanan</code>, sistem menyimpan bahwa kata kunci "belanja" = kategori Makanan.<br><br>Selanjutnya cukup ketik <code>50k belanja</code> dan otomatis masuk kategori Makanan tanpa perlu <code>pos</code> lagi.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 5: Dompet -->
+  <div class="section" id="s5">
+    <div class="section-header" onclick="toggleSection('s5')">
+      <div class="section-icon" style="background:#eef2ff">💼</div>
+      <h2>Manajemen Dompet</h2>
+      <span class="section-count">4 topik</span>
+      <span class="section-chevron">▾</span>
+    </div>
+    <div class="section-body">
+      <div class="item">
+        <div class="item-q" onclick="toggleItem(this)"><span>Membuat dompet baru</span><span class="item-chevron">▾</span></div>
+        <div class="item-a"><p>Tap icon 💼 di header Beranda → tap 'Tambah Rekening Baru' → isi nama → tap 'Buka Rekening'. Dompet baru otomatis aktif.</p></div>
+      </div>
+      <div class="item">
+        <div class="item-q" onclick="toggleItem(this)"><span>Berbagi dompet bersama</span><span class="item-chevron">▾</span></div>
+        <div class="item-a"><p>Tap icon 💼 → tap icon share pada dompet → pilih pengguna → tap 'Bagikan Akses Sekarang'.<br><br>Pengguna penerima akan melihat header:<br>• Pemilik: "Dibagikan ke @username"<br>• Penerima: "Dibagikan oleh @username"<br><br>Keduanya bisa melihat dan mencatat transaksi di dompet bersama.</p></div>
+      </div>
+      <div class="item">
+        <div class="item-q" onclick="toggleItem(this)"><span>Mengubah nama dompet</span><span class="item-chevron">▾</span></div>
+        <div class="item-a"><p>Tap icon 💼 → tap icon ✏️ pada dompet → ketik nama baru → tap ✓ atau tekan Enter untuk simpan.</p></div>
+      </div>
+      <div class="item">
+        <div class="item-q" onclick="toggleItem(this)"><span>Ganti dompet aktif</span><span class="item-chevron">▾</span></div>
+        <div class="item-a"><p>Tap icon 💼 → tap nama dompet yang ingin diaktifkan → modal otomatis tutup dan semua data berubah ke dompet baru. Badge hijau menunjukkan dompet yang sedang aktif.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 6: Offline -->
+  <div class="section" id="s6">
+    <div class="section-header" onclick="toggleSection('s6')">
+      <div class="section-icon" style="background:#fffbeb">📶</div>
+      <h2>Mode Offline & Sinkronisasi</h2>
+      <span class="section-count">3 topik</span>
+      <span class="section-chevron">▾</span>
+    </div>
+    <div class="section-body">
+      <div class="item">
+        <div class="item-q" onclick="toggleItem(this)"><span>Apakah bisa digunakan tanpa internet?</span><span class="item-chevron">▾</span></div>
+        <div class="item-a"><p>Ya. Saat offline, transaksi yang dicatat masuk ke antrian lokal. Strip notifikasi kuning muncul di balance card. Saat koneksi kembali, semua transaksi otomatis disinkronkan ke server.</p></div>
+      </div>
+      <div class="item">
+        <div class="item-q" onclick="toggleItem(this)"><span>Membaca status sinkronisasi</span><span class="item-chevron">▾</span></div>
+        <div class="item-a">
+          <p>🟡 Strip kuning — offline, transaksi menunggu<br>🔵 Strip biru berkedip — sedang menyinkronkan<br>✅ Strip hilang — semua tersinkronkan<br><br>Transaksi pending ditandai badge "Menunggu" di daftar transaksi.</p>
+        </div>
+      </div>
+      <div class="item">
+        <div class="item-q" onclick="toggleItem(this)"><span>Data apa yang tersedia offline?</span><span class="item-chevron">▾</span></div>
+        <div class="item-a"><p>100 transaksi terakhir tersimpan sebagai cache lokal dan bisa dilihat saat offline. Data hutang, aset, dan fitur lain memerlukan koneksi internet untuk ditampilkan.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 7: Lainnya -->
+  <div class="section" id="s7">
+    <div class="section-header" onclick="toggleSection('s7')">
+      <div class="section-icon" style="background:#f3f4f6">⚙️</div>
+      <h2>Tab Lainnya</h2>
+      <span class="section-count">5 topik</span>
+      <span class="section-chevron">▾</span>
+    </div>
+    <div class="section-body">
+      <div class="item">
+        <div class="item-q" onclick="toggleItem(this)"><span>Ekspor Laporan Excel</span><span class="item-chevron">▾</span></div>
+        <div class="item-a">
+          <p>Tap 'Ekspor Laporan' → file Excel (.xlsx) otomatis diunduh.<br><br>5 sheet dalam satu file:<br>• <strong>Transaksi</strong> — semua transaksi<br>• <strong>Hutang Piutang</strong> — catatan hutang<br>• <strong>Aset</strong> — inventaris barang<br>• <strong>Transaksi Rutin</strong> — jadwal rutin<br>• <strong>Target Impian</strong> — progress celengan</p>
+        </div>
+      </div>
+      <div class="item">
+        <div class="item-q" onclick="toggleItem(this)"><span>Ganti bahasa tampilan</span><span class="item-chevron">▾</span></div>
+        <div class="item-a"><p>Tab Lainnya → tap toggle [ ID ][ EN ] → bahasa langsung berubah ke seluruh tampilan aplikasi. Pilihan tersimpan di perangkat.</p></div>
+      </div>
+      <div class="item">
+        <div class="item-q" onclick="toggleItem(this)"><span>Panduan dalam aplikasi</span><span class="item-chevron">▾</span></div>
+        <div class="item-a"><p>Tab Lainnya → tap 'Panduan' → buka halaman panduan lengkap dengan accordion per topik. Bisa diakses kapan saja tanpa internet.</p></div>
+      </div>
+      <div class="item">
+        <div class="item-q" onclick="toggleItem(this)"><span>Manajemen Pengguna (Admin)</span><span class="item-chevron">▾</span></div>
+        <div class="item-a"><p>Hanya terlihat untuk akun admin. Fitur: lihat semua pengguna aktif, tambah user baru, reset password (user diminta ganti saat login), nonaktifkan/aktifkan akun, hapus akun permanen.</p></div>
+      </div>
+      <div class="item">
+        <div class="item-q" onclick="toggleItem(this)"><span>Keluar dari Akun</span><span class="item-chevron">▾</span></div>
+        <div class="item-a"><p>Tab Lainnya → scroll ke bawah → tap 'Keluar dari Akun' → tap 'Ya, Keluar' untuk konfirmasi. Sesi berakhir dan kembali ke halaman login. Data tetap aman di server.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <p style="font-size:24px;margin-bottom:8px">💙</p>
+    <p><strong>ArtaKita v2.0.0</strong></p>
+    <p style="margin-top:4px">dibuat dengan ♥ oleh MIH</p>
+    <p style="margin-top:4px; font-size:11px">Artaku Artamu</p>
+  </div>
+
+</div>
+
+<script>
+function toggleSection(id) {
+  const el = document.getElementById(id);
+  el.classList.toggle('open');
+}
+function toggleItem(el) {
+  const item = el.parentElement;
+  item.classList.toggle('open');
+}
+// Buka semua untuk print
+window.addEventListener('beforeprint', () => {
+  document.querySelectorAll('.section').forEach(s => s.classList.add('open'));
+  document.querySelectorAll('.item').forEach(i => i.classList.add('open'));
+});
+</script>
+</body>
+</html>

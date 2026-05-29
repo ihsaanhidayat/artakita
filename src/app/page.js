@@ -33,6 +33,7 @@ import WalletModal from "@/components/modals/WalletModal";
 import Toast from "@/components/Toast";
 import DeleteModal from "@/components/DeleteModal";
 import QuickCommandBar from "@/components/QuickCommandBar";
+import UserManagement from "@/components/UserManagement";
 
 // ── Nav items — 4 tab statis ──────────────────────────────────────────────────
 const NAV_ITEMS = [
@@ -160,6 +161,7 @@ export default function Home() {
   const [aiKeywords, setAiKeywords] = useState([]);
   const [isSmartLoading, setIsSmartLoading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isRoleLoading, setIsRoleLoading] = useState(true);
 
   // ── Filter ────────────────────────────────────────────────────────────────
   const [typeFilter, setTypeFilter] = useState("all");
@@ -230,8 +232,12 @@ export default function Home() {
       if (cats) setUserCategories(cats);
       if (keys) setAiKeywords(keys);
       if (profile?.role === "admin") setIsAdmin(true);
+      setIsRoleLoading(false);
     };
     fetchAll();
+    // Fallback: jika fetch gagal, tetap lanjutkan setelah 3 detik
+    const timeout = setTimeout(() => setIsRoleLoading(false), 3000);
+    return () => clearTimeout(timeout);
   }, [auth.session]);
 
   // Active wallet dari localStorage
@@ -495,6 +501,37 @@ export default function Home() {
 
   // ── Render guards ─────────────────────────────────────────────────────────
   if (!auth.session) return <div className={appClass}><LoginScreen auth={auth} /></div>;
+
+  // Tunggu role check selesai
+  if (isRoleLoading) return <div className={appClass}><WalletLoader /></div>;
+
+  // Admin → SELALU ke halaman User Management, tidak pernah ke app utama
+  if (isAdmin) {
+    return (
+      <div className={appClass}>
+        <main className="w-full max-w-lg mx-auto relative min-h-screen bg-white dark:bg-black">
+          <Toast isOpen={notification.isOpen} message={notification.message} type={notification.type} />
+          <div className="pt-8 px-3 pb-32">
+            <h2 className="text-xl font-black text-gray-900 dark:text-white tracking-tight mb-6">
+              Manajemen Pengguna
+            </h2>
+            <UserManagement onNotify={showNotification} />
+          </div>
+          {/* Logout */}
+          <div className="fixed bottom-6 left-0 right-0 max-w-lg mx-auto px-4">
+            <button
+              onClick={auth.handleLogout}
+              className="w-full py-3.5 bg-red-500/10 border border-red-500/20 text-red-500 font-black text-xs uppercase tracking-widest rounded-2xl transition-all"
+            >
+              Keluar dari Akun
+            </button>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  // Non-admin tanpa wallet → loading
   if (!activeWallet) return <div className={appClass}><WalletLoader /></div>;
 
   return (
