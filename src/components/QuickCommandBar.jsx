@@ -137,7 +137,7 @@ const QuickCommandBar = memo(function QuickCommandBar({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.15 }}
+            transition={{ duration: 0.1 }}
             className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40"
             onClick={close}
           />
@@ -153,10 +153,10 @@ const QuickCommandBar = memo(function QuickCommandBar({
           {!isOpen && (
             <motion.button
               key="fab"
-              initial={{ scale: 0.8, opacity: 0 }}
+              initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1,   opacity: 1 }}
-              exit={{ scale: 0.8,   opacity: 0 }}
-              transition={{ type: "spring", stiffness: 400, damping: 25 }}
+              exit={{ scale: 0.9,   opacity: 0 }}
+              transition={{ duration: 0.12, ease: "easeOut" }}
               onClick={() => setIsOpen(true)}
               className="w-14 h-14 bg-blue-600 hover:bg-blue-500 active:scale-90 rounded-full shadow-2xl shadow-blue-600/40 flex items-center justify-center transition-colors"
             >
@@ -168,10 +168,10 @@ const QuickCommandBar = memo(function QuickCommandBar({
           {isOpen && (
             <motion.div
               key="panel"
-              initial={{ opacity: 0, y: 16, scale: 0.97 }}
+              initial={{ opacity: 0, y: 10, scale: 0.98 }}
               animate={{ opacity: 1, y: 0,  scale: 1 }}
-              exit={{ opacity: 0,  y: 12, scale: 0.97 }}
-              transition={{ type: "spring", stiffness: 420, damping: 32 }}
+              exit={{ opacity: 0,  y: 6,  scale: 0.98 }}
+              transition={{ duration: 0.16, ease: [0.16, 1, 0.3, 1] }}
               className="w-[calc(100vw-2rem)] max-w-[480px] bg-[#1a1f2e] border border-white/10 rounded-3xl shadow-2xl shadow-black/40 overflow-hidden"
               style={{ right: 0, position: "absolute", bottom: 0 }}
             >
@@ -182,7 +182,7 @@ const QuickCommandBar = memo(function QuickCommandBar({
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: "auto", opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.18 }}
+                    transition={{ duration: 0.12, ease: "easeOut" }}
                     className="overflow-hidden"
                   >
                     <div className="flex items-center gap-2 px-4 pt-3 pb-1">
@@ -218,7 +218,7 @@ const QuickCommandBar = memo(function QuickCommandBar({
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: "auto", opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.18 }}
+                    transition={{ duration: 0.12, ease: "easeOut" }}
                     className="overflow-hidden"
                   >
                     <div className="px-4 pb-2 pt-2 flex items-center gap-3">

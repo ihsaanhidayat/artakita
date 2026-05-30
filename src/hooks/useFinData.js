@@ -179,15 +179,19 @@ export const useFinData = (walletId) => {
   }, [allTransactions, recalc]);
 
   // ── Update ────────────────────────────────────────────────────────────────
-  const updateTransaction = useCallback(async (id, note, category, amount) => {
+  const updateTransaction = useCallback(async (id, note, category, amount, created_at) => {
+    const updatePayload = { note, category, amount: Number(amount) };
+    // Update tanggal jika diubah (backdate / edit tanggal)
+    if (created_at) updatePayload.created_at = created_at;
+
     const { error } = await supabase
       .from("transactions")
-      .update({ note, category, amount: Number(amount) })
+      .update(updatePayload)
       .eq("id", id);
     if (error) throw error;
     setAllTransactions(prev => {
       const updated = prev.map(t =>
-        t.id === id ? { ...t, note, category, amount: Number(amount) } : t
+        t.id === id ? { ...t, ...updatePayload } : t
       );
       recalc(updated);
       return updated;

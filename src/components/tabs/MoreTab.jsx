@@ -386,7 +386,7 @@ const MoreTab = memo(function MoreTab({
         </h2>
 
         {/* Menu groups */}
-        <div className="space-y-2 flex-1 pb-36">
+        <div className="space-y-2 flex-1 pb-44">
           {menuGroups.map((group, gi) => (
             <div key={gi}>
               {group.label && (
@@ -453,7 +453,7 @@ const MoreTab = memo(function MoreTab({
         </div>
 
         {/* ── Logout fixed bottom ── */}
-        <div className="fixed bottom-[72px] left-0 right-0 max-w-lg mx-auto px-3 pb-3 bg-white dark:bg-black border-t border-gray-100 dark:border-gray-800/60">
+        <div className="fixed bottom-[76px] left-0 right-0 max-w-lg mx-auto px-3 pt-2 pb-4 bg-white dark:bg-black border-t border-gray-100 dark:border-gray-800/60">
           {/* By author */}
           <div className="flex items-center justify-center gap-1.5 py-3">
             <p className="text-[9px] font-bold text-gray-300 dark:text-gray-700">

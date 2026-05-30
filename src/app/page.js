@@ -8,7 +8,7 @@ import {
 import { supabase } from "@/lib/supabaseClient";
 
 // Hooks
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth }    from "@/hooks/useAuth";
 import { useFinData } from "@/hooks/useFinData";
 import { useWallets } from "@/hooks/useWallets";
 
@@ -17,30 +17,30 @@ import { parseFlexibleNumber, getRecentMonths } from "@/lib/utils";
 import { NAV } from "@/lib/constants";
 
 // Tab components
-import HomeTab from "@/components/tabs/HomeTab";
-import StatsTab from "@/components/tabs/StatsTab";
-import FinanceTab from "@/components/tabs/FinanceTab";
-import MoreTab from "@/components/tabs/MoreTab";
+import HomeTab      from "@/components/tabs/HomeTab";
+import StatsTab     from "@/components/tabs/StatsTab";
+import FinanceTab   from "@/components/tabs/FinanceTab";
+import MoreTab      from "@/components/tabs/MoreTab";
 
 // Modal components
-import EditTrxModal from "@/components/modals/EditTrxModal";
-import NewWalletModal from "@/components/modals/NewWalletModal";
-import AddUserModal from "@/components/modals/AddUserModal";
+import EditTrxModal       from "@/components/modals/EditTrxModal";
+import NewWalletModal     from "@/components/modals/NewWalletModal";
+import AddUserModal       from "@/components/modals/AddUserModal";
 import ForcePasswordModal from "@/components/modals/ForcePasswordModal";
-import WalletModal from "@/components/modals/WalletModal";
+import WalletModal        from "@/components/modals/WalletModal";
 
 // Shared components
-import Toast from "@/components/Toast";
+import Toast       from "@/components/Toast";
 import DeleteModal from "@/components/DeleteModal";
-import QuickCommandBar from "@/components/QuickCommandBar";
-import UserManagement from "@/components/UserManagement";
+import QuickCommandBar    from "@/components/QuickCommandBar";
+import UserManagement    from "@/components/UserManagement";
 
 // ── Nav items — 4 tab statis ──────────────────────────────────────────────────
 const NAV_ITEMS = [
-  { id: "home", label: NAV.HOME, Icon: HomeIcon },
-  { id: "stats", label: NAV.STATS, Icon: BarChart3 },
-  { id: "finance", label: NAV.FINANCE, Icon: Landmark },
-  { id: "more", label: NAV.MORE, Icon: MoreHorizontal },
+  { id: "home",    label: NAV.HOME,    Icon: HomeIcon  },
+  { id: "stats",   label: NAV.STATS,   Icon: BarChart3 },
+  { id: "finance", label: NAV.FINANCE, Icon: Landmark  },
+  { id: "more",    label: NAV.MORE,    Icon: MoreHorizontal },
 ];
 
 // ── Login Screen ──────────────────────────────────────────────────────────────
@@ -131,13 +131,13 @@ export default function Home() {
   const auth = useAuth();
 
   // ── UI State ──────────────────────────────────────────────────────────────
-  const [mounted, setMounted] = useState(false);
+  const [mounted, setMounted]       = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(true);
-  const [activeTab, setActiveTab] = useState(() => {
+  const [activeTab, setActiveTab]   = useState(() => {
     if (typeof window === "undefined") return "home";
     const saved = sessionStorage.getItem("arta_last_tab");
     // Finance sub-page tidak boleh jadi landing saat refresh
-    return saved && ["home", "stats", "finance", "more"].includes(saved) ? saved : "home";
+    return saved && ["home","stats","finance","more"].includes(saved) ? saved : "home";
   });
 
   // Finance sub-page state — dikelola di sini agar tap nav Finance bisa reset
@@ -158,37 +158,37 @@ export default function Home() {
 
   // ── AI & Role ─────────────────────────────────────────────────────────────
   const [userCategories, setUserCategories] = useState([]);
-  const [aiKeywords, setAiKeywords] = useState([]);
+  const [aiKeywords,     setAiKeywords]     = useState([]);
   const [isSmartLoading, setIsSmartLoading] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [isRoleLoading, setIsRoleLoading] = useState(true);
+  const [isAdmin,        setIsAdmin]        = useState(false);
+  const [isRoleLoading,  setIsRoleLoading]  = useState(true);
 
   // ── Filter ────────────────────────────────────────────────────────────────
-  const [typeFilter, setTypeFilter] = useState("all");
-  const [categoryFilter, setCategoryFilter] = useState("Semua");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [quickTimeFilter, setQuickTimeFilter] = useState("month");
-  const [dateRange, setDateRange] = useState({ from: "", to: "" });
-  const [selectedMonth, setSelectedMonth] = useState(() => new Date().toISOString().slice(0, 7));
-  const [recentMonths] = useState(getRecentMonths);
-  const [allBudgets, setAllBudgets] = useState([]);
+  const [typeFilter,       setTypeFilter]       = useState("all");
+  const [categoryFilter,   setCategoryFilter]   = useState("Semua");
+  const [searchQuery,      setSearchQuery]      = useState("");
+  const [quickTimeFilter,  setQuickTimeFilter]  = useState("month");
+  const [dateRange,        setDateRange]        = useState({ from: "", to: "" });
+  const [selectedMonth,    setSelectedMonth]    = useState(() => new Date().toISOString().slice(0, 7));
+  const [recentMonths]                          = useState(getRecentMonths);
+  const [allBudgets,       setAllBudgets]       = useState([]);
 
   // ── Goals ─────────────────────────────────────────────────────────────────
-  const [goals, setGoals] = useState([]);
-  const [isNewGoalOpen, setIsNewGoalOpen] = useState(false);
-  const [newGoalData, setNewGoalData] = useState({ name: "", target: "", current: "" });
-  const [goalDeleteModal, setGoalDeleteModal] = useState({ isOpen: false, goalId: null, goalName: "" });
-  const [activeGoalInput, setActiveGoalInput] = useState(null);
-  const [flexibleSavingsAmt, setFlexibleSavingsAmt] = useState("");
+  const [goals,               setGoals]               = useState([]);
+  const [isNewGoalOpen,       setIsNewGoalOpen]       = useState(false);
+  const [newGoalData,         setNewGoalData]         = useState({ name: "", target: "", current: "" });
+  const [goalDeleteModal,     setGoalDeleteModal]     = useState({ isOpen: false, goalId: null, goalName: "" });
+  const [activeGoalInput,     setActiveGoalInput]     = useState(null);
+  const [flexibleSavingsAmt,  setFlexibleSavingsAmt]  = useState("");
 
   // ── Modals ────────────────────────────────────────────────────────────────
-  const [editTrxModal, setEditTrxModal] = useState({ isOpen: false, data: null });
-  const [newWalletName, setNewWalletName] = useState("");
-  const [isNewWalletOpen, setIsNewWalletOpen] = useState(false);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [itemToDelete, setItemToDelete] = useState(null);
-  const [goalDeleteOpen, setGoalDeleteOpen] = useState(false);
-  const [addUserModal, setAddUserModal] = useState({ isOpen: false, username: "", password: "", isLoading: false });
+  const [editTrxModal,       setEditTrxModal]       = useState({ isOpen: false, data: null });
+  const [newWalletName,      setNewWalletName]      = useState("");
+  const [isNewWalletOpen,    setIsNewWalletOpen]    = useState(false);
+  const [isDeleteModalOpen,  setIsDeleteModalOpen]  = useState(false);
+  const [itemToDelete,       setItemToDelete]       = useState(null);
+  const [goalDeleteOpen,     setGoalDeleteOpen]     = useState(false);
+  const [addUserModal,       setAddUserModal]       = useState({ isOpen: false, username: "", password: "", isLoading: false });
 
   // ── Notification ──────────────────────────────────────────────────────────
   const [notification, setNotification] = useState({ isOpen: false, message: "", type: "error" });
@@ -229,8 +229,8 @@ export default function Home() {
         supabase.from("ai_keywords").select("*").eq("user_id", uid),
         supabase.from("profiles").select("role").eq("id", uid).single(),
       ]);
-      if (cats) setUserCategories(cats);
-      if (keys) setAiKeywords(keys);
+      if (cats)    setUserCategories(cats);
+      if (keys)    setAiKeywords(keys);
       if (profile?.role === "admin") setIsAdmin(true);
       setIsRoleLoading(false);
     };
@@ -245,7 +245,7 @@ export default function Home() {
     if (typeof window === "undefined") return;
     const saved = localStorage.getItem("arta_active_wallet");
     if (saved) {
-      try { setActiveWallet(JSON.parse(saved)); } catch { }
+      try { setActiveWallet(JSON.parse(saved)); } catch {}
     }
   }, []);
 
@@ -305,8 +305,8 @@ export default function Home() {
     return transactionsThisMonth.filter(t => {
       // Tipe
       const matchType = typeFilter === "all" ? true
-        : typeFilter === "income" ? t.type === "income"
-          : (t.type === "expense" || !t.type);
+        : typeFilter === "income"  ? t.type === "income"
+        : (t.type === "expense" || !t.type);
 
       // Kategori
       const matchCat = categoryFilter === "Semua" ? true : t.category === categoryFilter;
@@ -321,12 +321,12 @@ export default function Home() {
       let matchTime = true;
       if (t.created_at) {
         const trxDate = new Date(t.created_at);
-        const today = new Date();
+        const today   = new Date();
 
         if (dateRange.from && dateRange.to) {
           // Custom date range override quick filter
           const from = new Date(dateRange.from);
-          const to = new Date(dateRange.to);
+          const to   = new Date(dateRange.to);
           to.setHours(23, 59, 59, 999);
           matchTime = trxDate >= from && trxDate <= to;
         } else if (quickTimeFilter === "today") {
@@ -357,7 +357,7 @@ export default function Home() {
     const d = editTrxModal.data;
     if (!d?.note || !d?.amount || !d?.category) return;
     try {
-      await updateTransaction(d.id, d.note, d.category, d.amount);
+      await updateTransaction(d.id, d.note, d.category, d.amount, d.created_at);
       setEditTrxModal(p => ({ ...p, isOpen: false }));
       showNotification("Transaksi berhasil diubah!", "success");
     } catch (err) {
@@ -385,27 +385,27 @@ export default function Home() {
     setIsSmartLoading(true);
     try {
       const clean = command.toLowerCase().trim();
-      let type = "expense";
-      let text = clean;
+      let type    = "expense";
+      let text    = clean;
 
-      if (clean.startsWith("in ")) { type = "income"; text = clean.slice(3).trim(); }
+      if (clean.startsWith("in "))  { type = "income";  text = clean.slice(3).trim(); }
       else if (clean.startsWith("out ")) { text = clean.slice(4).trim(); }
 
       const match = text.match(/^([\d.,]+(?:k|rb|ribu|m|jt|juta)?)\s+(.+)$/i);
       if (!match) { showNotification("Format salah! Cth: 50k makan siang", "error"); return; }
 
       const amount = parseFlexibleNumber(match[1]);
-      let rawNote = match[2].trim();
+      let rawNote  = match[2].trim();
       let category = "Lainnya";
       let finalNote = rawNote;
 
       // Kategori manual: "50k makan pos Makanan"
       if (rawNote.includes(" pos ")) {
-        const parts = rawNote.split(" pos ");
-        finalNote = parts[0].trim();
-        const targetCat = parts[1].trim();
-        category = targetCat.charAt(0).toUpperCase() + targetCat.slice(1);
-        const coreKw = finalNote.replace(/(beli|bayar|untuk)\s*/g, "").trim();
+        const parts      = rawNote.split(" pos ");
+        finalNote        = parts[0].trim();
+        const targetCat  = parts[1].trim();
+        category         = targetCat.charAt(0).toUpperCase() + targetCat.slice(1);
+        const coreKw     = finalNote.replace(/(beli|bayar|untuk)\s*/g, "").trim();
         // Simpan keyword di background
         setTimeout(async () => {
           try {
@@ -415,12 +415,12 @@ export default function Home() {
               catData = newCat;
             }
             if (catData) await supabase.from("ai_keywords").insert([{ category_id: catData.id, keyword: coreKw }]);
-          } catch { }
+          } catch {}
         }, 500);
       } else {
         // AI auto-classify
         const coreWords = rawNote.replace(/(beli|bayar|untuk)\s*/g, "").trim().split(" ");
-        const matched = aiKeywords.find(k => coreWords.includes(k.keyword));
+        const matched   = aiKeywords.find(k => coreWords.includes(k.keyword));
         if (matched) {
           const cat = userCategories.find(c => c.id === matched.category_id);
           if (cat) category = cat.name;
@@ -443,8 +443,8 @@ export default function Home() {
     const { data, error } = await supabase
       .from("savings_goals")
       .insert([{
-        name: newGoalData.name,
-        target_amount: parseFlexibleNumber(newGoalData.target),
+        name:           newGoalData.name,
+        target_amount:  parseFlexibleNumber(newGoalData.target),
         current_amount: parseFlexibleNumber(newGoalData.current),
       }])
       .select();
@@ -474,7 +474,7 @@ export default function Home() {
     e.preventDefault();
     setAddUserModal(p => ({ ...p, isLoading: true }));
     try {
-      const res = await fetch("/api/admin/add-user", {
+      const res  = await fetch("/api/admin/add-user", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username: addUserModal.username, password: addUserModal.password }),
@@ -543,7 +543,7 @@ export default function Home() {
           <main className="w-full max-w-lg mx-auto min-h-screen flex flex-col items-center justify-center p-6">
             <div className="w-full bg-white dark:bg-[#121827] p-8 rounded-[32px] shadow-2xl border border-gray-100 dark:border-gray-800 text-center">
               <div className="w-16 h-16 bg-blue-500/10 rounded-2xl flex items-center justify-center mx-auto mb-5">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-500"><rect width="20" height="14" x="2" y="5" rx="2" /><path d="M2 10h20" /></svg>
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-500"><rect width="20" height="14" x="2" y="5" rx="2"/><path d="M2 10h20"/></svg>
               </div>
               <h2 className="text-xl font-black text-gray-900 dark:text-white tracking-tight mb-2">
                 Buat Rekening Pertama
@@ -626,13 +626,13 @@ export default function Home() {
               balance={balance}
               filteredIncome={filteredIncome}
               filteredExpense={filteredExpense}
-              typeFilter={typeFilter} setTypeFilter={setTypeFilter}
-              searchQuery={searchQuery} setSearchQuery={setSearchQuery}
+              typeFilter={typeFilter}         setTypeFilter={setTypeFilter}
+              searchQuery={searchQuery}       setSearchQuery={setSearchQuery}
               categoryFilter={categoryFilter} setCategoryFilter={setCategoryFilter}
               dynamicCategories={dynamicCategories}
               quickTimeFilter={quickTimeFilter} setQuickTimeFilter={setQuickTimeFilter}
-              dateRange={dateRange} setDateRange={setDateRange}
-              selectedMonth={selectedMonth} setSelectedMonth={setSelectedMonth}
+              dateRange={dateRange}           setDateRange={setDateRange}
+              selectedMonth={selectedMonth}   setSelectedMonth={setSelectedMonth}
               recentMonths={recentMonths}
               filteredTransactions={filteredTransactions}
               transactions={transactions}
@@ -797,11 +797,13 @@ export default function Home() {
                   <Icon
                     size={22}
                     strokeWidth={isActive ? 2.5 : 1.7}
-                    className={`relative z-10 transition-colors duration-200 ${isActive ? "text-blue-500" : "text-gray-400 dark:text-gray-500"
-                      }`}
+                    className={`relative z-10 transition-colors duration-200 ${
+                      isActive ? "text-blue-500" : "text-gray-400 dark:text-gray-500"
+                    }`}
                   />
-                  <span className={`text-[9px] font-black uppercase tracking-widest transition-colors duration-200 ${isActive ? "text-blue-500" : "text-gray-400 dark:text-gray-500"
-                    }`}>
+                  <span className={`text-[9px] font-black uppercase tracking-widest transition-colors duration-200 ${
+                    isActive ? "text-blue-500" : "text-gray-400 dark:text-gray-500"
+                  }`}>
                     {label}
                   </span>
                 </motion.button>
