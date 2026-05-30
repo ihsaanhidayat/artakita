@@ -1,5 +1,5 @@
 "use client";
-import { memo, useState, useEffect } from "react";
+import { memo, useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Edit3, Check, Plus, CreditCard } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
@@ -63,7 +63,7 @@ const WalletModal = memo(function WalletModal({
     fetchInfo();
   }, [isOpen, wallets, session?.user?.id]);
 
-  const handleSaveEdit = async (walletId) => {
+  const handleSaveEdit = useCallback(async (walletId) => {
     if (!editName.trim()) return;
     setIsSaving(true);
     const { error } = await supabase.from("wallets").update({ name: editName.trim() }).eq("id", walletId);
@@ -78,7 +78,7 @@ const WalletModal = memo(function WalletModal({
     }
     setIsSaving(false);
     setEditingId(null);
-  };
+  }, [editName, activeWallet, onSelectWallet, onNotify]);
 
   return (
     <AnimatePresence>

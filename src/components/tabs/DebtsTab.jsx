@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useCallback, memo } from "react";
+import { useState, useEffect, useCallback, useMemo, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabaseClient";
 import { parseFlexibleNumber, fmt, fmtShort } from "@/lib/utils";
@@ -591,23 +591,38 @@ const DebtsTabComponent = memo(function DebtsTab({ activeWallet, balance }) {
   }, [activeTab, debts, fetchPayments]);
 
   // ── Derived ────────────────────────────────────────────────────────────────
-  const activeDebts     = debts.filter(d => d.type === "debt"       && d.status !== "paid");
-  const activeReceive   = debts.filter(d => d.type === "receivable" && d.status !== "paid");
-  const paidDebts       = debts.filter(d => d.status === "paid");
-
-  const totalDebt       = activeDebts.reduce((a,c) => a + Number(c.amount), 0);
-  const totalReceive    = activeReceive.reduce((a,c) => a + Number(c.amount), 0);
-
-  const currentList     = activeTab === "debt"       ? sortDebts(activeDebts,   sortKey)
-                        : activeTab === "receivable" ? sortDebts(activeReceive, sortKey)
-                        : sortDebts(paidDebts, sortKey);
-
-  const emptyMsg        = activeTab === "debt"       ? DEBT.EMPTY_DEBT
-                        : activeTab === "receivable" ? DEBT.EMPTY_REC
-                        : DEBT.EMPTY_PAID;
+  const activeDebts = useMemo(() =>
+    debts.filter(d => d.type === "debt" && d.status !== "paid"),
+    [debts]
+  );
+  const activeReceive = useMemo(() =>
+    debts.filter(d => d.type === "receivable" && d.status !== "paid"),
+    [debts]
+  );
+  const paidDebts = useMemo(() =>
+    debts.filter(d => d.status === "paid"),
+    [debts]
+  );
+  const totalDebt = useMemo(() =>
+    activeDebts.reduce((a,c) => a + Number(c.amount), 0),
+    [activeDebts]
+  );
+  const totalReceive = useMemo(() =>
+    activeReceive.reduce((a,c) => a + Number(c.amount), 0),
+    [activeReceive]
+  );
+  const currentList = useMemo(() =>
+    activeTab === "debt"       ? sortDebts(activeDebts,   sortKey)
+    : activeTab === "receivable" ? sortDebts(activeReceive, sortKey)
+    : sortDebts(paidDebts, sortKey),
+    [activeTab, activeDebts, activeReceive, paidDebts, sortKey]
+  );
+  const emptyMsg = activeTab === "debt"       ? DEBT.EMPTY_DEBT
+                 : activeTab === "receivable" ? DEBT.EMPTY_REC
+                 : DEBT.EMPTY_PAID;
 
   // ── Add ────────────────────────────────────────────────────────────────────
-  const handleAdd = async e => {
+  const handleAdd = useCallback(async e => {
     e.preventDefault();
     if (!formData.person.trim() || !formData.amount) return;
     const parsed = Math.abs(parseFlexibleNumber(formData.amount));
@@ -633,15 +648,15 @@ const DebtsTabComponent = memo(function DebtsTab({ activeWallet, balance }) {
     } else {
       showToast("Gagal: " + error.message);
     }
-  };
+  }, [formData, activeWallet, fetchDebts, showToast]);
 
-  const confirmDelete = async () => {
+  const confirmDelete = useCallback(async () => {
     if (deleteModal.id) {
       await supabase.from("debts").delete().eq("id", deleteModal.id);
       fetchDebts();
     }
     setDeleteModal({ show: false, id: null });
-  };
+  }, [deleteModal, fetchDebts]);
 
   const currentSortLabel = SORT_OPTIONS.find(s => s.key === sortKey)?.label || DEBT.SORT;
 

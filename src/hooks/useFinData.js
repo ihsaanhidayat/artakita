@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useOfflineSync } from "@/hooks/useOfflineSync";
 
@@ -112,9 +112,11 @@ export const useFinData = (walletId) => {
   }, [allTransactions]);
 
   // ── Pagination di React side ──────────────────────────────────────────────
-  // transactions = slice dari allTransactions untuk ditampilkan di HomeTab
-  const transactions = allTransactions.slice(0, displayCount);
-  const hasMore      = displayCount < allTransactions.length;
+  const transactions = useMemo(() =>
+    allTransactions.slice(0, displayCount),
+    [allTransactions, displayCount]
+  );
+  const hasMore = displayCount < allTransactions.length;
   const loadMore     = useCallback(() => {
     setDisplayCount(prev => prev + DISPLAY_PAGE);
   }, []);

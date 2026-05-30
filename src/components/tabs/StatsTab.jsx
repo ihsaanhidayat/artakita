@@ -1,5 +1,5 @@
 "use client";
-import { memo, useState, useEffect, useCallback } from "react";
+import { memo, useState, useEffect, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabaseClient";
 import { parseFlexibleNumber, fmt, CHART_COLORS } from "@/lib/utils";
@@ -118,39 +118,41 @@ const StatsTab = memo(function StatsTab({
   useEffect(() => { fetchBudgets(); }, [fetchBudgets]);
 
   // ── Derived ────────────────────────────────────────────────────────────────
-  const safe     = Array.isArray(filteredTransactions) ? filteredTransactions : [];
-  const expenses = safe.filter(t => t?.type === "expense" || !t?.type);
-  const incomes  = safe.filter(t => t?.type === "income");
+  const { statsData, totalExpense, totalIncome, health } = useMemo(() => {
+    const safe     = Array.isArray(filteredTransactions) ? filteredTransactions : [];
+    const expenses = safe.filter(t => t?.type === "expense" || !t?.type);
+    const incomes  = safe.filter(t => t?.type === "income");
+    const data     = expenses.reduce((acc, t) => {
+      const amt = Number(t.amount) || 0;
+      const cat = t.category || "Lainnya";
+      const ex  = acc.find(i => i.name === cat);
+      if (ex) ex.value += amt;
+      else acc.push({ name: cat, value: amt });
+      return acc;
+    }, []).sort((a, b) => b.value - a.value);
+    const totExp = data.reduce((s, i) => s + i.value, 0);
+    const totInc = incomes.reduce((s, t) => s + (Number(t.amount) || 0), 0);
+    return { statsData: data, totalExpense: totExp, totalIncome: totInc, health: getHealth(totExp, totInc) };
+  }, [filteredTransactions]);
 
-  const statsData = expenses.reduce((acc, t) => {
-    const amt = Number(t.amount) || 0;
-    const cat = t.category || "Lainnya";
-    const ex  = acc.find(i => i.name === cat);
-    if (ex) ex.value += amt;
-    else acc.push({ name: cat, value: amt });
-    return acc;
-  }, []).sort((a, b) => b.value - a.value);
-
-  const totalExpense = statsData.reduce((s, i) => s + i.value, 0);
-  const totalIncome  = incomes.reduce((s, t) => s + (Number(t.amount) || 0), 0);
-  const health       = getHealth(totalExpense, totalIncome);
-
-  // Unfiltered untuk alokasi
-  const allExpenses  = (Array.isArray(transactions) ? transactions : []).filter(t => t?.type === "expense" || !t?.type);
-  const allStatsData = allExpenses.reduce((acc, t) => {
-    const amt = Number(t.amount) || 0;
-    const cat = t.category || "Lainnya";
-    const ex  = acc.find(i => i.name === cat);
-    if (ex) ex.value += amt;
-    else acc.push({ name: cat, value: amt });
-    return acc;
-  }, []).sort((a, b) => b.value - a.value);
-
-  const allCategories  = allStatsData.map(s => s.name);
-  const budgetMap      = budgets.reduce((acc, b) => { acc[b.category_name] = Number(b.limit_amount); return acc; }, {});
-  const totalAlokasi   = allCategories.reduce((sum, cat) => sum + (budgetMap[cat] || 0), 0);
-  const sisaSaldo      = balance - totalAlokasi;
-  const isOver         = totalAlokasi > balance;
+  const { allStatsData, allCategories, budgetMap, totalAlokasi, sisaSaldo, isOver } = useMemo(() => {
+    const allExp = (Array.isArray(transactions) ? transactions : []).filter(t => t?.type === "expense" || !t?.type);
+    const allData = allExp.reduce((acc, t) => {
+      const amt = Number(t.amount) || 0;
+      const cat = t.category || "Lainnya";
+      const ex  = acc.find(i => i.name === cat);
+      if (ex) ex.value += amt;
+      else acc.push({ name: cat, value: amt });
+      return acc;
+    }, []).sort((a, b) => b.value - a.value);
+    const cats   = allData.map(s => s.name);
+    const bMap   = budgets.reduce((acc, b) => { acc[b.category_name] = Number(b.limit_amount); return acc; }, {});
+    const totAlok = cats.reduce((sum, cat) => sum + (bMap[cat] || 0), 0);
+    return {
+      allStatsData: allData, allCategories: cats, budgetMap: bMap,
+      totalAlokasi: totAlok, sisaSaldo: balance - totAlok, isOver: totAlok > balance
+    };
+  }, [transactions, budgets, balance]);
 
   // ── Save budget ────────────────────────────────────────────────────────────
   const handleSaveBudget = useCallback(async () => {

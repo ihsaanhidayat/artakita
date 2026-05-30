@@ -1,5 +1,5 @@
 "use client";
-import { memo, useState } from "react";
+import { memo, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Moon, Sun, Wallet,
@@ -145,7 +145,7 @@ const HomeTabComponent = memo(function HomeTab({
   const [viewerUrl,   setViewerUrl]   = useState(null);
   const [viewerLabel, setViewerLabel] = useState("");
 
-  const clearDateRange = () => setDateRange({ from: "", to: "" });
+  const clearDateRange = useCallback(() => setDateRange({ from: "", to: "" }), [setDateRange]);
 
   return (
     <motion.div

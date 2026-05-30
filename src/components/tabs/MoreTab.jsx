@@ -1,5 +1,5 @@
 "use client";
-import { memo, useState } from "react";
+import { memo, useState, useCallback, useMemo } from "react";
 import { useLanguage } from "@/hooks/useLanguage";
 import GuideTab from "@/components/tabs/GuideTab";
 import { motion, AnimatePresence } from "framer-motion";
@@ -228,7 +228,7 @@ const MoreTab = memo(function MoreTab({
   const { lang, setLang, isID } = useLanguage();
 
   // ── Export XLSX ────────────────────────────────────────────────────────────
-  const handleExport = async () => {
+  const handleExport = useCallback(async () => {
     if (!transactions?.length) {
       onNotify?.("Tidak ada data untuk diekspor.", "error");
       return;
@@ -319,10 +319,10 @@ const MoreTab = memo(function MoreTab({
     } finally {
       setIsExporting(false);
     }
-  };
+  }, [transactions, activeWallet, onNotify]);
 
   // ── Menu items ─────────────────────────────────────────────────────────────
-  const menuGroups = [
+  const menuGroups = useMemo(() => [
     {
       items: [
         {
@@ -368,7 +368,7 @@ const MoreTab = memo(function MoreTab({
         },
       ],
     },
-  ];
+  ], [isAdmin, isExporting, handleExport, setSubPage]);
 
   return (
     <>
