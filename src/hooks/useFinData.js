@@ -2,27 +2,32 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useOfflineSync } from "@/hooks/useOfflineSync";
 
-const DISPLAY_PAGE = 10; // Jumlah yang ditampilkan per halaman di UI
+const DISPLAY_PAGE = 10;
 
 export const useFinData = (walletId) => {
-  const [allTransactions, setAllTransactions] = useState([]); // SEMUA transaksi
+  const [allTransactions, setAllTransactions] = useState([]);
   const [balance,         setBalance]         = useState(0);
   const [totalIncome,     setTotalIncome]      = useState(0);
   const [totalExpense,    setTotalExpense]     = useState(0);
   const [isLoading,       setIsLoading]        = useState(false);
   const [displayCount,    setDisplayCount]     = useState(DISPLAY_PAGE);
 
-  const {
-    isOnline, isSyncing, pendingCount,
-    addToQueue, syncQueue, updateCache, getCached,
-  } = useOfflineSync(walletId, () => {
-    fetchAll();
-  });
+  const { isOnline, isSyncing, pendingCount, addToQueue, syncQueue, updateCache, getCached } =
+    useOfflineSync(walletId, () => { fetchAll(); });
 
-  // ── Fetch SEMUA transaksi sekaligus ──────────────────────────────────────
-  // Tidak pakai pagination DB — pagination dilakukan di React side
-  // Alasan: filter bulan/kategori/search dilakukan di client,
-  // jadi harus punya semua data agar filter akurat
+  // ── Recalculate balance ───────────────────────────────────────────────────
+  const recalc = useCallback((data) => {
+    let inc = 0, exp = 0;
+    (data || []).forEach(t => {
+      if (t.type === "income") inc += Number(t.amount);
+      else exp += Number(t.amount);
+    });
+    setTotalIncome(inc);
+    setTotalExpense(exp);
+    setBalance(inc - exp);
+  }, []);
+
+  // ── Fetch ALL transaksi sekaligus ─────────────────────────────────────────
   const fetchAll = useCallback(async () => {
     if (!walletId) return;
     setIsLoading(true);
@@ -32,126 +37,88 @@ export const useFinData = (walletId) => {
         .select("id, wallet_id, user_id, note, amount, category, type, created_at, receipt_url, debt_id")
         .eq("wallet_id", walletId)
         .order("created_at", { ascending: false });
-
       if (error) throw error;
-
       const result = data || [];
       setAllTransactions(result);
-      updateCache(result.slice(0, 100)); // cache 100 terbaru
-
-      // Hitung saldo
-      let inc = 0, exp = 0;
-      result.forEach(t => {
-        if (t.type === "income") inc += Number(t.amount);
-        else exp += Number(t.amount);
-      });
-      setTotalIncome(inc);
-      setTotalExpense(exp);
-      setBalance(inc - exp);
-
+      recalc(result);
+      updateCache(result.slice(0, 100));
     } catch (err) {
-      console.error("Gagal fetch transaksi:", err.message);
-      // Fallback ke cache saat offline
+      console.error("Gagal fetch:", err.message);
       if (!navigator.onLine) {
         const cached = getCached();
-        if (cached.length > 0) setAllTransactions(cached);
+        if (cached.length) { setAllTransactions(cached); recalc(cached); }
       }
     } finally {
       setIsLoading(false);
     }
-  }, [walletId, updateCache, getCached]);
+  }, [walletId, updateCache, getCached, recalc]);
 
-  // ── Initial load ──────────────────────────────────────────────────────────
+  // ── Load saat wallet berubah ──────────────────────────────────────────────
   useEffect(() => {
     if (!walletId) return;
-    // Tampilkan cache dulu agar tidak blank
     const cached = getCached();
-    if (cached.length > 0) setAllTransactions(cached);
+    if (cached.length) { setAllTransactions(cached); recalc(cached); }
     fetchAll();
-    setDisplayCount(DISPLAY_PAGE); // reset display saat wallet berubah
+    setDisplayCount(DISPLAY_PAGE);
   }, [walletId]);
 
   // ── Realtime subscription ─────────────────────────────────────────────────
   useEffect(() => {
     if (!walletId) return;
     const channel = supabase
-      .channel(`transactions:wallet:${walletId}`)
+      .channel(`trx:${walletId}`)
       .on("postgres_changes", {
         event: "*", schema: "public", table: "transactions",
         filter: `wallet_id=eq.${walletId}`,
-      }, (payload) => {
-        if (payload.eventType === "INSERT") {
-          setAllTransactions(prev => {
-            const exists = prev.some(t => t.id === payload.new.id);
-            return exists ? prev : [payload.new, ...prev];
-          });
-        } else if (payload.eventType === "UPDATE") {
-          setAllTransactions(prev => prev.map(t =>
-            t.id === payload.new.id ? payload.new : t
-          ));
-        } else if (payload.eventType === "DELETE") {
-          setAllTransactions(prev => prev.filter(t => t.id !== payload.old.id));
-        }
-        // Recalculate balance
-        fetchAll();
-      })
+      }, () => { fetchAll(); })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [walletId]);
+  }, [walletId, fetchAll]);
 
-  // ── Recalculate balance saat allTransactions berubah ─────────────────────
-  useEffect(() => {
-    let inc = 0, exp = 0;
-    allTransactions.forEach(t => {
-      if (t.type === "income") inc += Number(t.amount);
-      else exp += Number(t.amount);
-    });
-    setTotalIncome(inc);
-    setTotalExpense(exp);
-    setBalance(inc - exp);
-  }, [allTransactions]);
-
-  // ── Pagination di React side ──────────────────────────────────────────────
+  // ── Pagination React-side ─────────────────────────────────────────────────
   const transactions = useMemo(() =>
     allTransactions.slice(0, displayCount),
     [allTransactions, displayCount]
   );
-  const hasMore = displayCount < allTransactions.length;
-  const loadMore     = useCallback(() => {
-    setDisplayCount(prev => prev + DISPLAY_PAGE);
-  }, []);
+  const hasMore  = displayCount < allTransactions.length;
+  const loadMore = useCallback(() => setDisplayCount(p => p + DISPLAY_PAGE), []);
 
   // ── Add ───────────────────────────────────────────────────────────────────
-  const addTransaction = useCallback(async (note, amount, category, trxType = "expense", receiptFile = null) => {
+  const addTransaction = useCallback(async (
+    note, amount, category, trxType = "expense",
+    receiptFile = null, customDate = null
+  ) => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) throw new Error("Sesi login kedaluwarsa.");
 
     const payload = {
-      user_id:   session.user.id,
-      wallet_id: walletId,
-      note:      note.trim(),
-      amount:    Number(amount),
+      user_id:    session.user.id,
+      wallet_id:  walletId,
+      note:       note.trim(),
+      amount:     Number(amount),
       category,
-      type:      trxType,
+      type:       trxType,
+      // Backdate support
+      ...(customDate ? { created_at: new Date(customDate).toISOString() } : {}),
     };
 
+    // Offline → queue
     if (!navigator.onLine) {
       const pending = addToQueue(payload);
       const optimistic = { ...payload, id: pending.id, created_at: pending.createdAt, _pending: true };
       setAllTransactions(prev => [optimistic, ...prev]);
+      recalc([optimistic, ...allTransactions]);
       return optimistic;
     }
 
     const { data, error } = await supabase
-      .from("transactions")
-      .insert([payload])
-      .select()
-      .single();
+      .from("transactions").insert([payload]).select().single();
 
     if (error) {
       const pending = addToQueue(payload);
       const optimistic = { ...payload, id: pending.id, created_at: pending.createdAt, _pending: true };
       setAllTransactions(prev => [optimistic, ...prev]);
+      recalc([optimistic, ...allTransactions]);
       return optimistic;
     }
 
@@ -163,17 +130,18 @@ export const useFinData = (walletId) => {
         const url  = await uploadPhoto(receiptFile, path, supabase);
         await supabase.from("transactions").update({ receipt_url: url }).eq("id", data.id);
         data.receipt_url = url;
-      } catch (uploadErr) {
-        console.error("Upload receipt gagal:", uploadErr.message);
+      } catch (err) {
+        console.error("Upload foto gagal:", err.message);
       }
     }
 
     setAllTransactions(prev => {
-      const exists = prev.some(t => t.id === data.id);
-      return exists ? prev : [data, ...prev];
+      const updated = [data, ...prev.filter(t => t.id !== data.id)];
+      recalc(updated);
+      return updated;
     });
     return data;
-  }, [walletId, addToQueue]);
+  }, [walletId, allTransactions, addToQueue, recalc]);
 
   // ── Delete ────────────────────────────────────────────────────────────────
   const deleteTransaction = useCallback(async (id) => {
@@ -186,14 +154,18 @@ export const useFinData = (walletId) => {
       }
     }
     if (trx?._pending) {
-      const queue = JSON.parse(localStorage.getItem("arta_pending_queue") || "[]");
-      localStorage.setItem("arta_pending_queue", JSON.stringify(queue.filter(q => q.id !== id)));
+      const q = JSON.parse(localStorage.getItem("arta_pending_queue") || "[]");
+      localStorage.setItem("arta_pending_queue", JSON.stringify(q.filter(x => x.id !== id)));
     } else {
       const { error } = await supabase.from("transactions").delete().eq("id", id);
       if (error) throw error;
     }
-    setAllTransactions(prev => prev.filter(t => t.id !== id));
-  }, [allTransactions]);
+    setAllTransactions(prev => {
+      const updated = prev.filter(t => t.id !== id);
+      recalc(updated);
+      return updated;
+    });
+  }, [allTransactions, recalc]);
 
   // ── Update ────────────────────────────────────────────────────────────────
   const updateTransaction = useCallback(async (id, note, category, amount) => {
@@ -202,17 +174,24 @@ export const useFinData = (walletId) => {
       .update({ note, category, amount: Number(amount) })
       .eq("id", id);
     if (error) throw error;
-    setAllTransactions(prev =>
-      prev.map(t => t.id === id ? { ...t, note, category, amount: Number(amount) } : t)
-    );
-  }, []);
+    setAllTransactions(prev => {
+      const updated = prev.map(t =>
+        t.id === id ? { ...t, note, category, amount: Number(amount) } : t
+      );
+      recalc(updated);
+      return updated;
+    });
+  }, [recalc]);
 
   return {
     balance, totalIncome, totalExpense,
-    transactions,        // slice untuk ditampilkan
-    allTransactions,     // semua, untuk filter bulan/stats
+    transactions,
+    allTransactions,
     isLoading, hasMore, loadMore,
     isOnline, isSyncing, pendingCount,
+    addTransaction,
+    deleteTransaction,
+    updateTransaction,
     syncQueue,
     refetch: fetchAll,
   };

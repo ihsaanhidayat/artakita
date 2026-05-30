@@ -396,7 +396,7 @@ export default function Home() {
     }
   }, [addWallet, newWalletName, showNotification]);
 
-  const handleSmartSubmit = useCallback(async (command, receiptFile = null) => {
+  const handleSmartSubmit = useCallback(async (command, receiptFile = null, customDate = null) => {
     if (!command.trim()) return;
     setIsSmartLoading(true);
     try {
@@ -444,7 +444,7 @@ export default function Home() {
       }
 
       finalNote = finalNote.charAt(0).toUpperCase() + finalNote.slice(1);
-      await addTransaction(finalNote, amount, category, type, receiptFile);
+      await addTransaction(finalNote, amount, category, type, receiptFile, customDate);
       showNotification("Transaksi berhasil dicatat! ✨", "success");
     } catch (err) {
       showNotification("Gagal: " + err.message, "error");
@@ -557,11 +557,12 @@ export default function Home() {
     <div className={appClass}>
       <main className="w-full max-w-lg mx-auto relative min-h-screen overflow-x-hidden bg-white dark:bg-black">
 
-        {/* ── Toast ── */}
+        {/* ── Toast — posisi bawah dekat QuickCommandBar ── */}
         <Toast
           isOpen={notification.isOpen}
           message={notification.message}
           type={notification.type}
+          position="bottom"
         />
 
         {/* ── Force Password Modal ── */}

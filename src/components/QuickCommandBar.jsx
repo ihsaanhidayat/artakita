@@ -1,205 +1,351 @@
 "use client";
-import { useState, useRef, useCallback, memo } from "react";
+import { useState, useRef, useCallback, memo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, X, TerminalSquare, Mic, Camera } from "lucide-react";
+import { Send, X, TerminalSquare, Mic, Camera, Calendar, ArrowDownCircle, ArrowUpCircle } from "lucide-react";
+import { parseFlexibleNumber } from "@/lib/utils";
 
-/**
- * QuickCommandBar
- * ───────────────
- * Komponen input cepat untuk mencatat transaksi.
- * Semua logic parsing ada di handleSmartSubmit (page.js).
- * Komponen ini hanya UI — tidak ada query Supabase di sini.
- *
- * Format:
- *   50k makan siang        → expense
- *   in 5jt gaji            → income
- *   200k belanja pos Makan → expense + buat/belajar kategori
- */
+// ── Konstanta ─────────────────────────────────────────────────────────────────
+const TODAY = () => new Date().toISOString().slice(0, 10);
+
+// ── Preview parser — baca command dan tampilkan preview ───────────────────────
+const parsePreview = (text) => {
+  if (!text || text.length < 2) return null;
+  const clean = text.toLowerCase().trim();
+  let type     = "expense";
+  let rest     = clean;
+
+  if (clean.startsWith("in "))  { type = "income";  rest = clean.slice(3).trim(); }
+  else if (clean.startsWith("out ")) { rest = clean.slice(4).trim(); }
+
+  // Hapus bagian "pos Kategori" dari preview
+  let category = null;
+  if (rest.includes(" pos ")) {
+    const parts = rest.split(" pos ");
+    rest     = parts[0].trim();
+    category = parts[1]?.trim();
+    category = category ? category.charAt(0).toUpperCase() + category.slice(1) : null;
+  }
+
+  const match = rest.match(/^([\d.,]+(?:k|rb|ribu|m|jt|juta)?)\s*(.*)$/i);
+  if (!match) return null;
+
+  const amount = parseFlexibleNumber(match[1]);
+  const note   = match[2]?.trim() || "";
+  if (!amount || amount <= 0) return null;
+
+  return { type, amount, note: note.charAt(0).toUpperCase() + note.slice(1) || "-", category };
+};
+
+// ── Format Rupiah ringkas ─────────────────────────────────────────────────────
+const fmtRp = (n) => {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(n % 1_000_000 === 0 ? 0 : 1)}jt`;
+  if (n >= 1_000)     return `${(n / 1_000).toFixed(0)}k`;
+  return String(n);
+};
+
+// ── Date label ────────────────────────────────────────────────────────────────
+const dateLabel = (d) => {
+  if (!d || d === TODAY()) return "Hari ini";
+  const diff = Math.round((new Date(TODAY()) - new Date(d)) / 86400000);
+  if (diff === 1) return "Kemarin";
+  if (diff > 1)  return new Date(d).toLocaleDateString("id-ID", { day:"numeric", month:"short" });
+  return d;
+};
+
+// ── Main ──────────────────────────────────────────────────────────────────────
 const QuickCommandBar = memo(function QuickCommandBar({
   onProcessTransaction,
   isSmartLoading = false,
 }) {
-  const [isActive,    setIsActive]    = useState(false);
+  const [isOpen,      setIsOpen]      = useState(false);
   const [inputText,   setInputText]   = useState("");
   const [isListening, setIsListening] = useState(false);
   const [photoFile,   setPhotoFile]   = useState(null);
+  const [selDate,     setSelDate]     = useState(TODAY());
+  const [showCal,     setShowCal]     = useState(false);
   const recognitionRef = useRef(null);
   const fileInputRef   = useRef(null);
+  const inputRef       = useRef(null);
 
+  const preview = parsePreview(inputText);
+
+  // Focus input saat terbuka
+  useEffect(() => {
+    if (isOpen) setTimeout(() => inputRef.current?.focus(), 80);
+  }, [isOpen]);
+
+  // Reset saat tutup
   const close = useCallback(() => {
-    if (isListening && recognitionRef.current) recognitionRef.current.stop();
-    setIsActive(false);
+    recognitionRef.current?.stop();
+    setIsOpen(false);
     setIsListening(false);
     setInputText("");
     setPhotoFile(null);
-  }, [isListening]);
+    setSelDate(TODAY());
+    setShowCal(false);
+  }, []);
 
   // ── Submit ────────────────────────────────────────────────────────────────
   const handleSubmit = useCallback((e) => {
     e?.preventDefault();
     const text = inputText.trim();
-    if (!text || text === "Mendengarkan...") return;
-    if (typeof onProcessTransaction !== "function") {
-      console.error("onProcessTransaction is not a function");
-      return;
-    }
-    // Kirim text + foto ke page.js untuk diproses
-    onProcessTransaction(text, photoFile || null);
+    if (!text || isSmartLoading) return;
+    if (typeof onProcessTransaction !== "function") return;
+    // Kirim text + foto + tanggal custom
+    const dateToSend = selDate !== TODAY() ? selDate : null;
+    onProcessTransaction(text, photoFile || null, dateToSend);
     setInputText("");
     setPhotoFile(null);
-    setIsActive(false);
-  }, [inputText, photoFile, onProcessTransaction]);
+    setSelDate(TODAY());
+    setShowCal(false);
+    setIsOpen(false);
+  }, [inputText, photoFile, selDate, isSmartLoading, onProcessTransaction]);
 
-  // ── Speech recognition ────────────────────────────────────────────────────
-  const toggleListening = useCallback(() => {
+  // ── Voice ─────────────────────────────────────────────────────────────────
+  const toggleVoice = useCallback(() => {
     if (isListening) {
       recognitionRef.current?.stop();
       setIsListening(false);
-      setInputText("");
       return;
     }
-
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) {
-      console.warn("Browser tidak mendukung perintah suara."); return;
-      return;
-    }
-
-    const rec = new SR();
+    if (!SR) return;
+    const rec  = new SR();
     recognitionRef.current = rec;
-    rec.lang = "id-ID";
+    rec.lang           = "id-ID";
     rec.interimResults = false;
-    rec.maxAlternatives = 1;
-
-    rec.onstart  = () => { setIsListening(true);  setInputText("Mendengarkan..."); };
+    rec.onstart  = () => { setIsListening(true); setInputText("Mendengarkan..."); };
     rec.onresult = (e) => { setIsListening(false); setInputText(e.results[0][0].transcript); };
-    rec.onerror  = (e) => {
-      setIsListening(false);
-      setInputText("");
-      // Mikrofon tidak diizinkan — user perlu allow di browser settings
-    };
-    rec.onend = () => setIsListening(false);
+    rec.onerror  = () => { setIsListening(false); setInputText(""); };
+    rec.onend    = ()  => setIsListening(false);
     rec.start();
   }, [isListening]);
 
-  // ── Photo attach ──────────────────────────────────────────────────────────
-  const handlePhotoSelect = useCallback((e) => {
+  // ── Photo ─────────────────────────────────────────────────────────────────
+  const handlePhoto = useCallback((e) => {
     const file = e.target.files?.[0];
     if (file) setPhotoFile(file);
   }, []);
 
   return (
     <>
-      {/* Backdrop */}
+      {/* ── Backdrop ── */}
       <AnimatePresence>
-        {isActive && (
+        {isOpen && (
           <motion.div
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            key="backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
             className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40"
             onClick={close}
           />
         )}
       </AnimatePresence>
 
-      {/* Bar */}
-      <motion.form
-        layout
-        onSubmit={handleSubmit}
-        transition={{ type: "spring", stiffness: 350, damping: 28 }}
-        className={`fixed z-50 flex items-center bg-blue-600 shadow-2xl shadow-blue-600/40 overflow-hidden transition-all ${
-          isActive
-            ? "bottom-[82px] left-4 right-4 max-w-[calc(512px-2rem)] mx-auto h-14 rounded-2xl px-2"
-            : "bottom-[82px] right-4 w-14 h-14 rounded-full cursor-pointer justify-center"
-        }`}
-      >
-        {!isActive ? (
-          <button
-            type="button"
-            onClick={() => setIsActive(true)}
-            className="w-full h-full flex items-center justify-center"
-          >
-            <TerminalSquare size={22} className="text-white" />
-          </button>
-        ) : (
-          <>
-            {/* Close */}
-            <button
-              type="button"
-              onClick={close}
-              className="p-2.5 text-white/60 hover:text-white transition-colors shrink-0"
+      {/* ── Container fixed bottom ── */}
+      <div className="fixed bottom-[82px] right-4 z-50" style={{ maxWidth: "calc(512px - 2rem)" }}>
+
+        <AnimatePresence mode="wait" initial={false}>
+
+          {/* ── CLOSED — FAB button ── */}
+          {!isOpen && (
+            <motion.button
+              key="fab"
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1,   opacity: 1 }}
+              exit={{ scale: 0.8,   opacity: 0 }}
+              transition={{ type: "spring", stiffness: 400, damping: 25 }}
+              onClick={() => setIsOpen(true)}
+              className="w-14 h-14 bg-blue-600 hover:bg-blue-500 active:scale-90 rounded-full shadow-2xl shadow-blue-600/40 flex items-center justify-center transition-colors"
             >
-              <X size={18} />
-            </button>
+              <TerminalSquare size={22} className="text-white" />
+            </motion.button>
+          )}
 
-            {/* Input */}
-            <input
-              autoFocus
-              type="text"
-              value={inputText}
-              onChange={e => setInputText(e.target.value)}
-              onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleSubmit(); } }}
-              placeholder="50k makan  |  in 5jt gaji"
-              className="flex-1 bg-transparent outline-none text-sm font-bold text-white placeholder-white/40 px-1 h-full min-w-0"
-            />
+          {/* ── OPEN — expanded panel ── */}
+          {isOpen && (
+            <motion.div
+              key="panel"
+              initial={{ opacity: 0, y: 16, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0,  scale: 1 }}
+              exit={{ opacity: 0,  y: 12, scale: 0.97 }}
+              transition={{ type: "spring", stiffness: 420, damping: 32 }}
+              className="w-[calc(100vw-2rem)] max-w-[480px] bg-[#1a1f2e] border border-white/10 rounded-3xl shadow-2xl shadow-black/40 overflow-hidden"
+              style={{ right: 0, position: "absolute", bottom: 0 }}
+            >
+              {/* Preview bar */}
+              <AnimatePresence>
+                {preview && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.18 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="flex items-center gap-2 px-4 pt-3 pb-1">
+                      {preview.type === "income"
+                        ? <ArrowDownCircle size={13} className="text-green-400 shrink-0" />
+                        : <ArrowUpCircle  size={13} className="text-red-400 shrink-0" />
+                      }
+                      <span className={`font-black text-sm ${preview.type === "income" ? "text-green-400" : "text-red-400"}`}>
+                        Rp {fmtRp(preview.amount)}
+                      </span>
+                      {preview.note && (
+                        <span className="text-white/60 text-xs truncate">{preview.note}</span>
+                      )}
+                      {preview.category && (
+                        <span className="text-[9px] font-black text-blue-400 bg-blue-500/15 border border-blue-500/20 px-2 py-0.5 rounded-full uppercase tracking-widest shrink-0">
+                          {preview.category}
+                        </span>
+                      )}
+                      {selDate !== TODAY() && (
+                        <span className="text-[9px] font-black text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full shrink-0 ml-auto">
+                          {dateLabel(selDate)}
+                        </span>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
-            {/* Photo indicator */}
-            {photoFile && (
-              <div className="flex items-center gap-1 bg-white/20 px-2 py-1 rounded-lg shrink-0">
-                <span className="text-[9px] font-black text-white truncate max-w-[60px]">
-                  {photoFile.name.slice(0, 8)}...
-                </span>
+              {/* Date picker row */}
+              <AnimatePresence>
+                {showCal && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.18 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="px-4 pb-2 pt-2 flex items-center gap-3">
+                      <label className="text-[9px] font-black text-white/40 uppercase tracking-widest shrink-0">
+                        Tanggal
+                      </label>
+                      <input
+                        type="date"
+                        value={selDate}
+                        max={TODAY()}
+                        onChange={e => setSelDate(e.target.value || TODAY())}
+                        className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-white outline-none focus:border-blue-500 transition-colors"
+                      />
+                      {selDate !== TODAY() && (
+                        <button
+                          type="button"
+                          onClick={() => setSelDate(TODAY())}
+                          className="text-[9px] font-black text-white/40 hover:text-white uppercase tracking-widest transition-colors"
+                        >
+                          Reset
+                        </button>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Input row */}
+              <form onSubmit={handleSubmit} className="flex items-center gap-1 px-3 py-3">
+                {/* Close */}
                 <button
                   type="button"
-                  onClick={() => setPhotoFile(null)}
-                  className="text-white/70 hover:text-white"
+                  onClick={close}
+                  className="p-2 text-white/30 hover:text-white/70 transition-colors shrink-0 rounded-xl hover:bg-white/5"
                 >
-                  <X size={10} />
+                  <X size={18} />
                 </button>
+
+                {/* Text input */}
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={inputText}
+                  onChange={e => setInputText(e.target.value)}
+                  onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleSubmit(); } }}
+                  placeholder="50k makan  |  in 5jt gaji"
+                  className="flex-1 bg-transparent outline-none text-sm font-bold text-white placeholder-white/25 h-10 min-w-0"
+                />
+
+                {/* Photo badge */}
+                {photoFile && (
+                  <div className="flex items-center gap-1 bg-white/10 px-2 py-1 rounded-lg shrink-0">
+                    <span className="text-[9px] font-bold text-white/60 max-w-[48px] truncate">
+                      {photoFile.name.slice(0, 8)}
+                    </span>
+                    <button type="button" onClick={() => setPhotoFile(null)} className="text-white/40 hover:text-red-400 transition-colors">
+                      <X size={10} />
+                    </button>
+                  </div>
+                )}
+
+                {/* Calendar toggle */}
+                <button
+                  type="button"
+                  onClick={() => setShowCal(p => !p)}
+                  className={`p-2 rounded-xl transition-all shrink-0 ${
+                    selDate !== TODAY() || showCal
+                      ? "text-amber-400 bg-amber-500/10"
+                      : "text-white/30 hover:text-white/70 hover:bg-white/5"
+                  }`}
+                >
+                  <Calendar size={17} />
+                </button>
+
+                {/* Photo */}
+                <input ref={fileInputRef} type="file" accept="image/*" capture="environment" onChange={handlePhoto} className="hidden" />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className={`p-2 rounded-xl transition-all shrink-0 ${
+                    photoFile ? "text-yellow-400 bg-yellow-500/10" : "text-white/30 hover:text-white/70 hover:bg-white/5"
+                  }`}
+                >
+                  <Camera size={17} />
+                </button>
+
+                {/* Voice */}
+                <button
+                  type="button"
+                  onClick={toggleVoice}
+                  className={`p-2 rounded-xl transition-all shrink-0 ${
+                    isListening ? "text-red-400 bg-red-500/10 animate-pulse" : "text-white/30 hover:text-white/70 hover:bg-white/5"
+                  }`}
+                >
+                  <Mic size={17} />
+                </button>
+
+                {/* Send */}
+                <button
+                  type="submit"
+                  disabled={isSmartLoading || !inputText.trim() || inputText === "Mendengarkan..."}
+                  className={`p-2 rounded-xl transition-all shrink-0 ${
+                    preview && !isSmartLoading
+                      ? "text-blue-400 bg-blue-500/15 hover:bg-blue-500/25"
+                      : "text-white/20"
+                  } disabled:opacity-30`}
+                >
+                  {isSmartLoading
+                    ? <div className="w-4 h-4 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" />
+                    : <Send size={17} />
+                  }
+                </button>
+              </form>
+
+              {/* Hint text */}
+              <div className="px-4 pb-3">
+                <p className="text-[9px] text-white/20 font-bold">
+                  <span className="text-blue-400/60">in</span> untuk pemasukan · <span className="text-amber-400/60">pos Kategori</span> untuk buat kategori
+                  {selDate !== TODAY() && (
+                    <span className="text-amber-400/60"> · backdate: {dateLabel(selDate)}</span>
+                  )}
+                </p>
               </div>
-            )}
-
-            {/* Photo attach */}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              capture="environment"
-              onChange={handlePhotoSelect}
-              className="hidden"
-            />
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className={`p-2.5 shrink-0 transition-colors ${photoFile ? "text-yellow-300" : "text-white/60 hover:text-white"}`}
-            >
-              <Camera size={18} />
-            </button>
-
-            {/* Voice */}
-            <button
-              type="button"
-              onClick={toggleListening}
-              className={`p-2.5 shrink-0 transition-all ${
-                isListening ? "text-red-300 animate-pulse scale-110" : "text-white/60 hover:text-white"
-              }`}
-            >
-              <Mic size={18} />
-            </button>
-
-            {/* Submit */}
-            <button
-              type="submit"
-              disabled={isSmartLoading || !inputText.trim()}
-              className="p-2.5 text-white/60 hover:text-white disabled:opacity-30 transition-colors shrink-0"
-            >
-              {isSmartLoading
-                ? <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                : <Send size={18} />
-              }
-            </button>
-          </>
-        )}
-      </motion.form>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </>
   );
 });
