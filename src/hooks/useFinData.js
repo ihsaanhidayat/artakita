@@ -102,24 +102,35 @@ export const useFinData = (walletId) => {
       ...(customDate ? { created_at: new Date(customDate).toISOString() } : {}),
     };
 
-    // Offline → queue
-    if (!navigator.onLine) {
-      const pending = addToQueue(payload);
-      const optimistic = { ...payload, id: pending.id, created_at: pending.createdAt, _pending: true };
-      setAllTransactions(prev => [optimistic, ...prev]);
-      recalc([optimistic, ...allTransactions]);
-      return optimistic;
+    // Langsung coba insert — jangan cek navigator.onLine karena tidak reliable
+    // Kalau gagal (network error) baru masuk offline queue
+    let data, error;
+    try {
+      const result = await supabase
+        .from("transactions").insert([payload]).select().single();
+      data  = result.data;
+      error = result.error;
+    } catch (networkErr) {
+      // Network error nyata → masuk queue
+      error = networkErr;
     }
 
-    const { data, error } = await supabase
-      .from("transactions").insert([payload]).select().single();
-
     if (error) {
-      const pending = addToQueue(payload);
-      const optimistic = { ...payload, id: pending.id, created_at: pending.createdAt, _pending: true };
-      setAllTransactions(prev => [optimistic, ...prev]);
-      recalc([optimistic, ...allTransactions]);
-      return optimistic;
+      // Cek apakah ini network error atau error lain (validasi, RLS, dll)
+      const isNetworkErr = !navigator.onLine ||
+        error?.message?.includes("fetch") ||
+        error?.message?.includes("network") ||
+        error?.message?.includes("Failed to fetch");
+
+      if (isNetworkErr) {
+        const pending = addToQueue(payload);
+        const optimistic = { ...payload, id: pending.id, created_at: pending.createdAt, _pending: true };
+        setAllTransactions(prev => [optimistic, ...prev]);
+        recalc([optimistic, ...allTransactions]);
+        return optimistic;
+      }
+      // Error bukan network (RLS, validasi) → throw agar ditangani UI
+      throw new Error(error.message || "Gagal menyimpan transaksi");
     }
 
     // Upload foto jika ada

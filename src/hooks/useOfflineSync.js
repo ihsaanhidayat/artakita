@@ -39,14 +39,36 @@ export function useOfflineSync(walletId, onSyncComplete) {
 
   // ── Online/Offline listener ───────────────────────────────────────────────
   useEffect(() => {
-    const handleOnline  = () => { setIsOnline(true);  syncQueue(); };
-    const handleOffline = () => setIsOnline(false);
+    // Verifikasi koneksi nyata dengan ping ke Supabase
+    const verifyOnline = async () => {
+      try {
+        // Ping ringan — hanya ambil 0 rows
+        await supabase.from("profiles").select("id").limit(0);
+        setIsOnline(true);
+        void syncQueue();
+      } catch {
+        // Masih bisa false positive jika Supabase down
+        // Tapi ini lebih reliable dari navigator.onLine
+        setIsOnline(false);
+      }
+    };
+
+    const handleOnline  = () => { void verifyOnline(); };
+    // Tambah delay 2 detik sebelum declare offline
+    // Menghindari false positive saat network switching
+    let offlineTimer = null;
+    const handleOffline = () => {
+      offlineTimer = setTimeout(() => {
+        if (!navigator.onLine) setIsOnline(false);
+      }, 2000);
+    };
 
     window.addEventListener("online",  handleOnline);
     window.addEventListener("offline", handleOffline);
     return () => {
       window.removeEventListener("online",  handleOnline);
       window.removeEventListener("offline", handleOffline);
+      if (offlineTimer) clearTimeout(offlineTimer);
     };
   }, [walletId]);
 
