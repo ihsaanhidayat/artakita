@@ -226,13 +226,72 @@ export default function Home() {
     const fetchAll = async () => {
       const [{ data: cats }, { data: keys }, { data: profile }] = await Promise.all([
         supabase.from("user_categories").select("*").order("name", { ascending: true }),
-        supabase.from("ai_keywords").select("*").eq("user_id", uid),
+        supabase.from("ai_keywords").select("*"),
         supabase.from("profiles").select("role").eq("id", uid).single(),
       ]);
-      if (cats)    setUserCategories(cats);
-      if (keys)    setAiKeywords(keys);
+      if (cats) setUserCategories(cats);
+      if (keys) setAiKeywords(keys);
       if (profile?.role === "admin") setIsAdmin(true);
       setIsRoleLoading(false);
+
+      // ── AI Mining background — mine seluruh transaksi jika keywords sedikit ──
+      setTimeout(async () => {
+        try {
+          const { count } = await supabase
+            .from("ai_keywords").select("*", { count: "exact", head: true });
+          if ((count || 0) > 20) return; // sudah cukup, skip
+
+          const { data: trxs } = await supabase
+            .from("transactions")
+            .select("note, category, type")
+            .eq("type", "expense")
+            .not("category", "eq", "Lainnya")
+            .limit(500);
+          if (!trxs?.length) return;
+
+          const stopWords = new Set(["beli","bayar","untuk","ke","di","dari","dan","atau","dengan","yang"]);
+          const catMap    = {};
+          (cats || []).forEach(c => { catMap[c.name.toLowerCase()] = c.id; });
+
+          // Buat kategori yang belum ada
+          const uniqueCats = [...new Set(trxs.map(t => t.category).filter(Boolean))];
+          for (const catName of uniqueCats) {
+            if (!catMap[catName.toLowerCase()]) {
+              const { data: nc } = await supabase
+                .from("user_categories")
+                .upsert([{ name: catName }], { onConflict: "name", ignoreDuplicates: true })
+                .select("id, name").single();
+              if (nc) catMap[nc.name.toLowerCase()] = nc.id;
+            }
+          }
+
+          // Mining keywords
+          const toInsert = [];
+          for (const trx of trxs) {
+            const catId = catMap[trx.category?.toLowerCase()];
+            if (!catId) continue;
+            const words = (trx.note || "")
+              .toLowerCase().replace(/[^a-z0-9\s]/g, "").split(/\s+/)
+              .filter(w => w.length > 2 && !stopWords.has(w));
+            for (const word of words) {
+              toInsert.push({ category_id: catId, keyword: word });
+            }
+          }
+
+          if (toInsert.length) {
+            // Batch upsert agar tidak duplikat
+            const chunks = [];
+            for (let i = 0; i < toInsert.length; i += 50) chunks.push(toInsert.slice(i, i+50));
+            for (const chunk of chunks) {
+              await supabase.from("ai_keywords").upsert(chunk, { onConflict: "category_id,keyword", ignoreDuplicates: true });
+            }
+            const { data: freshKeys } = await supabase.from("ai_keywords").select("*");
+            if (freshKeys) setAiKeywords(freshKeys);
+          }
+        } catch (err) {
+          console.error("AI mining error:", err.message);
+        }
+      }, 2000); // delay 2 detik agar tidak blocking UI
     };
     fetchAll();
     // Fallback: jika fetch gagal, tetap lanjutkan setelah 3 detik
@@ -352,12 +411,13 @@ export default function Home() {
   );
 
   // ── Handlers ─────────────────────────────────────────────────────────────
-  const handleSaveTrxEdit = useCallback(async e => {
+  const handleSaveTrxEdit = useCallback(async (e, parsedAmount) => {
     e.preventDefault();
     const d = editTrxModal.data;
     if (!d?.note || !d?.amount || !d?.category) return;
+    const amount = parsedAmount || d.amount;
     try {
-      await updateTransaction(d.id, d.note, d.category, d.amount, d.created_at);
+      await updateTransaction(d.id, d.note, d.category, amount, d.created_at);
       setEditTrxModal(p => ({ ...p, isOpen: false }));
       showNotification("Transaksi berhasil diubah!", "success");
     } catch (err) {
@@ -380,6 +440,75 @@ export default function Home() {
     }
   }, [addWallet, newWalletName, showNotification]);
 
+  // ── AI classify helper ────────────────────────────────────────────────────
+  const classifyCategory = useCallback((note) => {
+    // Bersihkan stop words, split jadi kata-kata
+    const stopWords = new Set(["beli","bayar","untuk","ke","di","dari","dan","atau","dengan","yang"]);
+    const words     = note.toLowerCase()
+      .replace(/[^a-z0-9\s]/g, "")
+      .split(/\s+/)
+      .filter(w => w.length > 1 && !stopWords.has(w));
+
+    // Cari match di aiKeywords — case insensitive, partial match
+    for (const word of words) {
+      const match = aiKeywords.find(k =>
+        k.keyword && word.includes(k.keyword.toLowerCase())
+      );
+      if (match) {
+        const cat = userCategories.find(c => c.id === match.category_id);
+        if (cat) return cat.name;
+      }
+    }
+    // Coba reverse — keyword contains word
+    for (const word of words) {
+      const match = aiKeywords.find(k =>
+        k.keyword && k.keyword.toLowerCase().includes(word)
+      );
+      if (match) {
+        const cat = userCategories.find(c => c.id === match.category_id);
+        if (cat) return cat.name;
+      }
+    }
+    return null;
+  }, [aiKeywords, userCategories]);
+
+  // ── Simpan keyword ke DB background ───────────────────────────────────────
+  const learnKeyword = useCallback(async (note, categoryName) => {
+    try {
+      const stopWords = new Set(["beli","bayar","untuk","ke","di","dari","dan","atau","dengan","yang"]);
+      const words     = note.toLowerCase()
+        .replace(/[^a-z0-9\s]/g, "")
+        .split(/\s+/)
+        .filter(w => w.length > 2 && !stopWords.has(w));
+
+      // Pastikan kategori ada
+      let { data: catData } = await supabase
+        .from("user_categories").select("id").ilike("name", categoryName).single();
+      if (!catData) {
+        const { data: newCat } = await supabase
+          .from("user_categories")
+          .insert([{ name: categoryName }])
+          .select("id").single();
+        catData = newCat;
+      }
+      if (!catData) return;
+
+      // Upsert semua kata — tidak duplikat
+      for (const word of words) {
+        await supabase.from("ai_keywords").upsert(
+          [{ category_id: catData.id, keyword: word }],
+          { onConflict: "category_id,keyword", ignoreDuplicates: true }
+        );
+      }
+
+      // Refresh keywords di state
+      const { data: fresh } = await supabase.from("ai_keywords").select("*");
+      if (fresh) setAiKeywords(fresh);
+    } catch (err) {
+      console.error("learnKeyword error:", err.message);
+    }
+  }, []);
+
   const handleSmartSubmit = useCallback(async (command, receiptFile = null, customDate = null) => {
     if (!command.trim()) return;
     setIsSmartLoading(true);
@@ -394,37 +523,23 @@ export default function Home() {
       const match = text.match(/^([\d.,]+(?:k|rb|ribu|m|jt|juta)?)\s+(.+)$/i);
       if (!match) { showNotification("Format salah! Cth: 50k makan siang", "error"); return; }
 
-      const amount = parseFlexibleNumber(match[1]);
-      let rawNote  = match[2].trim();
-      let category = "Lainnya";
-      let finalNote = rawNote;
+      const amount   = parseFlexibleNumber(match[1]);
+      let rawNote    = match[2].trim();
+      let category   = "Lainnya";
+      let finalNote  = rawNote;
 
-      // Kategori manual: "50k makan pos Makanan"
-      if (rawNote.includes(" pos ")) {
-        const parts      = rawNote.split(" pos ");
-        finalNote        = parts[0].trim();
-        const targetCat  = parts[1].trim();
+      // Manual pos — case insensitive
+      const posIdx = rawNote.toLowerCase().indexOf(" pos ");
+      if (posIdx !== -1) {
+        finalNote        = rawNote.slice(0, posIdx).trim();
+        const targetCat  = rawNote.slice(posIdx + 5).trim();
         category         = targetCat.charAt(0).toUpperCase() + targetCat.slice(1);
-        const coreKw     = finalNote.replace(/(beli|bayar|untuk)\s*/g, "").trim();
-        // Simpan keyword di background
-        setTimeout(async () => {
-          try {
-            let { data: catData } = await supabase.from("user_categories").select("id").eq("name", category).single();
-            if (!catData) {
-              const { data: newCat } = await supabase.from("user_categories").insert([{ name: category }]).select("id").single();
-              catData = newCat;
-            }
-            if (catData) await supabase.from("ai_keywords").insert([{ category_id: catData.id, keyword: coreKw }]);
-          } catch {}
-        }, 500);
+        // Belajar di background
+        setTimeout(() => learnKeyword(finalNote, category), 300);
       } else {
-        // AI auto-classify
-        const coreWords = rawNote.replace(/(beli|bayar|untuk)\s*/g, "").trim().split(" ");
-        const matched   = aiKeywords.find(k => coreWords.includes(k.keyword));
-        if (matched) {
-          const cat = userCategories.find(c => c.id === matched.category_id);
-          if (cat) category = cat.name;
-        }
+        // AI auto-classify — cari dari keywords
+        const found = classifyCategory(rawNote);
+        if (found) category = found;
       }
 
       finalNote = finalNote.charAt(0).toUpperCase() + finalNote.slice(1);
@@ -435,7 +550,7 @@ export default function Home() {
     } finally {
       setIsSmartLoading(false);
     }
-  }, [aiKeywords, userCategories, addTransaction, showNotification]);
+  }, [classifyCategory, learnKeyword, addTransaction, showNotification]);
 
   const handleAddGoal = useCallback(async e => {
     e.preventDefault();
@@ -630,7 +745,6 @@ export default function Home() {
               searchQuery={searchQuery}       setSearchQuery={setSearchQuery}
               categoryFilter={categoryFilter} setCategoryFilter={setCategoryFilter}
               dynamicCategories={dynamicCategories}
-              quickTimeFilter={quickTimeFilter} setQuickTimeFilter={setQuickTimeFilter}
               dateRange={dateRange}           setDateRange={setDateRange}
               selectedMonth={selectedMonth}   setSelectedMonth={setSelectedMonth}
               recentMonths={recentMonths}

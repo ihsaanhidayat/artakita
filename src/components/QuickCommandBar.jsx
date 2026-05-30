@@ -71,7 +71,10 @@ const QuickCommandBar = memo(function QuickCommandBar({
 
   // Focus input saat terbuka
   useEffect(() => {
-    if (isOpen) setTimeout(() => inputRef.current?.focus(), 80);
+    if (isOpen) {
+      // Fokus langsung — tidak ada delay agar keyboard muncul segera
+      requestAnimationFrame(() => inputRef.current?.focus());
+    }
   }, [isOpen]);
 
   // Reset saat tutup
@@ -139,7 +142,8 @@ const QuickCommandBar = memo(function QuickCommandBar({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.1 }}
             className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40"
-            onClick={close}
+            onMouseDown={e => e.preventDefault()}
+            onClick={() => { inputRef.current?.focus(); }}
           />
         )}
       </AnimatePresence>

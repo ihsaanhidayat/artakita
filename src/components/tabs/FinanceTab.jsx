@@ -60,19 +60,19 @@ const ROWS = [
 // ── Breadcrumb — tap "Keuangan" kembali ke rows ───────────────────────────────
 const Breadcrumb = memo(function Breadcrumb({ subLabel, onBack }) {
   return (
-    <div className="flex items-center gap-2 pt-8 px-3 pb-3 flex-none">
+    <div className="flex items-center justify-between pt-8 px-3 pb-3 flex-none">
+      <div className="flex items-center gap-2">
+        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+          {subLabel}
+        </span>
+      </div>
       <button
         onClick={onBack}
-        className="flex items-center gap-1.5 text-blue-500 hover:text-blue-400 transition-colors"
+        className="flex items-center gap-1.5 text-blue-500 hover:text-blue-400 active:scale-95 transition-all bg-blue-500/10 border border-blue-500/20 px-3 py-1.5 rounded-xl"
       >
-        <span className="text-[10px] font-black uppercase tracking-widest">
-          {FINANCE.TITLE}
-        </span>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+        <span className="text-[9px] font-black uppercase tracking-widest">{FINANCE.TITLE}</span>
       </button>
-      <span className="text-gray-300 dark:text-gray-700 text-[10px]">›</span>
-      <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-        {subLabel}
-      </span>
     </div>
   );
 });

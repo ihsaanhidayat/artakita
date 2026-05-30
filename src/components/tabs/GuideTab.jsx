@@ -356,15 +356,15 @@ const GuideTab = memo(function GuideTab({ onBack }) {
       <div className="w-full max-w-lg mx-auto pt-8 px-3 pb-32">
 
         {/* Breadcrumb */}
-        <div className="flex items-center gap-2 mb-6">
+        <div className="flex items-center justify-between mb-6">
+          <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Panduan</span>
           <button
             onClick={onBack}
-            className="flex items-center gap-1.5 text-blue-500 hover:text-blue-400 transition-colors"
+            className="flex items-center gap-1.5 text-blue-500 hover:text-blue-400 active:scale-95 transition-all bg-blue-500/10 border border-blue-500/20 px-3 py-1.5 rounded-xl"
           >
-            <span className="text-[10px] font-black uppercase tracking-widest">Lainnya</span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+            <span className="text-[9px] font-black uppercase tracking-widest">Lainnya</span>
           </button>
-          <span className="text-gray-300 dark:text-gray-700 text-[10px]">›</span>
-          <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Panduan</span>
         </div>
 
         {/* Header */}

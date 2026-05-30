@@ -1,120 +1,272 @@
 "use client";
-import { memo, useState, useCallback } from "react";
+import { memo, useState, useCallback, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Moon, Sun, Wallet,
   ArrowUpCircle, ArrowDownCircle,
   Coffee, ShoppingBag, Receipt, Layers,
-  Edit3, Trash2, Search, X, Eye, Loader2,
-  Calendar, ChevronDown
+  Edit3, Trash2, Eye, EyeOff, Loader2,
+  SlidersHorizontal, X, ChevronDown, Camera, Image
 } from "lucide-react";
-import PhotoViewer   from "@/components/PhotoViewer";
-import BudgetAlert   from "@/components/BudgetAlert";
+import PhotoViewer from "@/components/PhotoViewer";
+import BudgetAlert from "@/components/BudgetAlert";
 import { formatDateTime, fmt } from "@/lib/utils";
 import { HOME } from "@/lib/constants";
+import { supabase } from "@/lib/supabaseClient";
+import { uploadPhoto } from "@/lib/imageUtils";
 
-// ── Category icon helper ──────────────────────────────────────────────────────
 const getCatIcon = (cat) => {
   switch (cat) {
-    case "Makan":   return <Coffee  size={17} />;
+    case "Makan": return <Coffee size={17} />;
     case "Belanja": return <ShoppingBag size={17} />;
     case "Tagihan": return <Receipt size={17} />;
-    default:        return <Layers  size={17} />;
+    default: return <Layers size={17} />;
   }
 };
 
-// ── Skeleton ──────────────────────────────────────────────────────────────────
 const Skeleton = () => (
-  <div className="flex items-center justify-between p-4 rounded-[24px] bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-800/40 mb-3 animate-pulse">
-    <div className="flex items-center gap-4">
-      <div className="w-12 h-12 rounded-2xl bg-gray-200 dark:bg-gray-800" />
+  <div className="flex items-center justify-between p-4 rounded-[22px] bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-800/40 mb-2.5 animate-pulse">
+    <div className="flex items-center gap-3">
+      <div className="w-11 h-11 rounded-2xl bg-gray-200 dark:bg-gray-800" />
       <div className="space-y-2">
-        <div className="h-3.5 w-32 bg-gray-200 dark:bg-gray-800 rounded-full" />
-        <div className="h-2 w-20 bg-gray-200 dark:bg-gray-800 rounded-full" />
+        <div className="h-3 w-28 bg-gray-200 dark:bg-gray-800 rounded-full" />
+        <div className="h-2 w-16 bg-gray-200 dark:bg-gray-800 rounded-full" />
       </div>
     </div>
-    <div className="h-4 w-24 bg-gray-200 dark:bg-gray-800 rounded-full" />
+    <div className="h-4 w-20 bg-gray-200 dark:bg-gray-800 rounded-full" />
   </div>
 );
 
-// ── Date Range Picker ─────────────────────────────────────────────────────────
-const DateRangePicker = memo(function DateRangePicker({ dateRange, setDateRange, onClear }) {
+// ── Collapsed Search+Filter Bar ───────────────────────────────────────────────
+const FilterBar = memo(function FilterBar({
+  searchQuery, setSearchQuery,
+  categoryFilter, setCategoryFilter,
+  dateRange, setDateRange,
+  dynamicCategories,
+}) {
   const [isOpen, setIsOpen] = useState(false);
+  const [showCats, setShowCats] = useState(false);
 
-  const hasRange = dateRange.from && dateRange.to;
+  const activeCount = [
+    searchQuery.length > 0,
+    categoryFilter !== "Semua",
+    dateRange.from && dateRange.to,
+  ].filter(Boolean).length;
+
+  const clearAll = useCallback(() => {
+    setSearchQuery("");
+    setCategoryFilter("Semua");
+    setDateRange({ from: "", to: "" });
+  }, [setSearchQuery, setCategoryFilter, setDateRange]);
 
   return (
-    <div className="mb-3">
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className={`w-full flex items-center justify-between px-4 py-2.5 rounded-2xl border text-[10px] font-black uppercase tracking-widest transition-all ${
-          hasRange
-            ? "bg-blue-500/10 border-blue-500/30 text-blue-500"
-            : "bg-gray-50 dark:bg-gray-900/40 border-gray-200 dark:border-gray-800 text-gray-400"
-        }`}
-      >
-        <div className="flex items-center gap-2">
-          <Calendar size={13} />
-          {hasRange
-            ? `${new Date(dateRange.from).toLocaleDateString("id-ID")} — ${new Date(dateRange.to).toLocaleDateString("id-ID")}`
-            : HOME.FILTER_CUSTOM
-          }
-        </div>
-        <div className="flex items-center gap-2">
-          {hasRange && (
-            <span
-              onClick={e => { e.stopPropagation(); onClear(); setIsOpen(false); }}
-              className="text-red-400 hover:text-red-600 p-0.5"
-            >
-              <X size={12} />
+    <div className="mb-4">
+      {/* Collapsed pill */}
+      {!isOpen ? (
+        <button
+          onClick={() => setIsOpen(true)}
+          className={`w-full flex items-center justify-between px-4 py-2.5 rounded-2xl border transition-all ${activeCount > 0
+              ? "bg-blue-500/10 border-blue-500/30 text-blue-500"
+              : "bg-gray-50 dark:bg-[#121827] border-gray-200 dark:border-gray-800 text-gray-400"
+            }`}
+        >
+          <div className="flex items-center gap-2">
+            <SlidersHorizontal size={14} />
+            <span className="text-[10px] font-black uppercase tracking-widest">
+              Cari & Filter
             </span>
+            {activeCount > 0 && (
+              <span className="text-[8px] font-black bg-blue-500 text-white w-4 h-4 rounded-full flex items-center justify-center">
+                {activeCount}
+              </span>
+            )}
+          </div>
+          <ChevronDown size={14} />
+        </button>
+      ) : (
+        <motion.div
+          initial={{ opacity: 0, y: -4 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.14, ease: "easeOut" }}
+          className="bg-gray-50 dark:bg-[#121827] border border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden"
+        >
+          {/* Single row filter */}
+          <div className="flex items-center gap-2 px-3 py-2">
+            {/* Search */}
+            <input
+              autoFocus
+              type="text"
+              placeholder="Cari..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="flex-1 min-w-0 bg-transparent outline-none text-sm font-bold text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600"
+            />
+
+            {/* Category dropdown */}
+            <div className="relative shrink-0">
+              <button
+                onClick={() => setShowCats(!showCats)}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${categoryFilter !== "Semua"
+                    ? "bg-blue-500 text-white"
+                    : "bg-gray-200 dark:bg-gray-800 text-gray-500 dark:text-gray-400"
+                  }`}
+              >
+                {categoryFilter === "Semua" ? "Semua" : categoryFilter}
+                <ChevronDown size={10} />
+              </button>
+              <AnimatePresence>
+                {showCats && (
+                  <>
+                    <motion.div
+                      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                      className="fixed inset-0 z-20"
+                      onClick={() => setShowCats(false)}
+                    />
+                    <motion.div
+                      initial={{ opacity: 0, y: 4, scale: 0.97 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 4, scale: 0.97 }}
+                      transition={{ duration: 0.12 }}
+                      className="absolute right-0 top-full mt-1.5 bg-white dark:bg-[#121827] border border-gray-100 dark:border-gray-800 rounded-2xl shadow-xl z-30 py-1.5 min-w-[120px] max-h-48 overflow-y-auto no-scrollbar"
+                    >
+                      {dynamicCategories.map(cat => (
+                        <button
+                          key={cat}
+                          onClick={() => { setCategoryFilter(cat); setShowCats(false); }}
+                          className={`w-full text-left px-4 py-2 text-xs font-bold transition-colors ${categoryFilter === cat
+                              ? "text-blue-500 bg-blue-500/8"
+                              : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/40"
+                            }`}
+                        >
+                          {cat}
+                        </button>
+                      ))}
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Date range */}
+            <input
+              type="date"
+              value={dateRange.from}
+              onChange={e => setDateRange(p => ({ ...p, from: e.target.value }))}
+              className="w-[96px] bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-[9px] font-bold rounded-xl px-2 py-1.5 outline-none border-none focus:ring-1 focus:ring-blue-500 shrink-0"
+            />
+            <span className="text-gray-300 dark:text-gray-700 text-xs shrink-0">–</span>
+            <input
+              type="date"
+              value={dateRange.to}
+              min={dateRange.from}
+              onChange={e => setDateRange(p => ({ ...p, to: e.target.value }))}
+              className="w-[96px] bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-[9px] font-bold rounded-xl px-2 py-1.5 outline-none border-none focus:ring-1 focus:ring-blue-500 shrink-0"
+            />
+
+            {/* Close / Clear */}
+            <button
+              onClick={() => { setIsOpen(false); setShowCats(false); }}
+              className="p-1.5 text-gray-400 hover:text-red-500 transition-colors shrink-0"
+            >
+              <X size={14} />
+            </button>
+          </div>
+
+          {/* Clear all jika ada filter aktif */}
+          {activeCount > 0 && (
+            <button
+              onClick={clearAll}
+              className="w-full text-center py-1.5 border-t border-gray-100 dark:border-gray-800 text-[9px] font-black text-red-400 hover:text-red-500 uppercase tracking-widest transition-colors"
+            >
+              Hapus Semua Filter
+            </button>
           )}
-          <motion.div animate={{ rotate: isOpen ? 180 : 0 }} transition={{ duration: 0.2 }}>
-            <ChevronDown size={13} />
-          </motion.div>
-        </div>
+        </motion.div>
+      )}
+    </div>
+  );
+});
+
+// ── Foto inline upload untuk card transaksi ───────────────────────────────────
+const FotoInline = memo(function FotoInline({ trxId, userId, hasPhoto, onPhotoAdded }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const camRef = useRef(null);
+  const galRef = useRef(null);
+
+  const handleFile = useCallback(async (file) => {
+    if (!file) return;
+    setIsOpen(false);
+    setIsUploading(true);
+    try {
+      const { uploadPhoto: upload } = await import("@/lib/imageUtils");
+      const path = `receipts/${userId}/${trxId}.jpg`;
+      const url = await upload(file, path, supabase);
+      await supabase.from("transactions").update({ receipt_url: url }).eq("id", trxId);
+      onPhotoAdded?.(trxId, url);
+    } catch (err) {
+      console.error("Upload:", err.message);
+    } finally {
+      setIsUploading(false);
+    }
+  }, [trxId, userId, onPhotoAdded]);
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => !hasPhoto && setIsOpen(p => !p)}
+        disabled={isUploading}
+        className={`p-1.5 rounded-lg transition-all ${hasPhoto
+            ? "text-violet-500 bg-violet-500/10 hover:bg-violet-500/20"
+            : isUploading
+              ? "text-blue-400 animate-pulse"
+              : "text-gray-300 dark:text-gray-700 hover:text-gray-500"
+          }`}
+        title={hasPhoto ? "Lihat foto" : "Upload foto nota"}
+      >
+        {isUploading
+          ? <Loader2 size={11} className="animate-spin" />
+          : hasPhoto
+            ? <Eye size={11} />
+            : <EyeOff size={11} />
+        }
       </button>
 
+      {/* 2 pill pilihan kamera/galeri */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.2 }}
-            className="overflow-hidden"
+            initial={{ opacity: 0, scale: 0.9, y: -4 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: -4 }}
+            transition={{ duration: 0.1 }}
+            className="absolute bottom-full right-0 mb-1.5 flex gap-1.5 z-20"
           >
-            <div className="grid grid-cols-2 gap-2 pt-2">
-              <div>
-                <label className="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 ml-1">
-                  {HOME.DATE_FROM}
-                </label>
-                <input
-                  type="date"
-                  value={dateRange.from}
-                  onChange={e => setDateRange(p => ({ ...p, from: e.target.value }))}
-                  className="w-full bg-gray-50 dark:bg-[#121827] border border-gray-200 dark:border-gray-800 rounded-xl py-2 px-3 text-xs font-bold text-gray-900 dark:text-white outline-none focus:border-blue-500 transition-all"
-                />
-              </div>
-              <div>
-                <label className="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 ml-1">
-                  {HOME.DATE_TO}
-                </label>
-                <input
-                  type="date"
-                  value={dateRange.to}
-                  min={dateRange.from}
-                  onChange={e => {
-                    setDateRange(p => ({ ...p, to: e.target.value }));
-                    setIsOpen(false);
-                  }}
-                  className="w-full bg-gray-50 dark:bg-[#121827] border border-gray-200 dark:border-gray-800 rounded-xl py-2 px-3 text-xs font-bold text-gray-900 dark:text-white outline-none focus:border-blue-500 transition-all"
-                />
-              </div>
-            </div>
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 z-10"
+              onClick={() => setIsOpen(false)}
+            />
+            <button
+              onClick={() => camRef.current?.click()}
+              className="relative z-20 flex items-center gap-1 px-2.5 py-1.5 bg-[#1a1f2e] border border-white/10 text-white rounded-xl text-[9px] font-black uppercase tracking-widest shadow-lg whitespace-nowrap"
+            >
+              <Camera size={10} /> Kamera
+            </button>
+            <button
+              onClick={() => galRef.current?.click()}
+              className="relative z-20 flex items-center gap-1 px-2.5 py-1.5 bg-[#1a1f2e] border border-white/10 text-white rounded-xl text-[9px] font-black uppercase tracking-widest shadow-lg whitespace-nowrap"
+            >
+              <Image size={10} /> Galeri
+            </button>
           </motion.div>
         )}
       </AnimatePresence>
+
+      <input ref={camRef} type="file" accept="image/*" capture="environment"
+        onChange={e => handleFile(e.target.files?.[0])} className="hidden" />
+      <input ref={galRef} type="file" accept="image/*"
+        onChange={e => handleFile(e.target.files?.[0])} className="hidden" />
     </div>
   );
 });
@@ -123,15 +275,13 @@ const DateRangePicker = memo(function DateRangePicker({ dateRange, setDateRange,
 const HomeTabComponent = memo(function HomeTab({
   isDarkMode, setIsDarkMode,
   activeWallet, onOpenWalletModal,
-  balance,
-  filteredIncome, filteredExpense,
-  typeFilter,      setTypeFilter,
-  searchQuery,     setSearchQuery,
-  categoryFilter,  setCategoryFilter,
+  balance, filteredIncome, filteredExpense,
+  typeFilter, setTypeFilter,
+  searchQuery, setSearchQuery,
+  categoryFilter, setCategoryFilter,
   dynamicCategories,
-  quickTimeFilter, setQuickTimeFilter,
-  dateRange,       setDateRange,
-  selectedMonth,   setSelectedMonth,
+  dateRange, setDateRange,
+  selectedMonth, setSelectedMonth,
   recentMonths,
   filteredTransactions,
   transactions,
@@ -141,11 +291,15 @@ const HomeTabComponent = memo(function HomeTab({
   hasMore, loadMore, isLoading,
   isOnline, pendingCount, isSyncing,
   onEditTransaction, onDeleteTransaction,
+  session,
 }) {
-  const [viewerUrl,   setViewerUrl]   = useState(null);
+  const [viewerUrl, setViewerUrl] = useState(null);
   const [viewerLabel, setViewerLabel] = useState("");
+  const [photoMap, setPhotoMap] = useState({}); // { trxId: url }
 
-  const clearDateRange = useCallback(() => setDateRange({ from: "", to: "" }), [setDateRange]);
+  const handlePhotoAdded = useCallback((trxId, url) => {
+    setPhotoMap(p => ({ ...p, [trxId]: url }));
+  }, []);
 
   return (
     <motion.div
@@ -153,23 +307,18 @@ const HomeTabComponent = memo(function HomeTab({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      transition={{ duration: 0.15 }}
+      transition={{ duration: 0.12 }}
       className="pt-8 px-3 h-[100dvh] w-full flex flex-col overflow-hidden"
     >
       {/* ── Header ── */}
       <div className="flex-none">
         <div className="flex justify-between items-center mb-5">
-          {/* Kiri: judul + nama dompet */}
           <div>
-            <h1 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight">
-              ArtaKita.
-            </h1>
+            <h1 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight">ArtaKita.</h1>
             <p className="text-xs font-bold text-blue-600 dark:text-blue-400 tracking-[0.15em] uppercase mt-0.5">
               {activeWallet?.name}
             </p>
           </div>
-
-          {/* Kanan: dark toggle + wallet icon */}
           <div className="flex items-center gap-2">
             <button
               onClick={() => setIsDarkMode(!isDarkMode)}
@@ -187,52 +336,43 @@ const HomeTabComponent = memo(function HomeTab({
         </div>
 
         {/* ── Balance Card ── */}
-        <div className="bg-white dark:bg-[#121827] rounded-[32px] p-6 shadow-2xl shadow-blue-500/10 border border-gray-100 dark:border-gray-800/60 mb-5">
+        <div className="bg-white dark:bg-[#121827] rounded-[32px] p-6 shadow-xl shadow-blue-500/8 border border-gray-100 dark:border-gray-800/60 mb-4">
           <p className="text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.3em] mb-2">
             {HOME.TOTAL_BALANCE}
           </p>
-          <div className="flex items-baseline gap-2 mb-5">
+          <div className="flex items-baseline gap-2 mb-4">
             <span className="text-2xl font-bold text-gray-300 dark:text-gray-700">Rp</span>
             <span className="text-5xl font-black text-gray-900 dark:text-white tracking-tighter">
               {balance.toLocaleString("id-ID")}
             </span>
           </div>
 
-          {/* Budget Alert */}
           <BudgetAlert budgets={allBudgets} transactions={transactionsThisMonth} />
 
-          {/* Offline strip */}
           {(!isOnline || pendingCount > 0) && (
-            <div className={`flex items-center gap-2 px-3 py-2 rounded-xl text-[10px] font-bold mt-2 ${
-              !isOnline
+            <div className={`flex items-center gap-2 px-3 py-2 rounded-xl text-[10px] font-bold mt-2 ${!isOnline
                 ? "bg-amber-500/10 border border-amber-500/20 text-amber-500"
                 : "bg-blue-500/10 border border-blue-500/20 text-blue-500"
-            }`}>
+              }`}>
               <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${!isOnline ? "bg-amber-500" : "bg-blue-500 animate-pulse"}`} />
               <span>
-                {!isOnline
-                  ? HOME.OFFLINE_MSG
-                  : isSyncing
-                  ? HOME.SYNCING_MSG(pendingCount)
-                  : HOME.PENDING_MSG(pendingCount)
-                }
+                {!isOnline ? HOME.OFFLINE_MSG
+                  : isSyncing ? HOME.SYNCING_MSG(pendingCount)
+                    : HOME.PENDING_MSG(pendingCount)}
               </span>
             </div>
           )}
 
-          {/* Income / Expense */}
-          <p className="text-[9px] font-black text-blue-500/50 dark:text-blue-400/50 uppercase tracking-widest mt-4 mb-3 border-t border-gray-100 dark:border-gray-800 pt-4">
+          <p className="text-[9px] font-black text-blue-500/50 uppercase tracking-widest mt-4 mb-3 border-t border-gray-100 dark:border-gray-800 pt-4">
             {HOME.CIRCULATION}
           </p>
           <div className="grid grid-cols-2 gap-3">
-            {/* Pemasukan */}
             <button
               onClick={() => setTypeFilter(typeFilter === "income" ? "all" : "income")}
-              className={`p-4 rounded-[20px] border transition-all ${
-                typeFilter === "income"
+              className={`p-4 rounded-[20px] border transition-all ${typeFilter === "income"
                   ? "bg-green-500/10 border-green-500 shadow-lg shadow-green-500/20"
                   : "bg-gray-50 dark:bg-gray-900/40 border-gray-100 dark:border-gray-800/50"
-              }`}
+                }`}
             >
               <div className="flex items-center gap-1.5 text-green-600 dark:text-green-500 mb-1.5">
                 <ArrowDownCircle size={14} />
@@ -242,14 +382,12 @@ const HomeTabComponent = memo(function HomeTab({
                 Rp {filteredIncome.toLocaleString("id-ID")}
               </p>
             </button>
-            {/* Pengeluaran */}
             <button
               onClick={() => setTypeFilter(typeFilter === "expense" ? "all" : "expense")}
-              className={`p-4 rounded-[20px] border transition-all ${
-                typeFilter === "expense"
+              className={`p-4 rounded-[20px] border transition-all ${typeFilter === "expense"
                   ? "bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20"
                   : "bg-gray-50 dark:bg-gray-900/40 border-gray-100 dark:border-gray-800/50"
-              }`}
+                }`}
             >
               <div className="flex items-center gap-1.5 text-red-600 dark:text-red-500 mb-1.5">
                 <ArrowUpCircle size={14} />
@@ -262,74 +400,12 @@ const HomeTabComponent = memo(function HomeTab({
           </div>
         </div>
 
-        {/* ── Search ── */}
-        <div className="relative mb-3">
-          <Search size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-          <input
-            type="text"
-            placeholder={HOME.SEARCH_HINT}
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            className="w-full bg-gray-50 dark:bg-[#121827] border border-gray-200 dark:border-gray-800/60 rounded-[20px] py-3 pl-10 pr-9 text-sm font-bold text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 outline-none focus:border-blue-500 transition-all"
-          />
-          <AnimatePresence>
-            {searchQuery && (
-              <motion.button
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                onClick={() => setSearchQuery("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500 p-1 transition-colors"
-              >
-                <X size={14} />
-              </motion.button>
-            )}
-          </AnimatePresence>
-        </div>
-
-        {/* ── Category pills ── */}
-        <div className="flex gap-2 mb-3 overflow-x-auto pb-1 no-scrollbar">
-          {dynamicCategories.map(cat => (
-            <button
-              key={cat}
-              onClick={() => setCategoryFilter(cat)}
-              className={`shrink-0 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${
-                categoryFilter === cat
-                  ? "bg-blue-600 text-white shadow-lg shadow-blue-500/30"
-                  : "bg-transparent text-gray-500 border border-gray-200 dark:border-gray-800"
-              }`}
-            >
-              {cat}
-            </button>
-          ))}
-        </div>
-
-        {/* ── Quick time filter ── */}
-        <div className="flex bg-gray-100 dark:bg-[#121827] p-1 rounded-[14px] mb-3 border border-gray-200 dark:border-gray-800/60 shadow-inner">
-          {[
-            { key: "today", label: HOME.FILTER_TODAY },
-            { key: "week",  label: HOME.FILTER_WEEK  },
-            { key: "month", label: HOME.FILTER_MONTH },
-          ].map(({ key, label }) => (
-            <button
-              key={key}
-              onClick={() => { setQuickTimeFilter(key); clearDateRange(); }}
-              className={`flex-1 text-[9px] font-black uppercase tracking-widest py-2 rounded-xl transition-all duration-200 ${
-                quickTimeFilter === key && !dateRange.from
-                  ? "bg-white dark:bg-blue-600 text-blue-600 dark:text-white shadow-sm"
-                  : "text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-
-        {/* ── Date Range Picker ── */}
-        <DateRangePicker
-          dateRange={dateRange}
-          setDateRange={setDateRange}
-          onClear={clearDateRange}
+        {/* ── Collapsed Filter Bar ── */}
+        <FilterBar
+          searchQuery={searchQuery} setSearchQuery={setSearchQuery}
+          categoryFilter={categoryFilter} setCategoryFilter={setCategoryFilter}
+          dateRange={dateRange} setDateRange={setDateRange}
+          dynamicCategories={dynamicCategories}
         />
 
         {/* ── Log header ── */}
@@ -345,7 +421,7 @@ const HomeTabComponent = memo(function HomeTab({
           <select
             value={selectedMonth}
             onChange={e => setSelectedMonth(e.target.value)}
-            className="appearance-none bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300 rounded-xl pl-3 pr-7 py-1.5 text-[9px] font-black uppercase tracking-widest outline-none cursor-pointer transition-all"
+            className="appearance-none bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300 rounded-xl pl-3 pr-7 py-1.5 text-[9px] font-black uppercase tracking-widest outline-none cursor-pointer"
           >
             {recentMonths.map(m => (
               <option key={m.value} value={m.value}>{m.label}</option>
@@ -355,7 +431,7 @@ const HomeTabComponent = memo(function HomeTab({
       </div>
 
       {/* ── Transaction list ── */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar pb-32 min-h-0">
+      <div className="flex-1 overflow-y-auto no-scrollbar pb-32 min-h-0">
         <AnimatePresence mode="popLayout">
           {transactions.length === 0 && !mounted ? (
             <motion.div key="sk" exit={{ opacity: 0 }}>
@@ -372,86 +448,92 @@ const HomeTabComponent = memo(function HomeTab({
               </p>
             </motion.div>
           ) : (
-            filteredTransactions.map(trx => (
-              <motion.div
-                key={trx.id}
-                layout
-                initial={{ opacity: 0, x: -8 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, scale: 0.96 }}
-                className={`flex items-center justify-between p-4 rounded-[22px] border transition-all mb-2.5 ${
-                  trx._pending
-                    ? "bg-amber-50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800/30"
-                    : "bg-white dark:bg-gray-900/20 border-gray-100 dark:border-gray-800/40"
-                }`}
-              >
-                {/* Icon + Info */}
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${
-                    trx.type === "income"
-                      ? "bg-green-500/10 text-green-600 dark:text-green-400"
-                      : "bg-red-500/10 text-red-500 dark:text-red-400"
-                  }`}>
-                    {getCatIcon(trx.category)}
-                  </div>
-                  <div className="min-w-0">
-                    <p className="font-bold text-sm text-gray-900 dark:text-white truncate">
-                      {trx.note}
-                      {trx._pending && (
-                        <span className="ml-1.5 text-[8px] font-black text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded uppercase">
-                          Menunggu
+            filteredTransactions.map(trx => {
+              const hasPhoto = !!(trx.receipt_url || photoMap[trx.id]);
+              const photoUrl = photoMap[trx.id] || trx.receipt_url;
+              return (
+                <motion.div
+                  key={trx.id}
+                  layout
+                  initial={{ opacity: 0, x: -8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, scale: 0.96 }}
+                  className={`flex items-center justify-between p-4 rounded-[22px] border transition-all mb-2.5 ${trx._pending
+                      ? "bg-amber-50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800/30"
+                      : "bg-white dark:bg-gray-900/20 border-gray-100 dark:border-gray-800/40"
+                    }`}
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    {/* Icon kiri: mata terbuka jika ada foto, kategori jika tidak */}
+                    {hasPhoto ? (
+                      <button
+                        onClick={() => { setViewerUrl(photoUrl); setViewerLabel(trx.note); }}
+                        className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 bg-violet-500/10 text-violet-500 hover:bg-violet-500/20 transition-colors"
+                      >
+                        <Eye size={18} />
+                      </button>
+                    ) : (
+                      <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${trx.type === "income"
+                          ? "bg-green-500/10 text-green-600 dark:text-green-400"
+                          : "bg-red-500/10 text-red-500 dark:text-red-400"
+                        }`}>
+                        {getCatIcon(trx.category)}
+                      </div>
+                    )}
+                    <div className="min-w-0">
+                      <p className="font-bold text-sm text-gray-900 dark:text-white truncate">
+                        {trx.note}
+                        {trx._pending && (
+                          <span className="ml-1.5 text-[8px] font-black text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded uppercase">
+                            Menunggu
+                          </span>
+                        )}
+                      </p>
+                      <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                        <span className="text-[9px] font-black text-gray-400 bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700/50 px-2 py-0.5 rounded-lg">
+                          {trx.category}
                         </span>
-                      )}
-                    </p>
-                    <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                      <span className="text-[9px] font-black text-gray-400 bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700/50 px-2 py-0.5 rounded-lg">
-                        {trx.category}
-                      </span>
-                      <span className="text-[9px] text-gray-300 dark:text-gray-700">
-                        {formatDateTime(trx.created_at)}
-                      </span>
+                        <span className="text-[9px] text-gray-300 dark:text-gray-700">
+                          {formatDateTime(trx.created_at)}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Amount + Actions */}
-                <div className="flex flex-col items-end gap-1.5 shrink-0 ml-2">
-                  <p className={`font-black text-sm tracking-tight ${
-                    trx.type === "income" ? "text-green-600 dark:text-green-400" : "text-red-500 dark:text-red-400"
-                  }`}>
-                    {trx.type === "income" ? "+" : "-"}Rp {Number(trx.amount).toLocaleString("id-ID")}
-                  </p>
-                  {!trx._pending && (
-                    <div className="flex gap-1">
-                      <button onClick={() => onEditTransaction(trx)} className="p-1.5 text-gray-400 hover:text-blue-500 bg-gray-50 dark:bg-gray-800/50 rounded-lg transition-colors">
-                        <Edit3 size={11} />
-                      </button>
-                      <button onClick={() => onDeleteTransaction(trx)} className="p-1.5 text-gray-400 hover:text-red-500 bg-gray-50 dark:bg-gray-800/50 rounded-lg transition-colors">
-                        <Trash2 size={11} />
-                      </button>
-                      {trx.receipt_url && (
+                  <div className="flex flex-col items-end gap-2 shrink-0 ml-2">
+                    <p className={`font-black text-sm tracking-tight ${trx.type === "income" ? "text-green-600 dark:text-green-400" : "text-red-500 dark:text-red-400"
+                      }`}>
+                      {trx.type === "income" ? "+" : "-"}Rp {Number(trx.amount).toLocaleString("id-ID")}
+                    </p>
+                    {!trx._pending && (
+                      <div className="flex gap-1.5 items-center">
                         <button
-                          onClick={() => { setViewerUrl(trx.receipt_url); setViewerLabel(trx.note); }}
-                          className="p-1.5 text-gray-400 hover:text-violet-500 bg-gray-50 dark:bg-gray-800/50 rounded-lg transition-colors"
+                          onClick={() => onEditTransaction(trx)}
+                          className="p-2 text-gray-400 hover:text-blue-500 bg-gray-100 dark:bg-gray-800 active:scale-90 rounded-xl transition-all"
                         >
-                          <Eye size={11} />
+                          <Edit3 size={13} />
                         </button>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </motion.div>
-            ))
+                        <button
+                          onClick={() => onDeleteTransaction(trx)}
+                          className="p-2 text-gray-400 hover:text-red-500 bg-gray-100 dark:bg-gray-800 active:scale-90 rounded-xl transition-all"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              );
+            })
           )}
         </AnimatePresence>
 
-        {/* Load More */}
         {hasMore && (
           <div className="flex justify-center pt-2 pb-4">
             <button
               onClick={loadMore}
               disabled={isLoading}
-              className="flex items-center gap-2 px-5 py-2.5 bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-800 text-gray-500 dark:text-gray-400 hover:text-blue-500 hover:border-blue-500/50 font-black text-[9px] uppercase tracking-widest rounded-2xl transition-all disabled:opacity-50"
+              className="flex items-center gap-2 px-5 py-2.5 bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-800 text-gray-500 hover:text-blue-500 hover:border-blue-500/50 font-black text-[9px] uppercase tracking-widest rounded-2xl transition-all disabled:opacity-50"
             >
               {isLoading && <Loader2 size={12} className="animate-spin" />}
               {isLoading ? HOME.LOADING : HOME.LOAD_MORE}
@@ -460,7 +542,6 @@ const HomeTabComponent = memo(function HomeTab({
         )}
       </div>
 
-      {/* Photo Viewer */}
       <PhotoViewer
         url={viewerUrl}
         isOpen={!!viewerUrl}
