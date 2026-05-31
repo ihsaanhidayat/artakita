@@ -80,8 +80,23 @@ export default function UserManagement({ onNotify }) {
     try {
       // Kirim session token sebagai auth header
       const { data: { session } } = await supabase.auth.getSession();
+
+      // Debug — hapus setelah fix
+      console.log("Session:", session ? "ada" : "null");
+      console.log("Token:", session?.access_token ? session.access_token.slice(0, 20) + "..." : "NULL");
+
+      if (!session?.access_token) {
+        // Coba refresh session
+        const { data: refreshed } = await supabase.auth.refreshSession();
+        console.log("Refreshed:", refreshed?.session ? "OK" : "GAGAL");
+      }
+
+      const token = session?.access_token;
       const res = await fetch(`${getBase()}/api/admin/users`, {
-        headers: { authorization: `Bearer ${session?.access_token}` },
+        headers: {
+          authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
