@@ -119,26 +119,26 @@ const QuickCommandBar = memo(function QuickCommandBar({
   // Reset selCategory saat input berubah
   useEffect(() => { setSelCategory(null); setShowCandList(false); }, [inputText]);
 
-  // ── Keyboard trigger — cross platform ──────────────────────────────────────
+  // ── Keyboard trigger instan — iOS + Android + Desktop ───────────────────────
   useEffect(() => {
     if (!isOpen) return;
-    // iOS dan Android butuh user gesture untuk focus
-    // requestAnimationFrame + multiple attempt
-    let attempts = 0;
-    const tryFocus = () => {
-      if (!inputRef.current) return;
-      inputRef.current.focus();
-      // Trigger click untuk iOS Safari
-      if (document.activeElement !== inputRef.current) {
-        inputRef.current.click();
-        inputRef.current.focus();
+    // Langsung focus tanpa delay — paling instan
+    const el = inputRef.current;
+    if (!el) return;
+    // Trigger di dalam gesture context (setTimeout 0 = next tick)
+    const t1 = setTimeout(() => {
+      el.focus();
+      // iOS Safari: perlu readOnly trick
+      el.removeAttribute("readonly");
+      el.focus();
+    }, 0);
+    // Fallback jika belum fokus
+    const t2 = setTimeout(() => {
+      if (document.activeElement !== el) {
+        el.focus();
       }
-      if (document.activeElement !== inputRef.current && attempts < 5) {
-        attempts++;
-        requestAnimationFrame(tryFocus);
-      }
-    };
-    requestAnimationFrame(tryFocus);
+    }, 100);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
   }, [isOpen]);
 
   const close = useCallback(() => {
@@ -151,16 +151,28 @@ const QuickCommandBar = memo(function QuickCommandBar({
     setSelCategory(null);
   }, []);
 
+  const [inputError, setInputError] = useState(false);
+
   const handleSubmit = useCallback((e) => {
     e?.preventDefault();
     const text = inputText.trim();
     if (!text || isSmartLoading) return;
     if (typeof onProcessTransaction !== "function") return;
 
-    // Jika user sudah pilih kategori manual, inject ke command
+    // Validasi format — harus ada nominal + deskripsi
+    const clean = text.toLowerCase().replace(/^(in|out)\s+/, "");
+    const hasAmount = /^[\d.,]+(?:k|rb|ribu|m|jt|juta)?\s+\S+/.test(clean);
+    if (!hasAmount) {
+      // Format salah — shake, jangan tutup
+      setInputError(true);
+      setTimeout(() => setInputError(false), 600);
+      inputRef.current?.focus();
+      return;
+    }
+
+    // Inject kategori manual jika ada
     let finalText = text;
     if (selCategory && !text.toLowerCase().includes(" pos ")) {
-      // Hapus pos lama jika ada, tambah yang baru
       const posIdx = text.toLowerCase().indexOf(" pos ");
       const baseText = posIdx !== -1 ? text.slice(0, posIdx) : text;
       finalText = `${baseText} pos ${selCategory}`;
@@ -373,7 +385,7 @@ const QuickCommandBar = memo(function QuickCommandBar({
               </AnimatePresence>
 
               {/* Input row */}
-              <form onSubmit={handleSubmit} className="flex items-center gap-1 px-3 py-3">
+              <form onSubmit={handleSubmit} className={`flex items-center gap-1 px-3 py-3 transition-all ${inputError ? "animate-shake" : ""}`}>
                 <button type="button" onClick={close}
                   className="p-2 text-white/30 hover:text-white/70 rounded-xl hover:bg-white/5 transition-colors shrink-0">
                   <X size={18} />
@@ -388,6 +400,7 @@ const QuickCommandBar = memo(function QuickCommandBar({
                   placeholder="50k makan siang"
                   autoComplete="off"
                   autoCorrect="off"
+                  autoFocus
                   className="flex-1 bg-transparent outline-none text-sm font-bold text-white placeholder-white/25 h-10 min-w-0"
                 />
 
@@ -411,6 +424,19 @@ const QuickCommandBar = memo(function QuickCommandBar({
 
               {/* Hint */}
               <div className="px-4 pb-3">
+                <AnimatePresence>
+                  {inputError && (
+                    <motion.p
+                      initial={{ opacity: 0, y: -4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.15 }}
+                      className="text-[9px] font-black text-red-400 mb-1.5"
+                    >
+                      ⚠ Format: <span className="text-white/60">50k makan siang</span> atau <span className="text-white/60">in 5jt gaji</span>
+                    </motion.p>
+                  )}
+                </AnimatePresence>
                 <p className="text-[9px] text-white/20 font-bold">
                   <span className="text-green-400/50">in</span> = trx masuk
                   {" · "}

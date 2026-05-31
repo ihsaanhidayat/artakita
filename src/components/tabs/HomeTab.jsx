@@ -186,10 +186,12 @@ const FilterBar = memo(function FilterBar({
 });
 
 // ── FotoInline — icon kiri card, tampil sebagai kotak inisial ────────────────
-// Tap → 2 pill Kamera / Galeri muncul di atas
+// Tap → 2 pill Kamera / Galeri muncul di atas — fixed positioning agar tidak terpotong
 const FotoInline = memo(function FotoInline({ trxId, userId, category, type, onPhotoAdded }) {
   const [isOpen,      setIsOpen]      = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [popupPos,    setPopupPos]    = useState({ top: 0, left: 0 });
+  const btnRef = useRef(null);
   const camRef = useRef(null);
   const galRef = useRef(null);
 
@@ -210,14 +212,26 @@ const FotoInline = memo(function FotoInline({ trxId, userId, category, type, onP
     }
   }, [trxId, userId, onPhotoAdded]);
 
+  const handleOpen = useCallback(() => {
+    if (!btnRef.current) return;
+    const rect = btnRef.current.getBoundingClientRect();
+    // Posisi popup di atas tombol — fixed agar tidak terpotong parent
+    setPopupPos({
+      top:  rect.top - 8,   // 8px di atas tombol
+      left: rect.left,
+    });
+    setIsOpen(p => !p);
+  }, []);
+
   const initials = (category || "?").slice(0, 2).toUpperCase();
   const isIncome = type === "income";
 
   return (
     <div className="relative shrink-0">
-      {/* Kotak inisial — tap untuk upload */}
+      {/* Kotak inisial */}
       <button
-        onClick={() => setIsOpen(p => !p)}
+        ref={btnRef}
+        onClick={handleOpen}
         disabled={isUploading}
         className={`w-11 h-11 rounded-2xl flex items-center justify-center font-black text-sm transition-all active:scale-90 ${
           isUploading
@@ -227,37 +241,41 @@ const FotoInline = memo(function FotoInline({ trxId, userId, category, type, onP
             : "bg-red-500/10 text-red-500 dark:text-red-400 hover:bg-red-500/20"
         }`}
       >
-        {isUploading
-          ? <Loader2 size={14} className="animate-spin" />
-          : initials
-        }
+        {isUploading ? <Loader2 size={14} className="animate-spin" /> : initials}
       </button>
 
-      {/* 2 pill: Kamera & Galeri — muncul di atas kotak */}
+      {/* Popup — fixed positioning, tidak terpotong */}
       <AnimatePresence>
         {isOpen && (
           <>
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[15]"
+              className="fixed inset-0 z-[50]"
               onClick={() => setIsOpen(false)}
             />
             <motion.div
-              initial={{ opacity: 0, y: 4, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0,  y: 4, scale: 0.95 }}
-              transition={{ duration: 0.12 }}
-              className="absolute bottom-full left-0 mb-2 flex flex-col gap-1 z-[16]"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              transition={{ duration: 0.1 }}
+              style={{
+                position: "fixed",
+                top: popupPos.top,
+                left: popupPos.left,
+                transform: "translateY(-100%)",
+                zIndex: 51,
+              }}
+              className="flex flex-col gap-1"
             >
               <button
-                onClick={() => { camRef.current?.click(); }}
-                className="flex items-center gap-1.5 px-3 py-2 bg-[#1a1f2e] border border-white/10 text-white rounded-xl text-[9px] font-black uppercase tracking-widest shadow-xl whitespace-nowrap"
+                onClick={() => { setIsOpen(false); camRef.current?.click(); }}
+                className="flex items-center gap-1.5 px-3 py-2 bg-[#1a1f2e] border border-white/10 text-white rounded-xl text-[9px] font-black uppercase tracking-widest shadow-2xl whitespace-nowrap"
               >
                 <Camera size={11} /> Kamera
               </button>
               <button
-                onClick={() => { galRef.current?.click(); }}
-                className="flex items-center gap-1.5 px-3 py-2 bg-[#1a1f2e] border border-white/10 text-white rounded-xl text-[9px] font-black uppercase tracking-widest shadow-xl whitespace-nowrap"
+                onClick={() => { setIsOpen(false); galRef.current?.click(); }}
+                className="flex items-center gap-1.5 px-3 py-2 bg-[#1a1f2e] border border-white/10 text-white rounded-xl text-[9px] font-black uppercase tracking-widest shadow-2xl whitespace-nowrap"
               >
                 <Image size={11} /> Galeri
               </button>
@@ -267,9 +285,9 @@ const FotoInline = memo(function FotoInline({ trxId, userId, category, type, onP
       </AnimatePresence>
 
       <input ref={camRef} type="file" accept="image/*" capture="environment"
-        onChange={e => { handleFile(e.target.files?.[0]); e.target.value=""; }} className="hidden" />
+        onChange={e => { handleFile(e.target.files?.[0]); e.target.value = ""; }} className="hidden" />
       <input ref={galRef} type="file" accept="image/*"
-        onChange={e => { handleFile(e.target.files?.[0]); e.target.value=""; }} className="hidden" />
+        onChange={e => { handleFile(e.target.files?.[0]); e.target.value = ""; }} className="hidden" />
     </div>
   );
 });
