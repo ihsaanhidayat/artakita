@@ -163,6 +163,10 @@ export default function Home() {
   const [isAdmin,        setIsAdmin]        = useState(false);
   const [isRoleLoading,  setIsRoleLoading]  = useState(true);
 
+  // ── Pagination display ───────────────────────────────────────────────────
+  const [pageDisplayCount, setPageDisplayCount] = useState(15);
+  const PAGE_SIZE_DISPLAY = 15;
+
   // ── Filter ────────────────────────────────────────────────────────────────
   const [typeFilter,       setTypeFilter]       = useState("all");
   const [categoryFilter,   setCategoryFilter]   = useState("Semua");
@@ -360,7 +364,12 @@ export default function Home() {
     [existingCategories]
   );
 
-  const filteredTransactions = useMemo(() => {
+  // Reset display count saat filter berubah
+  useEffect(() => {
+    setPageDisplayCount(PAGE_SIZE_DISPLAY);
+  }, [typeFilter, categoryFilter, searchQuery, selectedMonth, dateRange]);
+
+  const allFilteredTransactions = useMemo(() => {
     return transactionsThisMonth.filter(t => {
       // Tipe
       const matchType = typeFilter === "all" ? true
@@ -401,13 +410,22 @@ export default function Home() {
     });
   }, [transactionsThisMonth, typeFilter, categoryFilter, searchQuery, quickTimeFilter, dateRange]);
 
+  // Slice untuk display — pagination di page level
+  const filteredTransactions = useMemo(() =>
+    allFilteredTransactions.slice(0, pageDisplayCount),
+    [allFilteredTransactions, pageDisplayCount]
+  );
+
+  const pageHasMore  = pageDisplayCount < allFilteredTransactions.length;
+  const pageLoadMore = useCallback(() => setPageDisplayCount(p => p + PAGE_SIZE_DISPLAY), []);
+
   const filteredIncome = useMemo(() =>
-    filteredTransactions.filter(t => t.type === "income").reduce((a, c) => a + Number(c.amount), 0),
-    [filteredTransactions]
+    allFilteredTransactions.filter(t => t.type === "income").reduce((a, c) => a + Number(c.amount), 0),
+    [allFilteredTransactions]
   );
   const filteredExpense = useMemo(() =>
-    filteredTransactions.filter(t => t.type === "expense" || !t.type).reduce((a, c) => a + Number(c.amount), 0),
-    [filteredTransactions]
+    allFilteredTransactions.filter(t => t.type === "expense" || !t.type).reduce((a, c) => a + Number(c.amount), 0),
+    [allFilteredTransactions]
   );
 
   // ── Handlers ─────────────────────────────────────────────────────────────
@@ -445,66 +463,82 @@ export default function Home() {
 
   // ── AI classify helper ────────────────────────────────────────────────────
   const classifyCategory = useCallback((note) => {
-    // Bersihkan stop words, split jadi kata-kata
-    const stopWords = new Set(["beli","bayar","untuk","ke","di","dari","dan","atau","dengan","yang"]);
-    const words     = note.toLowerCase()
+    const stopWords = new Set(["beli","bayar","untuk","ke","di","dari","dan","atau","dengan","yang","nya","ini","itu"]);
+    // Semua lowercase, bersih
+    const words = note.toLowerCase()
       .replace(/[^a-z0-9\s]/g, "")
       .split(/\s+/)
       .filter(w => w.length > 1 && !stopWords.has(w));
 
-    // Cari match di aiKeywords — case insensitive, partial match
+    // Score map: { categoryId: score }
+    const scoreMap = {};
     for (const word of words) {
-      const match = aiKeywords.find(k =>
-        k.keyword && word.includes(k.keyword.toLowerCase())
-      );
-      if (match) {
-        const cat = userCategories.find(c => c.id === match.category_id);
-        if (cat) return cat.name;
+      for (const kw of aiKeywords) {
+        if (!kw.keyword) continue;
+        const kwLow = kw.keyword.toLowerCase(); // selalu lowercase
+        const score = word === kwLow ? 3        // exact match
+          : word.includes(kwLow) ? 2            // word contains keyword
+          : kwLow.includes(word) && word.length > 2 ? 1 // keyword contains word
+          : 0;
+        if (score > 0) {
+          scoreMap[kw.category_id] = (scoreMap[kw.category_id] || 0) +
+            score * (kw.frequency || 1); // bobot frekuensi
+        }
       }
     }
-    // Coba reverse — keyword contains word
-    for (const word of words) {
-      const match = aiKeywords.find(k =>
-        k.keyword && k.keyword.toLowerCase().includes(word)
-      );
-      if (match) {
-        const cat = userCategories.find(c => c.id === match.category_id);
-        if (cat) return cat.name;
-      }
-    }
-    return null;
+
+    // Pilih kategori dengan score tertinggi
+    const best = Object.entries(scoreMap).sort((a, b) => b[1] - a[1])[0];
+    if (!best) return null;
+    const cat = userCategories.find(c => c.id === best[0]);
+    return cat?.name || null;
   }, [aiKeywords, userCategories]);
 
   // ── Simpan keyword ke DB background ───────────────────────────────────────
   const learnKeyword = useCallback(async (note, categoryName) => {
     try {
-      const stopWords = new Set(["beli","bayar","untuk","ke","di","dari","dan","atau","dengan","yang"]);
-      const words     = note.toLowerCase()
-        .replace(/[^a-z0-9\s]/g, "")
-        .split(/\s+/)
-        .filter(w => w.length > 2 && !stopWords.has(w));
+      const stopWords = new Set(["beli","bayar","untuk","ke","di","dari","dan","atau","dengan","yang","nya","ini","itu"]);
+      // Semua lowercase tanpa terkecuali
+      const normalNote = note.toLowerCase().replace(/[^a-z0-9\s]/g, "");
+      const words = normalNote.split(/\s+/).filter(w => w.length > 2 && !stopWords.has(w));
+      // Kategori juga normalize: Title Case
+      const normalCat = categoryName.trim().toLowerCase()
+        .replace(/\w/g, c => c.toUpperCase());
 
-      // Pastikan kategori ada
+      // Pastikan kategori ada — ilike agar tidak case sensitive
       let { data: catData } = await supabase
-        .from("user_categories").select("id").ilike("name", categoryName).single();
+        .from("user_categories").select("id, name").ilike("name", normalCat).single();
       if (!catData) {
         const { data: newCat } = await supabase
           .from("user_categories")
-          .insert([{ name: categoryName }])
-          .select("id").single();
+          .insert([{ name: normalCat }])
+          .select("id, name").single();
         catData = newCat;
       }
       if (!catData) return;
 
-      // Upsert semua kata — tidak duplikat
+      // Upsert keyword — lowercase, update frekuensi
       for (const word of words) {
-        await supabase.from("ai_keywords").upsert(
-          [{ category_id: catData.id, keyword: word }],
-          { onConflict: "category_id,keyword", ignoreDuplicates: true }
-        );
+        // Cek apakah sudah ada
+        const { data: existing } = await supabase
+          .from("ai_keywords")
+          .select("id, frequency")
+          .eq("category_id", catData.id)
+          .eq("keyword", word) // sudah lowercase
+          .single();
+
+        if (existing) {
+          // Update frekuensi
+          await supabase.from("ai_keywords")
+            .update({ frequency: (existing.frequency || 1) + 1 })
+            .eq("id", existing.id);
+        } else {
+          await supabase.from("ai_keywords")
+            .insert([{ category_id: catData.id, keyword: word, frequency: 1 }]);
+        }
       }
 
-      // Refresh keywords di state
+      // Refresh
       const { data: fresh } = await supabase.from("ai_keywords").select("*");
       if (fresh) setAiKeywords(fresh);
     } catch (err) {
@@ -534,9 +568,11 @@ export default function Home() {
       // Manual pos — case insensitive
       const posIdx = rawNote.toLowerCase().indexOf(" pos ");
       if (posIdx !== -1) {
-        finalNote        = rawNote.slice(0, posIdx).trim();
-        const targetCat  = rawNote.slice(posIdx + 5).trim();
-        category         = targetCat.charAt(0).toUpperCase() + targetCat.slice(1);
+        finalNote       = rawNote.slice(0, posIdx).trim();
+        const targetCat = rawNote.slice(posIdx + 5).trim();
+        // Normalize kategori: Title Case
+        category = targetCat.trim().toLowerCase()
+          .replace(/\w/g, c => c.toUpperCase());
         // Belajar di background
         setTimeout(() => learnKeyword(finalNote, category), 300);
       } else {
@@ -756,8 +792,9 @@ export default function Home() {
               mounted={mounted}
               allBudgets={allBudgets}
               transactionsThisMonth={transactionsThisMonth}
-              hasMore={hasMore}
-              loadMore={loadMore}
+              hasMore={pageHasMore}
+              loadMore={pageLoadMore}
+              totalCount={allFilteredTransactions.length}
               isLoading={isLoading}
               isOnline={isOnline}
               pendingCount={pendingCount}

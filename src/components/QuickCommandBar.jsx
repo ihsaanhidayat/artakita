@@ -1,7 +1,7 @@
 "use client";
 import { useState, useRef, useCallback, memo, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, X, TerminalSquare, Mic, Calendar, ChevronDown } from "lucide-react";
+import { Send, X, TerminalSquare, Mic, Camera, Calendar, ChevronDown } from "lucide-react";
 import { parseFlexibleNumber } from "@/lib/utils";
 
 const TODAY = () => new Date().toISOString().slice(0, 10);
@@ -103,6 +103,8 @@ const QuickCommandBar = memo(function QuickCommandBar({
   const [showCandList, setShowCandList] = useState(false);
   const recognitionRef = useRef(null);
   const inputRef       = useRef(null);
+  const camRef         = useRef(null);
+  const galRef         = useRef(null);
 
   const preview = useMemo(() =>
     parsePreview(inputText, aiKeywords, userCategories),
@@ -116,8 +118,12 @@ const QuickCommandBar = memo(function QuickCommandBar({
     || preview?.category
     || "Lainnya";
 
-  // Reset selCategory saat input berubah
-  useEffect(() => { setSelCategory(null); setShowCandList(false); }, [inputText]);
+  // Reset selCategory dan error saat input berubah
+  useEffect(() => {
+    setSelCategory(null);
+    setShowCandList(false);
+    if (inputError && inputText.length === 0) setInputError(false);
+  }, [inputText]);
 
   // ── Keyboard trigger instan — iOS + Android + Desktop ───────────────────────
   useEffect(() => {
@@ -151,7 +157,8 @@ const QuickCommandBar = memo(function QuickCommandBar({
     setSelCategory(null);
   }, []);
 
-  const [inputError, setInputError] = useState(false);
+  const [inputError,   setInputError]   = useState(false);
+  const [hasTriedOnce, setHasTriedOnce] = useState(false);
 
   const handleSubmit = useCallback((e) => {
     e?.preventDefault();
@@ -159,16 +166,17 @@ const QuickCommandBar = memo(function QuickCommandBar({
     if (!text || isSmartLoading) return;
     if (typeof onProcessTransaction !== "function") return;
 
-    // Validasi format — harus ada nominal + deskripsi
+    // Validasi format
     const clean = text.toLowerCase().replace(/^(in|out)\s+/, "");
     const hasAmount = /^[\d.,]+(?:k|rb|ribu|m|jt|juta)?\s+\S+/.test(clean);
     if (!hasAmount) {
-      // Format salah — shake, jangan tutup
-      setInputError(true);
-      setTimeout(() => setInputError(false), 600);
+      setHasTriedOnce(true);
+      setInputError(true); // permanent hingga berhasil
       inputRef.current?.focus();
       return;
     }
+    setInputError(false);
+    setHasTriedOnce(false);
 
     // Inject kategori manual jika ada
     let finalText = text;
@@ -218,7 +226,17 @@ const QuickCommandBar = memo(function QuickCommandBar({
             transition={{ duration: 0.1 }}
             className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40"
             onMouseDown={e => e.preventDefault()}
-            onClick={() => { setShowCandList(false); setShowCal(false); inputRef.current?.focus(); }}
+            onClick={() => {
+              if (!inputText.trim()) {
+                // Kosong → tutup instan
+                close();
+              } else {
+                // Ada isian → tetap buka, fokus input
+                setShowCandList(false);
+                setShowCal(false);
+                inputRef.current?.focus();
+              }
+            }}
           />
         )}
       </AnimatePresence>
@@ -411,6 +429,20 @@ const QuickCommandBar = memo(function QuickCommandBar({
                   <Calendar size={17} />
                 </button>
 
+                {/* Kamera */}
+                <button type="button" onClick={() => camRef.current?.click()}
+                  className="p-2 rounded-xl text-white/30 hover:text-white/70 hover:bg-white/5 transition-all shrink-0">
+                  <Camera size={17} />
+                </button>
+
+                {/* Mic */}
+                <button type="button" onClick={toggleVoice}
+                  className={`p-2 rounded-xl transition-all shrink-0 ${
+                    isListening ? "text-red-400 bg-red-500/10 animate-pulse" : "text-white/30 hover:text-white/70 hover:bg-white/5"
+                  }`}>
+                  <Mic size={17} />
+                </button>
+
                 <button type="submit" disabled={isSmartLoading || !inputText.trim() || inputText === "Mendengarkan..."}
                   className={`p-2 rounded-xl transition-all shrink-0 ${
                     preview && !isSmartLoading ? "text-blue-400 bg-blue-500/15 hover:bg-blue-500/25" : "text-white/20"
@@ -421,6 +453,14 @@ const QuickCommandBar = memo(function QuickCommandBar({
                   }
                 </button>
               </form>
+
+              {/* File inputs tersembunyi */}
+              <input ref={camRef} type="file" accept="image/*" capture="environment"
+                onChange={e => { if (e.target.files?.[0]) { /* handle foto dari QCB jika perlu */ } e.target.value=""; }}
+                className="hidden" />
+              <input ref={galRef} type="file" accept="image/*"
+                onChange={e => { if (e.target.files?.[0]) { /* handle foto dari QCB jika perlu */ } e.target.value=""; }}
+                className="hidden" />
 
               {/* Hint */}
               <div className="px-4 pb-3">

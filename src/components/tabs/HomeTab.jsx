@@ -1,5 +1,28 @@
 "use client";
 import { memo, useState, useCallback, useRef, useEffect } from "react";
+
+// Signed URL cache — tidak fetch ulang jika sudah ada
+const signedUrlCache = {};
+
+async function getSignedUrl(path) {
+  if (!path) return null;
+  // Jika sudah punya signed URL yang valid, pakai langsung
+  if (signedUrlCache[path] && signedUrlCache[path].exp > Date.now()) {
+    return signedUrlCache[path].url;
+  }
+  try {
+    // Extract path dari full URL jika perlu
+    const storagePath = path.includes('/object/') 
+      ? path.split('/object/').pop().replace(/^(sign|public)\/artakita_bucket\//, '')
+      : path;
+    const { data, error } = await supabase.storage
+      .from('artakita_bucket')
+      .createSignedUrl(storagePath, 3600); // 1 jam
+    if (error || !data?.signedUrl) return null;
+    signedUrlCache[path] = { url: data.signedUrl, exp: Date.now() + 3500000 };
+    return data.signedUrl;
+  } catch { return null; }
+}
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Moon, Sun, Wallet,
@@ -310,16 +333,28 @@ const HomeTabComponent = memo(function HomeTab({
   allBudgets,
   transactionsThisMonth,
   hasMore, loadMore, isLoading,
+  totalCount,  // total setelah filter, sebelum pagination
   isOnline, pendingCount, isSyncing,
   onEditTransaction, onDeleteTransaction,
   session,
 }) {
   const [viewerUrl,   setViewerUrl]   = useState(null);
   const [viewerLabel, setViewerLabel] = useState("");
-  const [photoMap,    setPhotoMap]    = useState({}); // { trxId: url }
+  const [photoMap,    setPhotoMap]    = useState({}); // { trxId: signedUrl }
+  const [viewerLoading, setViewerLoading] = useState(false);
 
   const handlePhotoAdded = useCallback((trxId, url) => {
     setPhotoMap(p => ({ ...p, [trxId]: url }));
+  }, []);
+
+  // Buka viewer dengan signed URL
+  const openViewer = useCallback(async (rawUrl, label) => {
+    setViewerLabel(label);
+    setViewerLoading(true);
+    setViewerUrl("loading");
+    const signed = await getSignedUrl(rawUrl);
+    setViewerUrl(signed || null);
+    setViewerLoading(false);
   }, []);
 
   return (
@@ -439,7 +474,10 @@ const HomeTabComponent = memo(function HomeTab({
               {HOME.ACTIVITY_LOG}
             </h2>
             <span className="text-[9px] font-black text-blue-600 dark:text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded-md">
-              {filteredTransactions.length}
+              {totalCount && totalCount > filteredTransactions.length
+                ? `${filteredTransactions.length} / ${totalCount}`
+                : filteredTransactions.length
+              }
             </span>
           </div>
           <select
@@ -492,10 +530,13 @@ const HomeTabComponent = memo(function HomeTab({
                     {/* Icon kiri: mata terbuka (lihat foto) atau inisial+upload */}
                     {hasPhoto ? (
                       <button
-                        onClick={() => { setViewerUrl(photoUrl); setViewerLabel(trx.note); }}
+                        onClick={() => openViewer(photoUrl, trx.note)}
                         className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 bg-violet-500/10 text-violet-500 hover:bg-violet-500/20 active:scale-90 transition-all"
                       >
-                        <Eye size={18} />
+                        {viewerLoading && viewerLabel === trx.note
+                          ? <Loader2 size={16} className="animate-spin" />
+                          : <Eye size={18} />
+                        }
                       </button>
                     ) : (
                       <FotoInline
@@ -556,6 +597,7 @@ const HomeTabComponent = memo(function HomeTab({
           )}
         </AnimatePresence>
 
+        {/* Tombol muat lebih — hilang saat semua sudah tampil */}
         {hasMore && (
           <div className="flex justify-center pt-2 pb-4">
             <button
@@ -564,7 +606,11 @@ const HomeTabComponent = memo(function HomeTab({
               className="flex items-center gap-2 px-5 py-2.5 bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-800 text-gray-500 hover:text-blue-500 hover:border-blue-500/50 font-black text-[9px] uppercase tracking-widest rounded-2xl transition-all disabled:opacity-50"
             >
               {isLoading && <Loader2 size={12} className="animate-spin" />}
-              {isLoading ? HOME.LOADING : HOME.LOAD_MORE}
+              {isLoading ? HOME.LOADING : (
+                totalCount
+                  ? `Muat ${Math.min(15, totalCount - filteredTransactions.length)} lagi`
+                  : HOME.LOAD_MORE
+              )}
             </button>
           </div>
         )}
