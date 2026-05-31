@@ -336,7 +336,7 @@ const StatsTab = memo(function StatsTab({ filteredTransactions, transactions, se
               <input
                 type="text" autoFocus
                 placeholder={STATS.LIMIT_HINT}
-                value={editVal}
+                value={editVal ?? ""}
                 onChange={e => setEditVal(e.target.value)}
                 onKeyDown={e => { if (e.key === "Enter") handleSaveBudget(); }}
                 className="w-full bg-gray-50 dark:bg-[#121827] border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white font-bold text-sm p-4 rounded-2xl outline-none focus:border-blue-500 transition-all placeholder-gray-400 mb-4"

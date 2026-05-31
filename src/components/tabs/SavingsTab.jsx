@@ -42,7 +42,7 @@ const SavingsTab = memo(function SavingsTab({
             <input
               type="text" required
               placeholder="Nama target (Cth: Laptop, Dana Darurat)"
-              value={newGoalData.name}
+              value={newGoalData.name ?? ""}
               onChange={e => setNewGoalData(p => ({ ...p, name: e.target.value }))}
               className="w-full bg-white dark:bg-[#121827] border border-gray-200 dark:border-gray-800 rounded-xl py-2.5 px-4 text-sm font-bold text-gray-900 dark:text-white outline-none focus:border-blue-500 transition-all placeholder-gray-400"
             />
@@ -50,14 +50,14 @@ const SavingsTab = memo(function SavingsTab({
               <input
                 type="text" required
                 placeholder="Target (Cth: 5jt)"
-                value={newGoalData.target}
+                value={newGoalData.target ?? ""}
                 onChange={e => setNewGoalData(p => ({ ...p, target: e.target.value }))}
                 className="w-full bg-white dark:bg-[#121827] border border-gray-200 dark:border-gray-800 rounded-xl py-2.5 px-4 text-sm font-bold text-gray-900 dark:text-white outline-none focus:border-blue-500 transition-all placeholder-gray-400"
               />
               <input
                 type="text"
                 placeholder="Isi awal (opsional)"
-                value={newGoalData.current}
+                value={newGoalData.current ?? ""}
                 onChange={e => setNewGoalData(p => ({ ...p, current: e.target.value }))}
                 className="w-full bg-white dark:bg-[#121827] border border-gray-200 dark:border-gray-800 rounded-xl py-2.5 px-4 text-sm font-bold text-gray-900 dark:text-white outline-none focus:border-blue-500 transition-all placeholder-gray-400"
               />
@@ -143,7 +143,7 @@ const SavingsTab = memo(function SavingsTab({
                     type="text"
                     autoFocus
                     placeholder="Nominal (Cth: 10k, 50k)"
-                    value={flexibleSavingsAmt}
+                    value={flexibleSavingsAmt ?? ""}
                     onChange={e => setFlexibleSavingsAmt(e.target.value)}
                     className="flex-1 bg-gray-50 dark:bg-[#0a0f1c] border border-gray-200 dark:border-gray-800 rounded-xl py-2 px-3 text-xs font-bold text-gray-900 dark:text-white outline-none focus:border-blue-500 transition-all"
                   />

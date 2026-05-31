@@ -13,16 +13,16 @@ import {
 
 // ── Chart ─────────────────────────────────────────────────────────────────────
 const DebtChart = memo(function DebtChart({ debts, balance }) {
-  const totalInit = debts.filter(d => d.type === "debt").reduce((a,c) => a + Math.abs(Number(c.initial_amount)), 0);
-  const totalDebt = debts.filter(d => d.type === "debt").reduce((a,c) => a + Math.abs(Number(c.amount)), 0);
-  const terbayar  = Math.max(0, totalInit - totalDebt);
-  const totalRec  = debts.filter(d => d.type === "receivable").reduce((a,c) => a + Math.abs(Number(c.amount)), 0);
+  const totalInit = debts.filter(d => d.type === "debt").reduce((a, c) => a + Math.abs(Number(c.initial_amount)), 0);
+  const totalDebt = debts.filter(d => d.type === "debt").reduce((a, c) => a + Math.abs(Number(c.amount)), 0);
+  const terbayar = Math.max(0, totalInit - totalDebt);
+  const totalRec = debts.filter(d => d.type === "receivable").reduce((a, c) => a + Math.abs(Number(c.amount)), 0);
 
   const bars = [
-    { label: "Total Hutang", value: totalInit,  color: "bg-red-500",     glow: "shadow-red-500/30" },
-    { label: "Terbayar",     value: terbayar,   color: "bg-emerald-500", glow: "shadow-emerald-500/30" },
-    { label: "Saldo",        value: balance,    color: "bg-blue-500",    glow: "shadow-blue-500/30" },
-    { label: "Piutang",      value: totalRec,   color: "bg-violet-500",  glow: "shadow-violet-500/30" },
+    { label: "Total Hutang", value: totalInit, color: "bg-red-500", glow: "shadow-red-500/30" },
+    { label: "Terbayar", value: terbayar, color: "bg-emerald-500", glow: "shadow-emerald-500/30" },
+    { label: "Saldo", value: balance, color: "bg-blue-500", glow: "shadow-blue-500/30" },
+    { label: "Piutang", value: totalRec, color: "bg-violet-500", glow: "shadow-violet-500/30" },
   ];
   const maxVal = Math.max(...bars.map(b => b.value), 1);
 
@@ -79,9 +79,9 @@ const DebtChart = memo(function DebtChart({ debts, balance }) {
 
 // ── Sort Options ──────────────────────────────────────────────────────────────
 const SORT_OPTIONS = [
-  { key: "nominal",  label: DEBT.SORT_NOMINAL,  Icon: TrendingDown },
-  { key: "percent",  label: DEBT.SORT_PERCENT,  Icon: SortAsc },
-  { key: "duedate",  label: DEBT.SORT_DUEDATE,  Icon: Clock },
+  { key: "nominal", label: DEBT.SORT_NOMINAL, Icon: TrendingDown },
+  { key: "percent", label: DEBT.SORT_PERCENT, Icon: SortAsc },
+  { key: "duedate", label: DEBT.SORT_DUEDATE, Icon: Clock },
 ];
 
 const sortDebts = (debts, sortKey) => {
@@ -107,28 +107,28 @@ const DebtCard = memo(function DebtCard({
   d, balance, isExpanded, onToggle,
   onPay, onEdit, onDelete,
 }) {
-  const [isEditMode,   setIsEditMode]   = useState(false);
-  const [editData,     setEditData]     = useState({ person_name: "", initial_amount: "", due_date: "" });
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editData, setEditData] = useState({ person_name: "", initial_amount: "", due_date: "" });
   const [isEditSaving, setIsEditSaving] = useState(false);
-  const [payAmount,    setPayAmount]    = useState("");
-  const [payError,     setPayError]     = useState("");
-  const [isPayOpen,    setIsPayOpen]    = useState(false);
+  const [payAmount, setPayAmount] = useState("");
+  const [payError, setPayError] = useState("");
+  const [isPayOpen, setIsPayOpen] = useState(false);
   const [isPayLoading, setIsPayLoading] = useState(false);
 
-  const rawAmount  = Math.abs(Number(d.amount));
+  const rawAmount = Math.abs(Number(d.amount));
   const rawInitial = Math.abs(Number(d.initial_amount));
-  const paid       = Math.max(0, rawInitial - rawAmount);
-  const progress   = rawInitial > 0 ? Math.min((paid / rawInitial) * 100, 100) : 0;
-  const isDebt     = d.type === "debt";
-  const isLunas    = progress >= 100 && rawAmount <= 0;
+  const paid = Math.max(0, rawInitial - rawAmount);
+  const progress = rawInitial > 0 ? Math.min((paid / rawInitial) * 100, 100) : 0;
+  const isDebt = d.type === "debt";
+  const isLunas = progress >= 100 && rawAmount <= 0;
 
   // Due date info
   const getDueInfo = () => {
     if (!d.due_date) return null;
     const diff = Math.ceil((new Date(d.due_date) - new Date()) / (1000 * 60 * 60 * 24));
-    if (diff < 0)  return { label: `Terlambat ${Math.abs(diff)} hari`, color: "text-red-500" };
+    if (diff < 0) return { label: `Terlambat ${Math.abs(diff)} hari`, color: "text-red-500" };
     if (diff === 0) return { label: "Jatuh tempo hari ini!", color: "text-orange-500" };
-    if (diff <= 3)  return { label: `${diff} hari lagi`, color: "text-amber-500" };
+    if (diff <= 3) return { label: `${diff} hari lagi`, color: "text-amber-500" };
     return { label: new Date(d.due_date).toLocaleDateString("id-ID"), color: "text-gray-400" };
   };
   const dueInfo = getDueInfo();
@@ -136,15 +136,15 @@ const DebtCard = memo(function DebtCard({
   // Progress bar color
   const barColor = isLunas ? "bg-emerald-500"
     : progress < 30 ? "bg-red-500"
-    : progress < 70 ? "bg-amber-500"
-    : "bg-emerald-500";
+      : progress < 70 ? "bg-amber-500"
+        : "bg-emerald-500";
 
   const startEdit = () => {
     setIsEditMode(true);
     setEditData({
-      person_name:    d.person_name,
+      person_name: d.person_name,
       initial_amount: String(d.initial_amount),
-      due_date:       d.due_date || "",
+      due_date: d.due_date || "",
     });
   };
 
@@ -154,13 +154,13 @@ const DebtCard = memo(function DebtCard({
     if (!editData.person_name.trim()) return;
     setIsEditSaving(true);
     const sudahDibayar = Math.max(0, rawInitial - rawAmount);
-    const newAmount    = Math.max(0, newInitial - sudahDibayar);
+    const newAmount = Math.max(0, newInitial - sudahDibayar);
     const { error } = await supabase.from("debts").update({
-      person_name:    editData.person_name.trim(),
+      person_name: editData.person_name.trim(),
       initial_amount: newInitial,
-      amount:         newAmount,
-      status:         newAmount <= 0 ? "paid" : "unpaid",
-      due_date:       editData.due_date || null,
+      amount: newAmount,
+      status: newAmount <= 0 ? "paid" : "unpaid",
+      due_date: editData.due_date || null,
     }).eq("id", d.id);
     setIsEditSaving(false);
     if (!error) { setIsEditMode(false); onEdit(); }
@@ -169,9 +169,9 @@ const DebtCard = memo(function DebtCard({
   const handlePay = async () => {
     const amount = parseFlexibleNumber(payAmount);
     setPayError("");
-    if (amount <= 0)                             { setPayError(DEBT.EXCEED_ZERO); return; }
-    if (amount > rawAmount)                      { setPayError(DEBT.EXCEED_DEBT(fmt(rawAmount))); return; }
-    if (isDebt && amount > balance)              { setPayError(DEBT.EXCEED_BAL(fmt(balance))); return; }
+    if (amount <= 0) { setPayError(DEBT.EXCEED_ZERO); return; }
+    if (amount > rawAmount) { setPayError(DEBT.EXCEED_DEBT(fmt(rawAmount))); return; }
+    if (isDebt && amount > balance) { setPayError(DEBT.EXCEED_BAL(fmt(balance))); return; }
     setIsPayLoading(true);
     const rpc = isDebt ? "process_debt_payment" : "process_receivable_payment";
     const { error } = await supabase.rpc(rpc, { debt_id_input: d.id, payment_amount: amount });
@@ -198,9 +198,8 @@ const DebtCard = memo(function DebtCard({
         <div className="flex items-center gap-2 flex-wrap min-w-0">
           <p className="font-black text-sm text-gray-900 dark:text-white truncate">{d.person_name}</p>
           {/* Badge tipe */}
-          <span className={`flex items-center gap-0.5 text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest shrink-0 ${
-            isDebt ? "bg-red-500/10 text-red-500" : "bg-blue-500/10 text-blue-500"
-          }`}>
+          <span className={`flex items-center gap-0.5 text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest shrink-0 ${isDebt ? "bg-red-500/10 text-red-500" : "bg-blue-500/10 text-blue-500"
+            }`}>
             {isDebt ? <ArrowUpRight size={9} /> : <ArrowDownLeft size={9} />}
             {isDebt ? DEBT.TAB_DEBT : DEBT.TAB_RECEIVE}
           </span>
@@ -258,7 +257,7 @@ const DebtCard = memo(function DebtCard({
                       <input
                         autoFocus
                         type="text"
-                        value={editData.person_name}
+                        value={editData.person_name ?? ""}
                         onChange={e => setEditData(p => ({ ...p, person_name: e.target.value }))}
                         className="w-full bg-gray-50 dark:bg-[#0a0f1c] border border-gray-200 dark:border-gray-800 rounded-xl py-2.5 px-3 text-sm font-bold text-gray-900 dark:text-white outline-none focus:border-blue-500 transition-all"
                       />
@@ -268,7 +267,7 @@ const DebtCard = memo(function DebtCard({
                         <label className="block text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">{DEBT.NOMINAL}</label>
                         <input
                           type="text"
-                          value={editData.initial_amount}
+                          value={editData.initial_amount ?? ""}
                           onChange={e => setEditData(p => ({ ...p, initial_amount: e.target.value }))}
                           placeholder="Cth: 500k, 1jt, 500rb"
                           className="w-full bg-gray-50 dark:bg-[#0a0f1c] border border-gray-200 dark:border-gray-800 rounded-xl py-2.5 px-3 text-sm font-bold text-gray-900 dark:text-white outline-none focus:border-blue-500 transition-all placeholder-gray-400"
@@ -278,7 +277,7 @@ const DebtCard = memo(function DebtCard({
                         <label className="block text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">{DEBT.DUE_DATE}</label>
                         <input
                           type="date"
-                          value={editData.due_date}
+                          value={editData.due_date ?? ""}
                           onChange={e => setEditData(p => ({ ...p, due_date: e.target.value }))}
                           className="w-full bg-gray-50 dark:bg-[#0a0f1c] border border-gray-200 dark:border-gray-800 rounded-xl py-2.5 px-3 text-sm font-bold text-gray-900 dark:text-white outline-none focus:border-blue-500 transition-all"
                         />
@@ -361,13 +360,12 @@ const DebtCard = memo(function DebtCard({
                         </button>
                         <button
                           onClick={() => { setIsPayOpen(!isPayOpen); setPayAmount(""); setPayError(""); }}
-                          className={`flex-1 font-black text-[9px] uppercase tracking-widest rounded-xl py-2.5 transition-all active:scale-95 ${
-                            isPayOpen
+                          className={`flex-1 font-black text-[9px] uppercase tracking-widest rounded-xl py-2.5 transition-all active:scale-95 ${isPayOpen
                               ? "bg-gray-100 dark:bg-gray-800 text-gray-500"
                               : isDebt
-                              ? "bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white border border-red-500/20"
-                              : "bg-blue-500/10 hover:bg-blue-500 text-blue-500 hover:text-white border border-blue-500/20"
-                          }`}
+                                ? "bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white border border-red-500/20"
+                                : "bg-blue-500/10 hover:bg-blue-500 text-blue-500 hover:text-white border border-blue-500/20"
+                            }`}
                         >
                           {isPayOpen ? DEBT.CANCEL : isDebt ? DEBT.PAY_DEBT : DEBT.RECEIVE}
                         </button>
@@ -407,7 +405,7 @@ const DebtCard = memo(function DebtCard({
                                 autoFocus
                                 type="text"
                                 placeholder="Cth: 500k, 1jt, 500rb"
-                                value={payAmount}
+                                value={payAmount ?? ""}
                                 onChange={e => { setPayAmount(e.target.value); setPayError(""); }}
                                 onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handlePay(); } }}
                                 className="flex-1 bg-gray-50 dark:bg-[#0a0f1c] border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white text-sm font-bold p-3 rounded-xl outline-none focus:border-blue-500 transition-all placeholder-gray-400"
@@ -415,11 +413,10 @@ const DebtCard = memo(function DebtCard({
                               <button
                                 onClick={handlePay}
                                 disabled={isPayLoading}
-                                className={`px-4 rounded-xl font-black text-xs uppercase tracking-widest transition-all active:scale-95 disabled:opacity-50 ${
-                                  isDebt
+                                className={`px-4 rounded-xl font-black text-xs uppercase tracking-widest transition-all active:scale-95 disabled:opacity-50 ${isDebt
                                     ? "bg-red-500 hover:bg-red-400 text-white shadow-lg shadow-red-500/20"
                                     : "bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-500/20"
-                                }`}
+                                  }`}
                               >
                                 {isPayLoading ? "..." : "OK"}
                               </button>
@@ -453,8 +450,8 @@ const DebtCard = memo(function DebtCard({
 
 // ── Paid Card (LUNAS tab) ─────────────────────────────────────────────────────
 const PaidCard = memo(function PaidCard({ d, payments, isExpanded, onToggle, onDelete }) {
-  const isDebt    = d.type === "debt";
-  const paidDate  = payments?.[0]?.created_at;
+  const isDebt = d.type === "debt";
+  const paidDate = payments?.[0]?.created_at;
 
   return (
     <motion.div
@@ -471,9 +468,8 @@ const PaidCard = memo(function PaidCard({ d, payments, isExpanded, onToggle, onD
         <div className="flex items-center gap-2 flex-wrap min-w-0">
           <CheckCircle2 size={14} className="text-emerald-500 shrink-0" />
           <p className="font-black text-sm text-gray-900 dark:text-white truncate">{d.person_name}</p>
-          <span className={`text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest ${
-            isDebt ? "bg-red-500/10 text-red-400" : "bg-blue-500/10 text-blue-400"
-          }`}>
+          <span className={`text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest ${isDebt ? "bg-red-500/10 text-red-400" : "bg-blue-500/10 text-blue-400"
+            }`}>
             {isDebt ? DEBT.TAB_DEBT : DEBT.TAB_RECEIVE}
           </span>
         </div>
@@ -534,17 +530,17 @@ const PaidCard = memo(function PaidCard({ d, payments, isExpanded, onToggle, onD
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 const DebtsTabComponent = memo(function DebtsTab({ activeWallet, balance }) {
-  const [debts,       setDebts]       = useState([]);
-  const [payments,    setPayments]    = useState({});  // { debt_id: [trx] }
-  const [activeTab,   setActiveTab]   = useState("debt"); // "debt"|"receivable"|"paid"
-  const [sortKey,     setSortKey]     = useState("nominal");
-  const [isSortOpen,  setIsSortOpen]  = useState(false);
-  const [expandedId,  setExpandedId]  = useState(null);
-  const [isFormOpen,  setIsFormOpen]  = useState(false);
-  const [formData,    setFormData]    = useState({ person: "", amount: "", type: "debt", due_date: "" });
-  const [isAdding,    setIsAdding]    = useState(false);
+  const [debts, setDebts] = useState([]);
+  const [payments, setPayments] = useState({});  // { debt_id: [trx] }
+  const [activeTab, setActiveTab] = useState("debt"); // "debt"|"receivable"|"paid"
+  const [sortKey, setSortKey] = useState("nominal");
+  const [isSortOpen, setIsSortOpen] = useState(false);
+  const [expandedId, setExpandedId] = useState(null);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [formData, setFormData] = useState({ person: "", amount: "", type: "debt", due_date: "" });
+  const [isAdding, setIsAdding] = useState(false);
   const [deleteModal, setDeleteModal] = useState({ show: false, id: null });
-  const [toast,       setToast]       = useState({ show: false, msg: "", type: "error" });
+  const [toast, setToast] = useState({ show: false, msg: "", type: "error" });
 
   const showToast = (msg, type = "error") => {
     setToast({ show: true, msg, type });
@@ -604,22 +600,22 @@ const DebtsTabComponent = memo(function DebtsTab({ activeWallet, balance }) {
     [debts]
   );
   const totalDebt = useMemo(() =>
-    activeDebts.reduce((a,c) => a + Number(c.amount), 0),
+    activeDebts.reduce((a, c) => a + Number(c.amount), 0),
     [activeDebts]
   );
   const totalReceive = useMemo(() =>
-    activeReceive.reduce((a,c) => a + Number(c.amount), 0),
+    activeReceive.reduce((a, c) => a + Number(c.amount), 0),
     [activeReceive]
   );
   const currentList = useMemo(() =>
-    activeTab === "debt"       ? sortDebts(activeDebts,   sortKey)
-    : activeTab === "receivable" ? sortDebts(activeReceive, sortKey)
-    : sortDebts(paidDebts, sortKey),
+    activeTab === "debt" ? sortDebts(activeDebts, sortKey)
+      : activeTab === "receivable" ? sortDebts(activeReceive, sortKey)
+        : sortDebts(paidDebts, sortKey),
     [activeTab, activeDebts, activeReceive, paidDebts, sortKey]
   );
-  const emptyMsg = activeTab === "debt"       ? DEBT.EMPTY_DEBT
-                 : activeTab === "receivable" ? DEBT.EMPTY_REC
-                 : DEBT.EMPTY_PAID;
+  const emptyMsg = activeTab === "debt" ? DEBT.EMPTY_DEBT
+    : activeTab === "receivable" ? DEBT.EMPTY_REC
+      : DEBT.EMPTY_PAID;
 
   // ── Add ────────────────────────────────────────────────────────────────────
   const handleAdd = useCallback(async e => {
@@ -630,14 +626,14 @@ const DebtsTabComponent = memo(function DebtsTab({ activeWallet, balance }) {
     setIsAdding(true);
     const { data: { user } } = await supabase.auth.getUser();
     const { error } = await supabase.from("debts").insert([{
-      person_name:    formData.person.trim(),
-      amount:         parsed,
+      person_name: formData.person.trim(),
+      amount: parsed,
       initial_amount: parsed,
-      type:           formData.type,
-      wallet_id:      activeWallet.id,
-      user_id:        user.id,
-      due_date:       formData.due_date || null,
-      status:         "unpaid",
+      type: formData.type,
+      wallet_id: activeWallet.id,
+      user_id: user.id,
+      due_date: formData.due_date || null,
+      status: "unpaid",
     }]);
     setIsAdding(false);
     if (!error) {
@@ -677,8 +673,8 @@ const DebtsTabComponent = memo(function DebtsTab({ activeWallet, balance }) {
       {/* Summary pills */}
       <div className="grid grid-cols-2 gap-2.5 mb-4 flex-none">
         {[
-          { label: DEBT.TOTAL_DEBT,  value: totalDebt,    Icon: TrendingDown, color: "text-red-500",  count: activeDebts.length },
-          { label: DEBT.TOTAL_REC,   value: totalReceive, Icon: TrendingUp,   color: "text-blue-500", count: activeReceive.length },
+          { label: DEBT.TOTAL_DEBT, value: totalDebt, Icon: TrendingDown, color: "text-red-500", count: activeDebts.length },
+          { label: DEBT.TOTAL_REC, value: totalReceive, Icon: TrendingUp, color: "text-blue-500", count: activeReceive.length },
         ].map(({ label, value, Icon, color, count }) => (
           <div key={label} className="bg-white dark:bg-[#121827] border border-gray-100 dark:border-gray-800/60 rounded-[20px] p-3.5 shadow-sm">
             <div className={`flex items-center gap-1.5 ${color} mb-1.5`}>
@@ -699,24 +695,22 @@ const DebtsTabComponent = memo(function DebtsTab({ activeWallet, balance }) {
         {/* Tab pills */}
         <div className="flex flex-1 bg-gray-100 dark:bg-[#121827] p-1 rounded-[14px] border border-gray-200 dark:border-gray-800/60 shadow-inner">
           {[
-            { key: "debt",       label: DEBT.TAB_DEBT,    count: activeDebts.length },
+            { key: "debt", label: DEBT.TAB_DEBT, count: activeDebts.length },
             { key: "receivable", label: DEBT.TAB_RECEIVE, count: activeReceive.length },
-            { key: "paid",       label: DEBT.TAB_PAID,    count: paidDebts.length },
+            { key: "paid", label: DEBT.TAB_PAID, count: paidDebts.length },
           ].map(({ key, label, count }) => (
             <button
               key={key}
               onClick={() => { setActiveTab(key); setExpandedId(null); }}
-              className={`flex-1 flex items-center justify-center gap-1 text-[8px] font-black uppercase tracking-widest py-2 rounded-xl transition-all duration-200 ${
-                activeTab === key
+              className={`flex-1 flex items-center justify-center gap-1 text-[8px] font-black uppercase tracking-widest py-2 rounded-xl transition-all duration-200 ${activeTab === key
                   ? "bg-white dark:bg-blue-600 text-blue-600 dark:text-white shadow-sm"
                   : "text-gray-400"
-              }`}
+                }`}
             >
               {label}
               {count > 0 && (
-                <span className={`text-[7px] font-black px-1 py-0.5 rounded-full ${
-                  activeTab === key ? "bg-blue-100 dark:bg-white/20 text-blue-600 dark:text-white" : "bg-gray-200 dark:bg-gray-700 text-gray-500"
-                }`}>
+                <span className={`text-[7px] font-black px-1 py-0.5 rounded-full ${activeTab === key ? "bg-blue-100 dark:bg-white/20 text-blue-600 dark:text-white" : "bg-gray-200 dark:bg-gray-700 text-gray-500"
+                  }`}>
                   {count}
                 </span>
               )}
@@ -754,11 +748,10 @@ const DebtsTabComponent = memo(function DebtsTab({ activeWallet, balance }) {
                       <button
                         key={opt.key}
                         onClick={() => { setSortKey(opt.key); setIsSortOpen(false); }}
-                        className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-left transition-colors ${
-                          sortKey === opt.key
+                        className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-left transition-colors ${sortKey === opt.key
                             ? "bg-blue-500/10 text-blue-500"
                             : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50"
-                        }`}
+                          }`}
                       >
                         <opt.Icon size={13} />
                         <span className="text-xs font-bold">{opt.label}</span>
@@ -838,81 +831,81 @@ const DebtsTabComponent = memo(function DebtsTab({ activeWallet, balance }) {
               exit={{ y: 400, opacity: 0 }}
               transition={{ type: "spring", damping: 28, stiffness: 300 }}
               onSubmit={handleAdd}
-              className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto bg-white dark:bg-[#0a0f1c] border-t border-gray-100 dark:border-gray-800 rounded-t-[32px] shadow-2xl z-50 pb-8"
+              className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto bg-white dark:bg-[#0a0f1c] border-t border-gray-100 dark:border-gray-800 rounded-t-[32px] shadow-2xl z-50"
             >
-              <div className="p-6">
-                <div className="w-10 h-1 bg-gray-200 dark:bg-gray-700 rounded-full mx-auto mb-5" />
-                <div className="flex justify-between items-center mb-5">
-                  <h3 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-widest">
-                    {DEBT.ADD_NEW}
-                  </h3>
-                  <button type="button" onClick={() => setIsFormOpen(false)} className="p-2 text-gray-400 hover:text-red-500 bg-gray-50 dark:bg-gray-800 rounded-full">
-                    <X size={18} />
-                  </button>
-                </div>
-
-                {/* Type toggle */}
-                <div className="flex bg-gray-100 dark:bg-gray-800/60 p-1 rounded-2xl mb-4">
-                  {[
-                    { val: "debt",       label: DEBT.TAB_DEBT,    Icon: TrendingDown, cls: "text-red-500  dark:bg-red-500/20 border-red-500/20" },
-                    { val: "receivable", label: DEBT.TAB_RECEIVE, Icon: TrendingUp,   cls: "text-emerald-500 dark:bg-emerald-500/20 border-emerald-500/20" },
-                  ].map(({ val, label, Icon, cls }) => (
-                    <button
-                      key={val}
-                      type="button"
-                      onClick={() => setFormData(p => ({ ...p, type: val }))}
-                      className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest border transition-all ${
-                        formData.type === val ? `bg-white ${cls} shadow-sm` : "text-gray-400 border-transparent"
-                      }`}
-                    >
-                      <Icon size={13} /> {label}
+              <div style={{ paddingBottom: "env(safe-area-inset-bottom, 24px)" }}>
+                <div className="p-6">
+                  <div className="w-10 h-1 bg-gray-200 dark:bg-gray-700 rounded-full mx-auto mb-5" />
+                  <div className="flex justify-between items-center mb-5">
+                    <h3 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-widest">
+                      {DEBT.ADD_NEW}
+                    </h3>
+                    <button type="button" onClick={() => setIsFormOpen(false)} className="p-2 text-gray-400 hover:text-red-500 bg-gray-50 dark:bg-gray-800 rounded-full">
+                      <X size={18} />
                     </button>
-                  ))}
-                </div>
-
-                <div className="space-y-3">
-                  <div>
-                    <label className="block text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1.5">{DEBT.PERSON_NAME}</label>
-                    <input
-                      type="text" required autoFocus
-                      placeholder={DEBT.PERSON_HINT}
-                      value={formData.person}
-                      onChange={e => setFormData(p => ({ ...p, person: e.target.value }))}
-                      className="w-full bg-gray-50 dark:bg-[#121827] border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white font-bold text-sm p-4 rounded-2xl outline-none focus:border-blue-500 transition-all placeholder-gray-400"
-                    />
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
+
+                  {/* Type toggle */}
+                  <div className="flex bg-gray-100 dark:bg-gray-800/60 p-1 rounded-2xl mb-4">
+                    {[
+                      { val: "debt", label: DEBT.TAB_DEBT, Icon: TrendingDown, cls: "text-red-500  dark:bg-red-500/20 border-red-500/20" },
+                      { val: "receivable", label: DEBT.TAB_RECEIVE, Icon: TrendingUp, cls: "text-emerald-500 dark:bg-emerald-500/20 border-emerald-500/20" },
+                    ].map(({ val, label, Icon, cls }) => (
+                      <button
+                        key={val}
+                        type="button"
+                        onClick={() => setFormData(p => ({ ...p, type: val }))}
+                        className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest border transition-all ${formData.type === val ? `bg-white ${cls} shadow-sm` : "text-gray-400 border-transparent"
+                          }`}
+                      >
+                        <Icon size={13} /> {label}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="space-y-3">
                     <div>
-                      <label className="block text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1.5">{DEBT.NOMINAL}</label>
+                      <label className="block text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1.5">{DEBT.PERSON_NAME}</label>
                       <input
-                        type="text" required
-                        placeholder="Cth: 500k, 1jt, 500rb"
-                        value={formData.amount}
-                        onChange={e => setFormData(p => ({ ...p, amount: e.target.value }))}
+                        type="text" required autoFocus
+                        placeholder={DEBT.PERSON_HINT}
+                        value={formData.person ?? ""}
+                        onChange={e => setFormData(p => ({ ...p, person: e.target.value }))}
                         className="w-full bg-gray-50 dark:bg-[#121827] border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white font-bold text-sm p-4 rounded-2xl outline-none focus:border-blue-500 transition-all placeholder-gray-400"
                       />
                     </div>
-                    <div>
-                      <label className="block text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1.5">{DEBT.DUE_DATE}</label>
-                      <input
-                        type="date"
-                        value={formData.due_date}
-                        onChange={e => setFormData(p => ({ ...p, due_date: e.target.value }))}
-                        className="w-full bg-gray-50 dark:bg-[#121827] border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white font-bold text-sm p-4 rounded-2xl outline-none focus:border-blue-500 transition-all"
-                      />
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1.5">{DEBT.NOMINAL}</label>
+                        <input
+                          type="text" required
+                          placeholder="Cth: 500k, 1jt, 500rb"
+                          value={formData.amount ?? ""}
+                          onChange={e => setFormData(p => ({ ...p, amount: e.target.value }))}
+                          className="w-full bg-gray-50 dark:bg-[#121827] border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white font-bold text-sm p-4 rounded-2xl outline-none focus:border-blue-500 transition-all placeholder-gray-400"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1.5">{DEBT.DUE_DATE}</label>
+                        <input
+                          type="date"
+                          value={formData.due_date ?? ""}
+                          onChange={e => setFormData(p => ({ ...p, due_date: e.target.value }))}
+                          className="w-full bg-gray-50 dark:bg-[#121827] border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white font-bold text-sm p-4 rounded-2xl outline-none focus:border-blue-500 transition-all"
+                        />
+                      </div>
                     </div>
+                    <button
+                      type="submit"
+                      disabled={isAdding}
+                      className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg transition-all active:scale-95 disabled:opacity-50 ${formData.type === "debt"
+                          ? "bg-red-500 hover:bg-red-400 text-white shadow-red-500/30"
+                          : "bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-500/30"
+                        }`}
+                    >
+                      {isAdding ? "Menyimpan..." : formData.type === "debt" ? DEBT.SAVE_DEBT : DEBT.SAVE_REC}
+                    </button>
                   </div>
-                  <button
-                    type="submit"
-                    disabled={isAdding}
-                    className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg transition-all active:scale-95 disabled:opacity-50 ${
-                      formData.type === "debt"
-                        ? "bg-red-500 hover:bg-red-400 text-white shadow-red-500/30"
-                        : "bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-500/30"
-                    }`}
-                  >
-                    {isAdding ? "Menyimpan..." : formData.type === "debt" ? DEBT.SAVE_DEBT : DEBT.SAVE_REC}
-                  </button>
                 </div>
               </div>
             </motion.form>
@@ -955,11 +948,10 @@ const DebtsTabComponent = memo(function DebtsTab({ activeWallet, balance }) {
             exit={{ opacity: 0, y: -20, scale: 0.9 }}
             className="fixed top-6 left-0 right-0 z-[999999] flex justify-center px-4 pointer-events-none"
           >
-            <div className={`flex items-center gap-3 px-5 py-3.5 rounded-full shadow-2xl backdrop-blur-xl border ${
-              toast.type === "error"
+            <div className={`flex items-center gap-3 px-5 py-3.5 rounded-full shadow-2xl backdrop-blur-xl border ${toast.type === "error"
                 ? "bg-red-500/10 border-red-500/20 text-red-500"
                 : "bg-green-500/10 border-green-500/20 text-green-500"
-            }`}>
+              }`}>
               <span className="text-xs font-bold tracking-wide">{toast.msg}</span>
             </div>
           </motion.div>

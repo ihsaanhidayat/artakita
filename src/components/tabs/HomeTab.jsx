@@ -8,8 +8,8 @@ import {
   Edit3, Trash2, Eye, EyeOff, Loader2,
   SlidersHorizontal, X, ChevronDown, Camera, Image
 } from "lucide-react";
-import PhotoViewer from "@/components/PhotoViewer";
-import BudgetAlert from "@/components/BudgetAlert";
+import PhotoViewer   from "@/components/PhotoViewer";
+import BudgetAlert   from "@/components/BudgetAlert";
 import { formatDateTime, fmt } from "@/lib/utils";
 import { HOME } from "@/lib/constants";
 import { supabase } from "@/lib/supabaseClient";
@@ -17,10 +17,10 @@ import { uploadPhoto } from "@/lib/imageUtils";
 
 const getCatIcon = (cat) => {
   switch (cat) {
-    case "Makan": return <Coffee size={17} />;
+    case "Makan":   return <Coffee  size={17} />;
     case "Belanja": return <ShoppingBag size={17} />;
     case "Tagihan": return <Receipt size={17} />;
-    default: return <Layers size={17} />;
+    default:        return <Layers  size={17} />;
   }
 };
 
@@ -39,42 +39,40 @@ const Skeleton = () => (
 
 // ── Collapsed Search+Filter Bar ───────────────────────────────────────────────
 const FilterBar = memo(function FilterBar({
-  searchQuery, setSearchQuery,
+  searchQuery,    setSearchQuery,
   categoryFilter, setCategoryFilter,
-  dateRange, setDateRange,
+  dateRange,      setDateRange,
   dynamicCategories,
 }) {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen,   setIsOpen]   = useState(false);
   const [showCats, setShowCats] = useState(false);
 
   const activeCount = [
     searchQuery.length > 0,
     categoryFilter !== "Semua",
-    dateRange.from && dateRange.to,
+    !!(dateRange.from || dateRange.to),
   ].filter(Boolean).length;
 
   const clearAll = useCallback(() => {
-    setSearchQuery("");
-    setCategoryFilter("Semua");
+    setSearchQuery(""); setCategoryFilter("Semua");
     setDateRange({ from: "", to: "" });
   }, [setSearchQuery, setCategoryFilter, setDateRange]);
 
   return (
     <div className="mb-4">
-      {/* Collapsed pill */}
+      {/* Collapsed */}
       {!isOpen ? (
         <button
           onClick={() => setIsOpen(true)}
-          className={`w-full flex items-center justify-between px-4 py-2.5 rounded-2xl border transition-all ${activeCount > 0
+          className={`w-full flex items-center justify-between px-4 py-2.5 rounded-2xl border transition-all ${
+            activeCount > 0
               ? "bg-blue-500/10 border-blue-500/30 text-blue-500"
               : "bg-gray-50 dark:bg-[#121827] border-gray-200 dark:border-gray-800 text-gray-400"
-            }`}
+          }`}
         >
           <div className="flex items-center gap-2">
             <SlidersHorizontal size={14} />
-            <span className="text-[10px] font-black uppercase tracking-widest">
-              Cari & Filter
-            </span>
+            <span className="text-[10px] font-black uppercase tracking-widest">Cari & Filter</span>
             {activeCount > 0 && (
               <span className="text-[8px] font-black bg-blue-500 text-white w-4 h-4 rounded-full flex items-center justify-center">
                 {activeCount}
@@ -88,38 +86,39 @@ const FilterBar = memo(function FilterBar({
           initial={{ opacity: 0, y: -4 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.14, ease: "easeOut" }}
-          className="bg-gray-50 dark:bg-[#121827] border border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden"
+          className="bg-gray-50 dark:bg-[#121827] border border-gray-200 dark:border-gray-800 rounded-2xl overflow-visible"
         >
-          {/* Single row filter */}
-          <div className="flex items-center gap-2 px-3 py-2">
+          <div className="flex items-center gap-2 px-3 py-2.5">
             {/* Search */}
             <input
               autoFocus
               type="text"
-              placeholder="Cari..."
+              placeholder="Cari transaksi..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               className="flex-1 min-w-0 bg-transparent outline-none text-sm font-bold text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600"
             />
 
-            {/* Category dropdown */}
+            {/* Kategori dropdown */}
             <div className="relative shrink-0">
               <button
-                onClick={() => setShowCats(!showCats)}
-                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${categoryFilter !== "Semua"
+                onClick={() => setShowCats(p => !p)}
+                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${
+                  categoryFilter !== "Semua"
                     ? "bg-blue-500 text-white"
                     : "bg-gray-200 dark:bg-gray-800 text-gray-500 dark:text-gray-400"
-                  }`}
+                }`}
               >
                 {categoryFilter === "Semua" ? "Semua" : categoryFilter}
-                <ChevronDown size={10} />
+                <ChevronDown size={9} />
               </button>
+
               <AnimatePresence>
                 {showCats && (
                   <>
                     <motion.div
                       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                      className="fixed inset-0 z-20"
+                      className="fixed inset-0 z-[20]"
                       onClick={() => setShowCats(false)}
                     />
                     <motion.div
@@ -127,16 +126,17 @@ const FilterBar = memo(function FilterBar({
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: 4, scale: 0.97 }}
                       transition={{ duration: 0.12 }}
-                      className="absolute right-0 top-full mt-1.5 bg-white dark:bg-[#121827] border border-gray-100 dark:border-gray-800 rounded-2xl shadow-xl z-30 py-1.5 min-w-[120px] max-h-48 overflow-y-auto no-scrollbar"
+                      className="absolute right-0 top-full mt-1.5 bg-white dark:bg-[#0d1117] border border-gray-100 dark:border-gray-800 rounded-2xl shadow-2xl z-[21] py-1.5 min-w-[140px] max-h-52 overflow-y-auto no-scrollbar"
                     >
                       {dynamicCategories.map(cat => (
                         <button
                           key={cat}
                           onClick={() => { setCategoryFilter(cat); setShowCats(false); }}
-                          className={`w-full text-left px-4 py-2 text-xs font-bold transition-colors ${categoryFilter === cat
-                              ? "text-blue-500 bg-blue-500/8"
+                          className={`w-full text-left px-4 py-2 text-xs font-bold transition-colors ${
+                            categoryFilter === cat
+                              ? "text-blue-500 bg-blue-500/10"
                               : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/40"
-                            }`}
+                          }`}
                         >
                           {cat}
                         </button>
@@ -147,32 +147,30 @@ const FilterBar = memo(function FilterBar({
               </AnimatePresence>
             </div>
 
-            {/* Date range */}
+            {/* Date dari - sampai */}
             <input
               type="date"
-              value={dateRange.from}
+              value={dateRange.from ?? ""}
               onChange={e => setDateRange(p => ({ ...p, from: e.target.value }))}
-              className="w-[96px] bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-[9px] font-bold rounded-xl px-2 py-1.5 outline-none border-none focus:ring-1 focus:ring-blue-500 shrink-0"
+              className="w-[88px] shrink-0 bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-[8px] font-bold rounded-xl px-1.5 py-1.5 outline-none focus:ring-1 focus:ring-blue-500"
             />
-            <span className="text-gray-300 dark:text-gray-700 text-xs shrink-0">–</span>
+            <span className="text-gray-300 dark:text-gray-700 text-[10px] shrink-0">–</span>
             <input
               type="date"
-              value={dateRange.to}
+              value={dateRange.to ?? ""}
               min={dateRange.from}
               onChange={e => setDateRange(p => ({ ...p, to: e.target.value }))}
-              className="w-[96px] bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-[9px] font-bold rounded-xl px-2 py-1.5 outline-none border-none focus:ring-1 focus:ring-blue-500 shrink-0"
+              className="w-[88px] shrink-0 bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-[8px] font-bold rounded-xl px-1.5 py-1.5 outline-none focus:ring-1 focus:ring-blue-500"
             />
 
-            {/* Close / Clear */}
             <button
               onClick={() => { setIsOpen(false); setShowCats(false); }}
-              className="p-1.5 text-gray-400 hover:text-red-500 transition-colors shrink-0"
+              className="p-1.5 text-gray-400 hover:text-red-400 transition-colors shrink-0"
             >
-              <X size={14} />
+              <X size={13} />
             </button>
           </div>
 
-          {/* Clear all jika ada filter aktif */}
           {activeCount > 0 && (
             <button
               onClick={clearAll}
@@ -187,9 +185,10 @@ const FilterBar = memo(function FilterBar({
   );
 });
 
-// ── Foto inline upload untuk card transaksi ───────────────────────────────────
-const FotoInline = memo(function FotoInline({ trxId, userId, hasPhoto, onPhotoAdded }) {
-  const [isOpen, setIsOpen] = useState(false);
+// ── FotoInline — icon kiri card, tampil sebagai kotak inisial ────────────────
+// Tap → 2 pill Kamera / Galeri muncul di atas
+const FotoInline = memo(function FotoInline({ trxId, userId, category, type, onPhotoAdded }) {
+  const [isOpen,      setIsOpen]      = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const camRef = useRef(null);
   const galRef = useRef(null);
@@ -201,7 +200,7 @@ const FotoInline = memo(function FotoInline({ trxId, userId, hasPhoto, onPhotoAd
     try {
       const { uploadPhoto: upload } = await import("@/lib/imageUtils");
       const path = `receipts/${userId}/${trxId}.jpg`;
-      const url = await upload(file, path, supabase);
+      const url  = await upload(file, path, supabase);
       await supabase.from("transactions").update({ receipt_url: url }).eq("id", trxId);
       onPhotoAdded?.(trxId, url);
     } catch (err) {
@@ -211,62 +210,66 @@ const FotoInline = memo(function FotoInline({ trxId, userId, hasPhoto, onPhotoAd
     }
   }, [trxId, userId, onPhotoAdded]);
 
+  const initials = (category || "?").slice(0, 2).toUpperCase();
+  const isIncome = type === "income";
+
   return (
-    <div className="relative">
+    <div className="relative shrink-0">
+      {/* Kotak inisial — tap untuk upload */}
       <button
-        onClick={() => !hasPhoto && setIsOpen(p => !p)}
+        onClick={() => setIsOpen(p => !p)}
         disabled={isUploading}
-        className={`p-1.5 rounded-lg transition-all ${hasPhoto
-            ? "text-violet-500 bg-violet-500/10 hover:bg-violet-500/20"
-            : isUploading
-              ? "text-blue-400 animate-pulse"
-              : "text-gray-300 dark:text-gray-700 hover:text-gray-500"
-          }`}
-        title={hasPhoto ? "Lihat foto" : "Upload foto nota"}
+        className={`w-11 h-11 rounded-2xl flex items-center justify-center font-black text-sm transition-all active:scale-90 ${
+          isUploading
+            ? "bg-blue-500/10 text-blue-400"
+            : isIncome
+            ? "bg-green-500/10 text-green-600 dark:text-green-400 hover:bg-green-500/20"
+            : "bg-red-500/10 text-red-500 dark:text-red-400 hover:bg-red-500/20"
+        }`}
       >
         {isUploading
-          ? <Loader2 size={11} className="animate-spin" />
-          : hasPhoto
-            ? <Eye size={11} />
-            : <EyeOff size={11} />
+          ? <Loader2 size={14} className="animate-spin" />
+          : initials
         }
       </button>
 
-      {/* 2 pill pilihan kamera/galeri */}
+      {/* 2 pill: Kamera & Galeri — muncul di atas kotak */}
       <AnimatePresence>
         {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: -4 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: -4 }}
-            transition={{ duration: 0.1 }}
-            className="absolute bottom-full right-0 mb-1.5 flex gap-1.5 z-20"
-          >
+          <>
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 z-10"
+              className="fixed inset-0 z-[15]"
               onClick={() => setIsOpen(false)}
             />
-            <button
-              onClick={() => camRef.current?.click()}
-              className="relative z-20 flex items-center gap-1 px-2.5 py-1.5 bg-[#1a1f2e] border border-white/10 text-white rounded-xl text-[9px] font-black uppercase tracking-widest shadow-lg whitespace-nowrap"
+            <motion.div
+              initial={{ opacity: 0, y: 4, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0,  y: 4, scale: 0.95 }}
+              transition={{ duration: 0.12 }}
+              className="absolute bottom-full left-0 mb-2 flex flex-col gap-1 z-[16]"
             >
-              <Camera size={10} /> Kamera
-            </button>
-            <button
-              onClick={() => galRef.current?.click()}
-              className="relative z-20 flex items-center gap-1 px-2.5 py-1.5 bg-[#1a1f2e] border border-white/10 text-white rounded-xl text-[9px] font-black uppercase tracking-widest shadow-lg whitespace-nowrap"
-            >
-              <Image size={10} /> Galeri
-            </button>
-          </motion.div>
+              <button
+                onClick={() => { camRef.current?.click(); }}
+                className="flex items-center gap-1.5 px-3 py-2 bg-[#1a1f2e] border border-white/10 text-white rounded-xl text-[9px] font-black uppercase tracking-widest shadow-xl whitespace-nowrap"
+              >
+                <Camera size={11} /> Kamera
+              </button>
+              <button
+                onClick={() => { galRef.current?.click(); }}
+                className="flex items-center gap-1.5 px-3 py-2 bg-[#1a1f2e] border border-white/10 text-white rounded-xl text-[9px] font-black uppercase tracking-widest shadow-xl whitespace-nowrap"
+              >
+                <Image size={11} /> Galeri
+              </button>
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
 
       <input ref={camRef} type="file" accept="image/*" capture="environment"
-        onChange={e => handleFile(e.target.files?.[0])} className="hidden" />
+        onChange={e => { handleFile(e.target.files?.[0]); e.target.value=""; }} className="hidden" />
       <input ref={galRef} type="file" accept="image/*"
-        onChange={e => handleFile(e.target.files?.[0])} className="hidden" />
+        onChange={e => { handleFile(e.target.files?.[0]); e.target.value=""; }} className="hidden" />
     </div>
   );
 });
@@ -276,12 +279,12 @@ const HomeTabComponent = memo(function HomeTab({
   isDarkMode, setIsDarkMode,
   activeWallet, onOpenWalletModal,
   balance, filteredIncome, filteredExpense,
-  typeFilter, setTypeFilter,
-  searchQuery, setSearchQuery,
-  categoryFilter, setCategoryFilter,
+  typeFilter,      setTypeFilter,
+  searchQuery,     setSearchQuery,
+  categoryFilter,  setCategoryFilter,
   dynamicCategories,
-  dateRange, setDateRange,
-  selectedMonth, setSelectedMonth,
+  dateRange,       setDateRange,
+  selectedMonth,   setSelectedMonth,
   recentMonths,
   filteredTransactions,
   transactions,
@@ -293,9 +296,9 @@ const HomeTabComponent = memo(function HomeTab({
   onEditTransaction, onDeleteTransaction,
   session,
 }) {
-  const [viewerUrl, setViewerUrl] = useState(null);
+  const [viewerUrl,   setViewerUrl]   = useState(null);
   const [viewerLabel, setViewerLabel] = useState("");
-  const [photoMap, setPhotoMap] = useState({}); // { trxId: url }
+  const [photoMap,    setPhotoMap]    = useState({}); // { trxId: url }
 
   const handlePhotoAdded = useCallback((trxId, url) => {
     setPhotoMap(p => ({ ...p, [trxId]: url }));
@@ -350,15 +353,16 @@ const HomeTabComponent = memo(function HomeTab({
           <BudgetAlert budgets={allBudgets} transactions={transactionsThisMonth} />
 
           {(!isOnline || pendingCount > 0) && (
-            <div className={`flex items-center gap-2 px-3 py-2 rounded-xl text-[10px] font-bold mt-2 ${!isOnline
+            <div className={`flex items-center gap-2 px-3 py-2 rounded-xl text-[10px] font-bold mt-2 ${
+              !isOnline
                 ? "bg-amber-500/10 border border-amber-500/20 text-amber-500"
                 : "bg-blue-500/10 border border-blue-500/20 text-blue-500"
-              }`}>
+            }`}>
               <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${!isOnline ? "bg-amber-500" : "bg-blue-500 animate-pulse"}`} />
               <span>
                 {!isOnline ? HOME.OFFLINE_MSG
                   : isSyncing ? HOME.SYNCING_MSG(pendingCount)
-                    : HOME.PENDING_MSG(pendingCount)}
+                  : HOME.PENDING_MSG(pendingCount)}
               </span>
             </div>
           )}
@@ -369,10 +373,11 @@ const HomeTabComponent = memo(function HomeTab({
           <div className="grid grid-cols-2 gap-3">
             <button
               onClick={() => setTypeFilter(typeFilter === "income" ? "all" : "income")}
-              className={`p-4 rounded-[20px] border transition-all ${typeFilter === "income"
+              className={`p-4 rounded-[20px] border transition-all ${
+                typeFilter === "income"
                   ? "bg-green-500/10 border-green-500 shadow-lg shadow-green-500/20"
                   : "bg-gray-50 dark:bg-gray-900/40 border-gray-100 dark:border-gray-800/50"
-                }`}
+              }`}
             >
               <div className="flex items-center gap-1.5 text-green-600 dark:text-green-500 mb-1.5">
                 <ArrowDownCircle size={14} />
@@ -384,10 +389,11 @@ const HomeTabComponent = memo(function HomeTab({
             </button>
             <button
               onClick={() => setTypeFilter(typeFilter === "expense" ? "all" : "expense")}
-              className={`p-4 rounded-[20px] border transition-all ${typeFilter === "expense"
+              className={`p-4 rounded-[20px] border transition-all ${
+                typeFilter === "expense"
                   ? "bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20"
                   : "bg-gray-50 dark:bg-gray-900/40 border-gray-100 dark:border-gray-800/50"
-                }`}
+              }`}
             >
               <div className="flex items-center gap-1.5 text-red-600 dark:text-red-500 mb-1.5">
                 <ArrowUpCircle size={14} />
@@ -402,9 +408,9 @@ const HomeTabComponent = memo(function HomeTab({
 
         {/* ── Collapsed Filter Bar ── */}
         <FilterBar
-          searchQuery={searchQuery} setSearchQuery={setSearchQuery}
+          searchQuery={searchQuery}       setSearchQuery={setSearchQuery}
           categoryFilter={categoryFilter} setCategoryFilter={setCategoryFilter}
-          dateRange={dateRange} setDateRange={setDateRange}
+          dateRange={dateRange}           setDateRange={setDateRange}
           dynamicCategories={dynamicCategories}
         />
 
@@ -424,7 +430,7 @@ const HomeTabComponent = memo(function HomeTab({
             className="appearance-none bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300 rounded-xl pl-3 pr-7 py-1.5 text-[9px] font-black uppercase tracking-widest outline-none cursor-pointer"
           >
             {recentMonths.map(m => (
-              <option key={m.value} value={m.value}>{m.label}</option>
+              <option key={m.value} value={m.value ?? ""}>{m.label}</option>
             ))}
           </select>
         </div>
@@ -458,27 +464,29 @@ const HomeTabComponent = memo(function HomeTab({
                   initial={{ opacity: 0, x: -8 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, scale: 0.96 }}
-                  className={`flex items-center justify-between p-4 rounded-[22px] border transition-all mb-2.5 ${trx._pending
+                  className={`flex items-center justify-between p-4 rounded-[22px] border transition-all mb-2.5 ${
+                    trx._pending
                       ? "bg-amber-50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800/30"
                       : "bg-white dark:bg-gray-900/20 border-gray-100 dark:border-gray-800/40"
-                    }`}
+                  }`}
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    {/* Icon kiri: mata terbuka jika ada foto, kategori jika tidak */}
+                    {/* Icon kiri: mata terbuka (lihat foto) atau inisial+upload */}
                     {hasPhoto ? (
                       <button
                         onClick={() => { setViewerUrl(photoUrl); setViewerLabel(trx.note); }}
-                        className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 bg-violet-500/10 text-violet-500 hover:bg-violet-500/20 transition-colors"
+                        className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 bg-violet-500/10 text-violet-500 hover:bg-violet-500/20 active:scale-90 transition-all"
                       >
                         <Eye size={18} />
                       </button>
                     ) : (
-                      <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${trx.type === "income"
-                          ? "bg-green-500/10 text-green-600 dark:text-green-400"
-                          : "bg-red-500/10 text-red-500 dark:text-red-400"
-                        }`}>
-                        {getCatIcon(trx.category)}
-                      </div>
+                      <FotoInline
+                        trxId={trx.id}
+                        userId={session?.user?.id}
+                        category={trx.category}
+                        type={trx.type}
+                        onPhotoAdded={handlePhotoAdded}
+                      />
                     )}
                     <div className="min-w-0">
                       <p className="font-bold text-sm text-gray-900 dark:text-white truncate">
@@ -501,8 +509,9 @@ const HomeTabComponent = memo(function HomeTab({
                   </div>
 
                   <div className="flex flex-col items-end gap-2 shrink-0 ml-2">
-                    <p className={`font-black text-sm tracking-tight ${trx.type === "income" ? "text-green-600 dark:text-green-400" : "text-red-500 dark:text-red-400"
-                      }`}>
+                    <p className={`font-black text-sm tracking-tight ${
+                      trx.type === "income" ? "text-green-600 dark:text-green-400" : "text-red-500 dark:text-red-400"
+                    }`}>
                       {trx.type === "income" ? "+" : "-"}Rp {Number(trx.amount).toLocaleString("id-ID")}
                     </p>
                     {!trx._pending && (
@@ -519,6 +528,7 @@ const HomeTabComponent = memo(function HomeTab({
                         >
                           <Trash2 size={13} />
                         </button>
+
                       </div>
                     )}
                   </div>

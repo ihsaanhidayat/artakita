@@ -69,7 +69,7 @@ const LoginScreen = memo(function LoginScreen({ auth }) {
             </label>
             <input
               type="text" required autoFocus
-              value={auth.authUsername}
+              value={auth.authUsername || ""}
               onChange={e => auth.setAuthUsername(e.target.value)}
               placeholder="Masukkan username atau email"
               className="w-full bg-gray-50 dark:bg-black border border-gray-200 dark:border-gray-800 rounded-2xl py-3.5 px-4 text-sm font-bold text-gray-900 dark:text-white outline-none focus:border-blue-500 transition-all placeholder-gray-300 dark:placeholder-gray-700"
@@ -81,7 +81,7 @@ const LoginScreen = memo(function LoginScreen({ auth }) {
             </label>
             <input
               type="password" required
-              value={auth.authPassword}
+              value={auth.authPassword || ""}
               onChange={e => auth.setAuthPassword(e.target.value)}
               placeholder="••••••••"
               className="w-full bg-gray-50 dark:bg-black border border-gray-200 dark:border-gray-800 rounded-2xl py-3.5 px-4 text-sm font-bold text-gray-900 dark:text-white outline-none focus:border-blue-500 transition-all placeholder-gray-300 dark:placeholder-gray-700"
@@ -351,8 +351,8 @@ export default function Home() {
   );
 
   const existingCategories = useMemo(() =>
-    [...new Set(transactionsThisMonth.map(t => t.category))],
-    [transactionsThisMonth]
+    [...new Set((allTransactions || []).map(t => t.category).filter(Boolean))].sort(),
+    [allTransactions]
   );
 
   const dynamicCategories = useMemo(() =>
@@ -411,19 +411,22 @@ export default function Home() {
   );
 
   // ── Handlers ─────────────────────────────────────────────────────────────
-  const handleSaveTrxEdit = useCallback(async (e, parsedAmount) => {
-    e.preventDefault();
-    const d = editTrxModal.data;
-    if (!d?.note || !d?.amount || !d?.category) return;
-    const amount = parsedAmount || d.amount;
+  const handleSaveTrxEdit = useCallback(async (updatedData) => {
+    if (!updatedData?.note || !updatedData?.amount || !updatedData?.category) return;
     try {
-      await updateTransaction(d.id, d.note, d.category, amount, d.created_at);
-      setEditTrxModal(p => ({ ...p, isOpen: false }));
+      await updateTransaction(
+        updatedData.id,
+        updatedData.note,
+        updatedData.category,
+        updatedData.amount,
+        updatedData.created_at
+      );
+      setEditTrxModal({ isOpen: false, data: null });
       showNotification("Transaksi berhasil diubah!", "success");
     } catch (err) {
       showNotification("Gagal mengubah: " + err.message, "error");
     }
-  }, [editTrxModal, updateTransaction, showNotification]);
+  }, [updateTransaction, showNotification]);
 
   const handleCreateWallet = useCallback(async e => {
     e.preventDefault();
@@ -817,6 +820,8 @@ export default function Home() {
           <QuickCommandBar
             onProcessTransaction={handleSmartSubmit}
             isSmartLoading={isSmartLoading}
+            aiKeywords={aiKeywords}
+            userCategories={userCategories}
           />
         )}
 
@@ -848,7 +853,6 @@ export default function Home() {
         <EditTrxModal
           isOpen={editTrxModal.isOpen}
           data={editTrxModal.data}
-          setData={data => setEditTrxModal(p => ({ ...p, data }))}
           onSubmit={handleSaveTrxEdit}
           onClose={() => setEditTrxModal(p => ({ ...p, isOpen: false }))}
           existingCategories={existingCategories}

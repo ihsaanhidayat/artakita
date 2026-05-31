@@ -138,7 +138,7 @@ const WalletModal = memo(function WalletModal({
             </AnimatePresence>
 
             {/* Wallet list */}
-            <div className="px-4 py-3 space-y-2.5 max-h-[45vh] overflow-y-auto no-scrollbar pb-2">
+            <div className="px-4 py-3 space-y-2.5 max-h-[40vh] overflow-y-auto no-scrollbar">
               {wallets.map((wallet, idx) => {
                 const isActive = activeWallet?.id === wallet.id;
                 const isOwner  = session?.user?.id === wallet.user_id;
@@ -238,7 +238,7 @@ const WalletModal = memo(function WalletModal({
             </div>
 
             {/* Add wallet button */}
-            <div className="px-4 pb-6 pt-2">
+            <div className="px-4 pt-2 pb-8">
               <button
                 onClick={onAddWallet}
                 className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-200 dark:border-gray-700 text-gray-400 hover:text-blue-500 hover:border-blue-500/50 hover:bg-blue-500/5 font-black text-[10px] uppercase tracking-widest rounded-2xl transition-all"
