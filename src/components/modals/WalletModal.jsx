@@ -173,7 +173,7 @@ const WalletModal = memo(function WalletModal({
                             autoFocus
                             type="text"
                             value={editName}
-                            onChange={e => setEditName(e.target.value)}
+                            onChange={e => { setEditName(e.target.value); setIsDirty(true); }}
                             onKeyDown={e => { if (e.key === "Enter") handleSaveEdit(wallet.id); }}
                             className="flex-1 bg-white/20 backdrop-blur-sm text-white placeholder-white/50 font-bold text-sm rounded-xl px-3 py-1.5 outline-none border border-white/30 focus:border-white/60"
                           />
@@ -185,7 +185,7 @@ const WalletModal = memo(function WalletModal({
                             <Check size={14} />
                           </button>
                           <button
-                            onClick={() => setEditingId(null)}
+                            onClick={() => { setEditingId(null); setIsDirty(false); }}
                             className="p-1.5 bg-white/10 hover:bg-white/20 rounded-xl text-white/70 transition-colors"
                           >
                             <X size={14} />

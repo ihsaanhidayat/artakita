@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback, useMemo, memo } from "react";
+import CategoryPills from "@/components/CategoryPills";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabaseClient";
 import { parseFlexibleNumber, fmt, fmtShort } from "@/lib/utils";
@@ -270,6 +271,10 @@ const DebtCard = memo(function DebtCard({
                           value={editData.initial_amount ?? ""}
                           onChange={e => setEditData(p => ({ ...p, initial_amount: e.target.value }))}
                           placeholder="Cth: 500k, 1jt, 500rb"
+                          onBlur={e => {
+                            const p = parseFlexibleNumber(e.target.value);
+                            if (p > 0) setFormData(prev => ({ ...prev, amount: String(p) }));
+                          }}
                           className="w-full bg-gray-50 dark:bg-[#0a0f1c] border border-gray-200 dark:border-gray-800 rounded-xl py-2.5 px-3 text-sm font-bold text-gray-900 dark:text-white outline-none focus:border-blue-500 transition-all placeholder-gray-400"
                         />
                       </div>
@@ -405,6 +410,10 @@ const DebtCard = memo(function DebtCard({
                                 autoFocus
                                 type="text"
                                 placeholder="Cth: 500k, 1jt, 500rb"
+                                onBlur={e => {
+                                  const p = parseFlexibleNumber(e.target.value);
+                                  if (p > 0) setFormData(prev => ({ ...prev, amount: String(p) }));
+                                }}
                                 value={payAmount ?? ""}
                                 onChange={e => { setPayAmount(e.target.value); setPayError(""); }}
                                 onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handlePay(); } }}
@@ -880,6 +889,10 @@ const DebtsTabComponent = memo(function DebtsTab({ activeWallet, balance }) {
                         <input
                           type="text" required
                           placeholder="Cth: 500k, 1jt, 500rb"
+                          onBlur={e => {
+                            const p = parseFlexibleNumber(e.target.value);
+                            if (p > 0) setFormData(prev => ({ ...prev, amount: String(p) }));
+                          }}
                           value={formData.amount ?? ""}
                           onChange={e => setFormData(p => ({ ...p, amount: e.target.value }))}
                           className="w-full bg-gray-50 dark:bg-[#121827] border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white font-bold text-sm p-4 rounded-2xl outline-none focus:border-blue-500 transition-all placeholder-gray-400"
@@ -903,7 +916,7 @@ const DebtsTabComponent = memo(function DebtsTab({ activeWallet, balance }) {
                           : "bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-500/30"
                         }`}
                     >
-                      {isAdding ? "Menyimpan..." : formData.type === "debt" ? DEBT.SAVE_DEBT : DEBT.SAVE_REC}
+                      <span className={isDirty ? "text-white" : "text-gray-400"}>{isAdding ? "Menyimpan..." : formData.type === "debt" ? DEBT.SAVE_DEBT : DEBT.SAVE_REC}</span>
                     </button>
                   </div>
                 </div>

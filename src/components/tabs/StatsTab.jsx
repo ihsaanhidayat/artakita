@@ -335,10 +335,14 @@ const StatsTab = memo(function StatsTab({ filteredTransactions, transactions, se
               </div>
               <input
                 type="text" autoFocus
-                placeholder={STATS.LIMIT_HINT}
+                placeholder="Cth: 500k · 1jt · 1.5jt"
                 value={editVal ?? ""}
                 onChange={e => setEditVal(e.target.value)}
                 onKeyDown={e => { if (e.key === "Enter") handleSaveBudget(); }}
+                onBlur={e => {
+                  const p = parseFlexibleNumber(e.target.value);
+                  if (p > 0) setEditVal(String(p));
+                }}
                 className="w-full bg-gray-50 dark:bg-[#121827] border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white font-bold text-sm p-4 rounded-2xl outline-none focus:border-blue-500 transition-all placeholder-gray-400 mb-4"
               />
               <p className="text-[9px] text-gray-400 mb-4 ml-1">Format: 500k · 1jt · 1.5jt · atau angka biasa</p>
