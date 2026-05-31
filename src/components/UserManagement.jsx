@@ -1,5 +1,8 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
+
+// Selalu arahkan ke server yang benar — penting untuk akses dari HP/device lain
+const getBase = () => typeof window !== "undefined" ? window.location.origin : "";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabaseClient";
 import {
@@ -12,23 +15,22 @@ import {
 const timeAgo = (isoString) => {
   if (!isoString) return "Belum pernah login";
   const diff = Date.now() - new Date(isoString).getTime();
-  const mins  = Math.floor(diff / 60000);
+  const mins = Math.floor(diff / 60000);
   const hours = Math.floor(diff / 3600000);
-  const days  = Math.floor(diff / 86400000);
-  if (mins  < 1)   return "Baru saja";
-  if (mins  < 60)  return `${mins} menit lalu`;
-  if (hours < 24)  return `${hours} jam lalu`;
-  if (days  < 30)  return `${days} hari lalu`;
+  const days = Math.floor(diff / 86400000);
+  if (mins < 1) return "Baru saja";
+  if (mins < 60) return `${mins} menit lalu`;
+  if (hours < 24) return `${hours} jam lalu`;
+  if (days < 30) return `${days} hari lalu`;
   return new Date(isoString).toLocaleDateString("id-ID");
 };
 
 // ── Komponen Badge Role ───────────────────────────────────────────────────────
 const RoleBadge = ({ role }) => (
-  <span className={`flex items-center gap-1 text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${
-    role === "admin"
+  <span className={`flex items-center gap-1 text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${role === "admin"
       ? "bg-amber-500/10 border border-amber-500/20 text-amber-500"
       : "bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-500"
-  }`}>
+    }`}>
     {role === "admin" ? <Crown size={9} /> : <User size={9} />}
     {role}
   </span>
@@ -55,15 +57,15 @@ const StatusBadge = ({ banned, mustChange }) => {
 
 // ── Main Component ────────────────────────────────────────────────────────────
 export default function UserManagement({ onNotify }) {
-  const [isExpanded, setIsExpanded]       = useState(false);
-  const [users, setUsers]                 = useState([]);
-  const [isLoading, setIsLoading]         = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [users, setUsers] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
   const [currentUserId, setCurrentUserId] = useState(null);
 
   // Modal states
-  const [addModal, setAddModal]           = useState({ open: false, username: "", password: "", loading: false });
-  const [resetModal, setResetModal]       = useState({ open: false, userId: null, username: "", password: "", loading: false });
-  const [deleteModal, setDeleteModal]     = useState({ open: false, userId: null, username: "" });
+  const [addModal, setAddModal] = useState({ open: false, username: "", password: "", loading: false });
+  const [resetModal, setResetModal] = useState({ open: false, userId: null, username: "", password: "", loading: false });
+  const [deleteModal, setDeleteModal] = useState({ open: false, userId: null, username: "" });
   const [actionLoading, setActionLoading] = useState(null); // userId yang sedang diproses
 
   // Ambil ID user yang sedang login (agar tidak bisa hapus/ban diri sendiri)
@@ -78,7 +80,7 @@ export default function UserManagement({ onNotify }) {
     try {
       // Kirim session token sebagai auth header
       const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch("/api/admin/users", {
+      const res = await fetch(`${getBase()}/api/admin/users`, {
         headers: { authorization: `Bearer ${session?.access_token}` },
       });
       const data = await res.json();
@@ -105,7 +107,7 @@ export default function UserManagement({ onNotify }) {
     }
     setAddModal(p => ({ ...p, loading: true }));
     try {
-      const res = await fetch("/api/admin/add-user", {
+      const res = await fetch(`${getBase()}/api/admin/add-user`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username: addModal.username, password: addModal.password }),
@@ -130,7 +132,7 @@ export default function UserManagement({ onNotify }) {
     }
     setResetModal(p => ({ ...p, loading: true }));
     try {
-      const res = await fetch("/api/admin/reset-password", {
+      const res = await fetch(`${getBase()}/api/admin/reset-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId: resetModal.userId, newPassword: resetModal.password }),
@@ -150,7 +152,7 @@ export default function UserManagement({ onNotify }) {
   const handleDeleteUser = async () => {
     setActionLoading(deleteModal.userId);
     try {
-      const res = await fetch("/api/admin/delete-user", {
+      const res = await fetch(`${getBase()}/api/admin/delete-user`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId: deleteModal.userId }),
@@ -172,7 +174,7 @@ export default function UserManagement({ onNotify }) {
     setActionLoading(user.id);
     const action = user.banned ? "unban" : "ban";
     try {
-      const res = await fetch("/api/admin/toggle-user", {
+      const res = await fetch(`${getBase()}/api/admin/toggle-user`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId: user.id, action }),
@@ -189,9 +191,9 @@ export default function UserManagement({ onNotify }) {
   };
 
   // ── Statistik ────────────────────────────────────────────────────────────
-  const totalUsers  = users.length;
+  const totalUsers = users.length;
   const activeUsers = users.filter(u => !u.banned).length;
-  const adminUsers  = users.filter(u => u.role === "admin").length;
+  const adminUsers = users.filter(u => u.role === "admin").length;
 
   return (
     <div className="bg-white dark:bg-[#121827] rounded-[32px] p-6 shadow-2xl shadow-blue-500/5 border border-gray-100 dark:border-gray-800/60 w-full">
@@ -237,9 +239,9 @@ export default function UserManagement({ onNotify }) {
               {/* ── Stats pills ── */}
               <div className="grid grid-cols-3 gap-2">
                 {[
-                  { label: "Total",   value: totalUsers,  color: "text-blue-500",   bg: "bg-blue-500/10" },
-                  { label: "Aktif",   value: activeUsers, color: "text-green-500",  bg: "bg-green-500/10" },
-                  { label: "Admin",   value: adminUsers,  color: "text-amber-500",  bg: "bg-amber-500/10" },
+                  { label: "Total", value: totalUsers, color: "text-blue-500", bg: "bg-blue-500/10" },
+                  { label: "Aktif", value: activeUsers, color: "text-green-500", bg: "bg-green-500/10" },
+                  { label: "Admin", value: adminUsers, color: "text-amber-500", bg: "bg-amber-500/10" },
                 ].map(s => (
                   <div key={s.label} className={`${s.bg} rounded-2xl p-3 text-center`}>
                     <p className={`text-xl font-black ${s.color}`}>{s.value}</p>
@@ -276,7 +278,7 @@ export default function UserManagement({ onNotify }) {
               ) : (
                 <div className="space-y-3">
                   {users.map((user) => {
-                    const isSelf    = user.id === currentUserId;
+                    const isSelf = user.id === currentUserId;
                     const isWorking = actionLoading === user.id;
 
                     return (
@@ -285,11 +287,10 @@ export default function UserManagement({ onNotify }) {
                         layout
                         initial={{ opacity: 0, y: 8 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className={`bg-gray-50 dark:bg-gray-900/40 border rounded-[20px] p-4 transition-all ${
-                          user.banned
+                        className={`bg-gray-50 dark:bg-gray-900/40 border rounded-[20px] p-4 transition-all ${user.banned
                             ? "border-red-200 dark:border-red-900/30 opacity-60"
                             : "border-gray-100 dark:border-gray-800/50"
-                        }`}
+                          }`}
                       >
                         {/* Row atas */}
                         <div className="flex justify-between items-start mb-3">
@@ -328,18 +329,17 @@ export default function UserManagement({ onNotify }) {
                               <button
                                 onClick={() => handleToggleBan(user)}
                                 disabled={isWorking}
-                                className={`p-2 bg-white dark:bg-gray-800 rounded-xl transition-colors disabled:opacity-40 ${
-                                  user.banned
+                                className={`p-2 bg-white dark:bg-gray-800 rounded-xl transition-colors disabled:opacity-40 ${user.banned
                                     ? "text-gray-400 hover:text-green-500"
                                     : "text-gray-400 hover:text-orange-500"
-                                }`}
+                                  }`}
                                 title={user.banned ? "Aktifkan User" : "Nonaktifkan User"}
                               >
                                 {isWorking
                                   ? <RefreshCw size={14} className="animate-spin" />
                                   : user.banned
-                                  ? <ShieldCheck size={14} />
-                                  : <ShieldOff size={14} />
+                                    ? <ShieldCheck size={14} />
+                                    : <ShieldOff size={14} />
                                 }
                               </button>
 
