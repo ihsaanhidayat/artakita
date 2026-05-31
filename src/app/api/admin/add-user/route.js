@@ -1,15 +1,13 @@
-import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
+import { verifyAdmin, getAdminClient } from '../auth';
 
 export async function POST(request) {
   try {
-    const { username, password } = await request.json();
+    const auth = await verifyAdmin(request);
+    if (auth.error) return NextResponse.json({ error: auth.error }, { status: auth.status });
+    const { supabaseAdmin } = auth;
 
-    const supabaseAdmin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_ROLE_KEY,
-      { auth: { autoRefreshToken: false, persistSession: false } }
-    );
+    const { username, password } = await request.json();
 
     const email = `${username.trim().toLowerCase()}@artakita.internal`;
 

@@ -1,16 +1,14 @@
-import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
+import { verifyAdmin, getAdminClient } from '../auth';
 
 export async function DELETE(request) {
   try {
     const { userId } = await request.json();
     if (!userId) return NextResponse.json({ error: 'userId wajib diisi' }, { status: 400 });
 
-    const supabaseAdmin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_ROLE_KEY,
-      { auth: { autoRefreshToken: false, persistSession: false } }
-    );
+    const auth = await verifyAdmin(request);
+    if (auth.error) return NextResponse.json({ error: auth.error }, { status: auth.status });
+    const { supabaseAdmin } = auth;
 
     // Hapus dari auth (cascade ke profiles via FK jika ada)
     const { error } = await supabaseAdmin.auth.admin.deleteUser(userId);

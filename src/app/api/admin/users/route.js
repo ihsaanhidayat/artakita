@@ -3,26 +3,45 @@ import { NextResponse } from 'next/server';
 
 export async function GET(request) {
   try {
-    // Verifikasi caller adalah admin
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
     const supabaseAdmin = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL,
       process.env.SUPABASE_SERVICE_ROLE_KEY,
       { auth: { autoRefreshToken: false, persistSession: false } }
     );
 
-    // Ambil semua user dari auth.users
-    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.listUsers();
-    if (authError) throw authError;
+    // Verifikasi token dari header
+    const authHeader = request.headers.get('authorization');
+    const token = authHeader?.replace('Bearer ', '').trim();
 
-    // Filter hanya user internal ArtaKita
+    if (!token) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Verifikasi token via Supabase
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+    }
+
+    // Cek role admin di profiles
+    const { data: profile } = await supabaseAdmin
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (profile?.role !== 'admin') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    // Ambil semua user
+    const { data: authData, error: listError } = await supabaseAdmin.auth.admin.listUsers();
+    if (listError) throw listError;
+
     const internalUsers = authData.users.filter(u =>
       u.email?.endsWith('@artakita.internal')
     );
 
-    // Ambil profile data untuk semua user
     const userIds = internalUsers.map(u => u.id);
     const { data: profiles } = await supabaseAdmin
       .from('profiles')
@@ -31,7 +50,6 @@ export async function GET(request) {
 
     const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
 
-    // Gabungkan data auth + profile
     const users = internalUsers.map(u => ({
       id:                   u.id,
       username:             u.email.split('@')[0],

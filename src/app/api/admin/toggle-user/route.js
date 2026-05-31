@@ -1,5 +1,5 @@
-import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
+import { verifyAdmin, getAdminClient } from '../auth';
 
 export async function POST(request) {
   try {
@@ -9,11 +9,9 @@ export async function POST(request) {
       return NextResponse.json({ error: 'userId dan action wajib diisi' }, { status: 400 });
     }
 
-    const supabaseAdmin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_ROLE_KEY,
-      { auth: { autoRefreshToken: false, persistSession: false } }
-    );
+    const auth = await verifyAdmin(request);
+    if (auth.error) return NextResponse.json({ error: auth.error }, { status: auth.status });
+    const { supabaseAdmin } = auth;
 
     const updateData = action === 'ban'
       ? { banned_until: new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000).toISOString() } // 100 tahun = permanen
