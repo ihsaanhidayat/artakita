@@ -16,7 +16,7 @@ const getHealth = (exp, inc) => {
   return              { grade: "A", color: "text-emerald-500", bar: "bg-emerald-500",pct: r*100,               msg: STATS.GRADE.A };
 };
 
-const StatsTab = memo(function StatsTab({ filteredTransactions, transactions, selectedMonth, balance }) {
+const StatsTab = memo(function StatsTab({ filteredTransactions, transactions, balance }) {
   const [section,       setSection]       = useState("pengeluaran");
   const [catExpanded,   setCatExpanded]   = useState(false);  // collapsed default
   const [allocExpanded, setAllocExpanded] = useState(false);  // collapsed default
@@ -24,11 +24,13 @@ const StatsTab = memo(function StatsTab({ filteredTransactions, transactions, se
   const [editingBudget, setEditingBudget] = useState(null);
   const [editVal,       setEditVal]       = useState("");
   const [isSaving,      setIsSaving]      = useState(false);
+  const [isDirtyBudget, setIsDirtyBudget] = useState(false);
 
+  const currentMonth = new Date().toISOString().slice(0, 7);
   const fetchBudgets = useCallback(async () => {
-    const { data } = await supabase.from("budgets").select("*").eq("month_year", selectedMonth);
+    const { data } = await supabase.from("budgets").select("*").eq("month_year", currentMonth);
     if (data) setBudgets(data);
-  }, [selectedMonth]);
+  }, [currentMonth]);
 
   useEffect(() => { fetchBudgets(); }, [fetchBudgets]);
 
@@ -68,22 +70,22 @@ const StatsTab = memo(function StatsTab({ filteredTransactions, transactions, se
     const newLimit = Math.abs(parseFlexibleNumber(editVal));
     setIsSaving(true);
     try {
-      const { data: ex } = await supabase.from("budgets").select("id").eq("category_name", editingBudget.category).eq("month_year", selectedMonth).single();
+      const { data: ex } = await supabase.from("budgets").select("id").eq("category_name", editingBudget.category).eq("month_year", currentMonth).single();
       if (ex) await supabase.from("budgets").update({ limit_amount: newLimit }).eq("id", ex.id);
-      else    await supabase.from("budgets").insert([{ category_name: editingBudget.category, limit_amount: newLimit, month_year: selectedMonth }]);
+      else    await supabase.from("budgets").insert([{ category_name: editingBudget.category, limit_amount: newLimit, month_year: currentMonth }]);
       await fetchBudgets();
-      setEditingBudget(null); setEditVal("");
+      setEditingBudget(null); setEditVal(""); setIsDirtyBudget(false);
     } finally { setIsSaving(false); }
-  }, [editingBudget, editVal, selectedMonth, fetchBudgets]);
+  }, [editingBudget, editVal, currentMonth, fetchBudgets]);
 
   const handleDeleteBudget = useCallback(async () => {
     if (!editingBudget) return;
     setIsSaving(true);
-    const { data: ex } = await supabase.from("budgets").select("id").eq("category_name", editingBudget.category).eq("month_year", selectedMonth).single();
+    const { data: ex } = await supabase.from("budgets").select("id").eq("category_name", editingBudget.category).eq("month_year", currentMonth).single();
     if (ex) await supabase.from("budgets").delete().eq("id", ex.id);
     await fetchBudgets();
     setEditingBudget(null); setIsSaving(false);
-  }, [editingBudget, selectedMonth, fetchBudgets]);
+  }, [editingBudget, currentMonth, fetchBudgets]);
 
   return (
     <motion.div
@@ -285,8 +287,17 @@ const StatsTab = memo(function StatsTab({ filteredTransactions, transactions, se
                                     {pct.toFixed(0)}%
                                   </span>
                                 )}
-                                <button onClick={() => { setEditingBudget({ category: cat, currentLimit: limit }); setEditVal(limit > 0 ? String(limit) : ""); }}
-                                  className="p-1.5 text-gray-400 hover:text-blue-500 bg-white dark:bg-gray-800 rounded-xl transition-colors">
+                                <button
+                                  onClick={() => {
+                                    if (editingBudget?.category === cat) {
+                                      setEditingBudget(null); setEditVal(""); setIsDirtyBudget(false);
+                                    } else {
+                                      setEditingBudget({ category: cat, currentLimit: limit });
+                                      setEditVal(limit > 0 ? limit.toLocaleString("id-ID") : "");
+                                      setIsDirtyBudget(false);
+                                    }
+                                  }}
+                                  className={`p-1.5 rounded-xl transition-colors ${editingBudget?.category === cat ? "text-blue-500 bg-blue-500/10" : "text-gray-400 hover:text-blue-500 bg-white dark:bg-gray-800"}`}>
                                   <Edit3 size={12} />
                                 </button>
                               </div>
@@ -300,6 +311,47 @@ const StatsTab = memo(function StatsTab({ filteredTransactions, transactions, se
                                 />
                               </div>
                             )}
+                            {/* Inline form budget — expand di bawah item */}
+                            <AnimatePresence>
+                              {editingBudget?.category === cat && (
+                                <motion.div
+                                  initial={{ height: 0, opacity: 0 }}
+                                  animate={{ height: "auto", opacity: 1 }}
+                                  exit={{ height: 0, opacity: 0 }}
+                                  transition={{ duration: 0.18 }}
+                                  className="overflow-hidden"
+                                >
+                                  <div className="pt-2.5 flex items-center gap-2">
+                                    <input
+                                      autoFocus
+                                      type="text"
+                                      placeholder="50k · 1jt · 500rb"
+                                      value={editVal ?? ""}
+                                      onChange={e => { setEditVal(e.target.value); setIsDirtyBudget(true); }}
+                                      onKeyDown={e => { if (e.key === "Enter") handleSaveBudget(); }}
+                                      onBlur={e => { const p = parseFlexibleNumber(e.target.value); if (p > 0) setEditVal(p.toLocaleString("id-ID")); }}
+                                      className="flex-1 bg-gray-100 dark:bg-gray-800 rounded-xl px-3 py-2 text-sm font-bold text-gray-900 dark:text-white outline-none focus:ring-1 focus:ring-blue-500 placeholder-gray-400"
+                                    />
+                                    <button
+                                      onClick={handleSaveBudget}
+                                      disabled={isSaving || !editVal.trim()}
+                                      className={`flex items-center gap-1 px-3 py-2 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all disabled:opacity-40 ${
+                                        isDirtyBudget ? "bg-blue-600 text-white" : "bg-gray-200 dark:bg-gray-700 text-gray-400"
+                                      }`}
+                                    >
+                                      <Save size={10} />
+                                      {isSaving ? "..." : "OK"}
+                                    </button>
+                                    {editingBudget.currentLimit > 0 && (
+                                      <button onClick={handleDeleteBudget} disabled={isSaving}
+                                        className="px-3 py-2 rounded-xl bg-red-500/10 text-red-500 font-black text-[9px] uppercase tracking-widest">
+                                        Hapus
+                                      </button>
+                                    )}
+                                  </div>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
                           </div>
                         );
                       })}
@@ -312,57 +364,7 @@ const StatsTab = memo(function StatsTab({ filteredTransactions, transactions, se
         )}
       </AnimatePresence>
 
-      {/* ── Modal Edit Budget ── */}
-      <AnimatePresence>
-        {editingBudget && (
-          <motion.div
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-end justify-center bg-black/50 backdrop-blur-sm"
-            onClick={e => { if (e.target === e.currentTarget) { setEditingBudget(null); setEditVal(""); } }}
-          >
-            <motion.div
-              initial={{ y: 100 }} animate={{ y: 0 }} exit={{ y: 100 }}
-              transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-              className="w-full max-w-lg bg-white dark:bg-[#0a0f1c] border-t border-gray-100 dark:border-gray-800 rounded-t-[32px] p-6 shadow-2xl"
-            >
-              <div className="w-10 h-1 bg-gray-200 dark:bg-gray-700 rounded-full mx-auto mb-5" />
-              <div className="flex justify-between items-center mb-4">
-                <div>
-                  <h3 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-widest">{STATS.SET_LIMIT}</h3>
-                  <p className="text-[10px] font-bold text-blue-400 mt-0.5 uppercase tracking-widest">{editingBudget.category}</p>
-                </div>
-                <button onClick={() => { setEditingBudget(null); setEditVal(""); }} className="p-2 text-gray-400 hover:text-red-500 bg-gray-50 dark:bg-gray-800 rounded-full transition-colors"><X size={16} /></button>
-              </div>
-              <input
-                type="text" autoFocus
-                placeholder="Cth: 500k · 1jt · 1.5jt"
-                value={editVal ?? ""}
-                onChange={e => setEditVal(e.target.value)}
-                onKeyDown={e => { if (e.key === "Enter") handleSaveBudget(); }}
-                onBlur={e => {
-                  const p = parseFlexibleNumber(e.target.value);
-                  if (p > 0) setEditVal(String(p));
-                }}
-                className="w-full bg-gray-50 dark:bg-[#121827] border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white font-bold text-sm p-4 rounded-2xl outline-none focus:border-blue-500 transition-all placeholder-gray-400 mb-4"
-              />
-              <p className="text-[9px] text-gray-400 mb-4 ml-1">Format: 500k · 1jt · 1.5jt · atau angka biasa</p>
-              <div className="flex gap-2">
-                {editingBudget.currentLimit > 0 && (
-                  <button onClick={handleDeleteBudget} disabled={isSaving}
-                    className="px-4 py-3.5 bg-red-500/10 hover:bg-red-500/20 text-red-500 font-black text-[10px] uppercase tracking-widest rounded-2xl transition-all disabled:opacity-50">
-                    {STATS.DELETE_LIMIT}
-                  </button>
-                )}
-                <button onClick={handleSaveBudget} disabled={isSaving || !editVal.trim()}
-                  className="flex-1 flex items-center justify-center gap-2 py-3.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-black text-xs uppercase tracking-widest rounded-2xl transition-all shadow-lg shadow-blue-500/30">
-                  {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-                  {isSaving ? "Menyimpan..." : STATS.SAVE_LIMIT}
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+
     </motion.div>
   );
 });

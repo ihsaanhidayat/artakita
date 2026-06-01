@@ -1,4 +1,5 @@
 "use client";
+import { memo } from "react";
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabaseClient";
@@ -21,8 +22,9 @@ const CONDITIONS = [
 
 const getCondition = (val) => CONDITIONS.find(c => c.value === val) || CONDITIONS[1];
 
-export default function AssetsTab({ activeWallet }) {
+const AssetsTabComponent = memo(function AssetsTab({ activeWallet }) {
   const [assets, setAssets]             = useState([]);
+  const [isDirty, setIsDirty] = useState(false);
   const [isLoading, setIsLoading]       = useState(false);
   const [isFormOpen, setIsFormOpen]     = useState(false);
   const [editingId, setEditingId]       = useState(null);
@@ -378,9 +380,9 @@ export default function AssetsTab({ activeWallet }) {
               exit={{ y: 600, opacity: 0 }}
               transition={{ type: "spring", damping: 28, stiffness: 280 }}
               onSubmit={handleSave}
-              className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto bg-white dark:bg-[#0a0f1c] border-t border-gray-100 dark:border-gray-800 rounded-t-[32px] shadow-2xl z-50 max-h-[90dvh] overflow-y-auto no-scrollbar"
+              className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto bg-white dark:bg-[#0a0f1c] border-t border-gray-100 dark:border-gray-800 rounded-t-[32px] shadow-2xl z-50 max-h-[92dvh] overflow-y-auto no-scrollbar"
             >
-              <div className="p-6">
+              <div className="p-6 pb-8">
                 <div className="w-10 h-1 bg-gray-200 dark:bg-gray-700 rounded-full mx-auto mb-5" />
                 <div className="flex justify-between items-center mb-5">
                   <h3 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-widest">
@@ -560,4 +562,7 @@ export default function AssetsTab({ activeWallet }) {
       </AnimatePresence>
     </div>
   );
-}
+
+});
+
+export default AssetsTabComponent;

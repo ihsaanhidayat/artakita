@@ -21,13 +21,24 @@ const AboutPage = memo(function AboutPage({ onClose }) {
       initial={{ opacity: 0, x: 40 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 40 }}
-      transition={{ type: "spring", stiffness: 400, damping: 35 }}
+      transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
       className="fixed inset-0 z-[90] bg-white dark:bg-black overflow-y-auto no-scrollbar"
     >
       <div className="w-full max-w-lg mx-auto pt-8 px-4 pb-32">
-        <h2 className="text-xl font-black text-gray-900 dark:text-white tracking-tight mb-8">
-          {ABOUT.TITLE}
-        </h2>
+
+        {/* Breadcrumb dengan tombol kembali */}
+        <div className="flex items-center justify-between mb-6">
+          <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+            Tentang Aplikasi
+          </span>
+          <button
+            onClick={onClose}
+            className="flex items-center gap-1.5 text-blue-500 hover:text-blue-400 active:scale-95 transition-all bg-blue-500/10 border border-blue-500/20 px-3 py-1.5 rounded-xl"
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+            <span className="text-[9px] font-black uppercase tracking-widest">Lainnya</span>
+          </button>
+        </div>
 
         {/* App card */}
         <div className="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-[32px] p-8 mb-6 text-center relative overflow-hidden shadow-2xl shadow-blue-500/20">
@@ -57,14 +68,14 @@ const AboutPage = memo(function AboutPage({ onClose }) {
           </div>
         </div>
 
-        {/* Tech */}
-        <p className="text-center text-[10px] text-gray-400 mb-2">{ABOUT.TECH}</p>
-
-        {/* By author */}
-        <div className="flex items-center justify-center gap-1.5">
-          <p className="text-[10px] font-bold text-gray-400">{MORE.BY_AUTHOR}</p>
+        {/* Made by */}
+        <div className="flex items-center justify-center gap-1.5 mt-4">
+          <p className="text-[10px] font-bold text-gray-400">Made by MIH with</p>
           <Heart size={12} className="text-pink-500 fill-pink-500" />
         </div>
+        <p className="text-center text-[9px] text-gray-300 dark:text-gray-700 mt-1">
+          Built with Next.js & Supabase
+        </p>
       </div>
     </motion.div>
   );

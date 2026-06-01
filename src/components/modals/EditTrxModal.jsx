@@ -1,31 +1,34 @@
 "use client";
 import { memo, useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Save, Calendar, X } from "lucide-react";
+import { X, Calendar, Tags } from "lucide-react";
 import { parseFlexibleNumber } from "@/lib/utils";
 
-/**
- * EditTrxModal — Center dialog compact
- * Animasi: opacity + scale saja (ringan)
- * Posisi: tengah layar, naik saat keyboard muncul
- */
+// Palet warna untuk Pills Kategori
+const pillColors = [
+  { base: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:border-emerald-500/50", active: "bg-emerald-500/20 text-emerald-300 border-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.2)]" },
+  { base: "bg-amber-500/10 text-amber-400 border-amber-500/20 hover:border-amber-500/50", active: "bg-amber-500/20 text-amber-300 border-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.2)]" },
+  { base: "bg-purple-500/10 text-purple-400 border-purple-500/20 hover:border-purple-500/50", active: "bg-purple-500/20 text-purple-300 border-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.2)]" },
+  { base: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20 hover:border-cyan-500/50", active: "bg-cyan-500/20 text-cyan-300 border-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.2)]" },
+  { base: "bg-rose-500/10 text-rose-400 border-rose-500/20 hover:border-rose-500/50", active: "bg-rose-500/20 text-rose-300 border-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.2)]" },
+  { base: "bg-indigo-500/10 text-indigo-400 border-indigo-500/20 hover:border-indigo-500/50", active: "bg-indigo-500/20 text-indigo-300 border-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.2)]" },
+];
+
 const EditTrxModal = memo(function EditTrxModal({
   isOpen, data, onSubmit, onClose, existingCategories,
 }) {
-  const [localAmount,   setLocalAmount]   = useState("");
-  const [localNote,     setLocalNote]     = useState("");
+  const [localAmount, setLocalAmount] = useState("");
+  const [localNote, setLocalNote] = useState("");
   const [localCategory, setLocalCategory] = useState("");
-  const [localDate,     setLocalDate]     = useState("");
-  const [isDirty,       setIsDirty]       = useState(false);
-  const [showConfirm,   setShowConfirm]   = useState(false);
-  const [isSubmitting,  setIsSubmitting]  = useState(false);
+  const [localDate, setLocalDate] = useState("");
+  const [isDirty, setIsDirty] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [displayAmount, setDisplayAmount] = useState("");
 
   useEffect(() => {
     if (isOpen && data) {
       const amt = String(data.amount ?? "");
       setLocalAmount(amt);
-      // Format display dengan pemisah ribuan
       const num = parseFloat(amt);
       setDisplayAmount(isNaN(num) ? amt : num.toLocaleString("id-ID"));
       setLocalNote(data.note ?? "");
@@ -36,17 +39,14 @@ const EditTrxModal = memo(function EditTrxModal({
           : new Date().toISOString().slice(0, 10)
       );
       setIsDirty(false);
-      setShowConfirm(false);
     }
   }, [isOpen, data?.id]);
 
   const handleBackdrop = useCallback(() => {
-    if (isDirty) setShowConfirm(true);
-    else onClose();
+    if (!isDirty) onClose();
   }, [isDirty, onClose]);
 
   const handleAmountFocus = useCallback(() => {
-    // Saat fokus, tampilkan angka biasa agar mudah diedit
     setDisplayAmount(localAmount);
   }, [localAmount]);
 
@@ -66,7 +66,7 @@ const EditTrxModal = memo(function EditTrxModal({
 
   const handleSubmit = useCallback(async (e) => {
     e?.preventDefault();
-    if (isSubmitting) return;
+    if (isSubmitting || !isDirty) return;
     const parsed = parseFlexibleNumber(localAmount);
     if (!parsed || parsed <= 0) return;
     let newCreatedAt = data?.created_at;
@@ -80,7 +80,7 @@ const EditTrxModal = memo(function EditTrxModal({
     try {
       await onSubmit({ ...data, amount: parsed, note: localNote, category: localCategory, created_at: newCreatedAt });
     } finally { setIsSubmitting(false); }
-  }, [data, localAmount, localNote, localCategory, localDate, isSubmitting, onSubmit]);
+  }, [data, localAmount, localNote, localCategory, localDate, isDirty, isSubmitting, onSubmit]);
 
   if (!isOpen || !data) return null;
   const isIncome = data.type === "income";
@@ -91,146 +91,130 @@ const EditTrxModal = memo(function EditTrxModal({
         <>
           {/* Backdrop */}
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.15 }}
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}
             onClick={handleBackdrop}
-            className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm"
+            className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm"
           />
 
-          {/* Dialog center — compact */}
+          {/* Dialog Container */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            transition={{ duration: 0.15, ease: "easeOut" }}
+            initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} transition={{ duration: 0.15, ease: "easeOut" }}
             className="fixed inset-0 z-[101] flex items-center justify-center px-4"
-            style={{ alignItems: "flex-start", paddingTop: "20vh" }}
           >
             <div
-              className="w-full max-w-sm bg-white dark:bg-[#0d1117] rounded-[24px] shadow-2xl border border-gray-100 dark:border-gray-800 overflow-hidden"
+              className="w-full max-w-sm bg-[#0a0f1c] rounded-[24px] shadow-2xl border border-gray-800/80 p-5"
               onClick={e => e.stopPropagation()}
             >
-              {/* Header */}
-              <div className={`px-5 py-3.5 flex items-center justify-between ${
-                isIncome ? "bg-green-500/10" : "bg-red-500/10"
-              }`}>
-                <div className="min-w-0 flex-1">
-                  <p className={`text-[8px] font-black uppercase tracking-widest ${
-                    isIncome ? "text-green-500/70" : "text-red-500/70"
-                  }`}>
-                    {isIncome ? "Edit Pemasukan" : "Edit Pengeluaran"}
-                  </p>
-                  <p className={`text-sm font-black truncate mt-0.5 ${
-                    isIncome ? "text-green-400" : "text-red-400"
-                  }`}>{data.note || "—"}</p>
-                </div>
-                <button
-                  onClick={handleSubmit}
-                  disabled={isSubmitting}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-black text-[10px] uppercase tracking-widest ml-3 shrink-0 transition-all disabled:opacity-40 ${
-                    isDirty ? "bg-blue-600 text-white" : "bg-gray-100 dark:bg-gray-800 text-gray-400"
-                  }`}
-                >
-                  <Save size={11} />
-                  {isSubmitting ? "..." : "Simpan"}
+              {/* Header Minimalis */}
+              <div className="flex justify-between items-center mb-5 px-1">
+                <p className={`text-[10px] font-black uppercase tracking-widest ${isIncome ? "text-emerald-500" : "text-red-500"}`}>
+                  {isIncome ? "Edit Pemasukan" : "Edit Pengeluaran"}
+                </p>
+                <button onClick={onClose} className="text-gray-500 hover:text-gray-300 transition-colors bg-gray-800/50 p-1.5 rounded-full">
+                  <X size={14} />
                 </button>
               </div>
 
-              {/* Fields */}
-              <div className="px-5 py-2">
+              {/* Form Grid Compact */}
+              <div className="space-y-4">
 
-                {/* Nominal dengan format ribuan */}
-                <div className="py-3 border-b border-gray-100 dark:border-gray-800/60">
-                  <label className="text-[8px] font-black text-gray-400 uppercase tracking-widest block mb-1.5">Nominal</label>
-                  <input
-                    type="text" inputMode="decimal"
-                    value={displayAmount}
-                    onChange={handleAmountChange}
-                    onFocus={handleAmountFocus}
-                    onBlur={handleAmountBlur}
-                    className={`w-full bg-transparent outline-none font-black text-2xl tracking-tight pb-0.5 border-b-2 border-transparent transition-colors ${
-                      isIncome
-                        ? "text-green-500 focus:border-green-500/50"
-                        : "text-red-500 focus:border-red-500/50"
+                {/* 1. Input Nominal */}
+                <input
+                  type="text" inputMode="decimal"
+                  placeholder="50k, 1jt, 500rb..."
+                  value={displayAmount}
+                  onChange={handleAmountChange}
+                  onFocus={handleAmountFocus}
+                  onBlur={handleAmountBlur}
+                  className={`w-full bg-[#121827] text-2xl font-black px-5 py-4 rounded-[16px] border transition-all outline-none placeholder-gray-600 ${isIncome
+                    ? "text-emerald-400 border-emerald-500/30 focus:border-emerald-500"
+                    : "text-red-400 border-red-500/30 focus:border-red-500"
                     }`}
-                  />
-                </div>
+                />
 
-                {/* Catatan */}
-                <div className="py-3 border-b border-gray-100 dark:border-gray-800/60">
-                  <label className="text-[8px] font-black text-gray-400 uppercase tracking-widest block mb-1.5">Catatan</label>
-                  <input
-                    type="text"
-                    value={localNote}
-                    onChange={e => { setLocalNote(e.target.value); setIsDirty(true); }}
-                    className="w-full bg-transparent outline-none font-bold text-sm text-gray-900 dark:text-white"
-                  />
-                </div>
+                {/* 2. Catatan (Sekarang Full Width karena input Kategori dihapus) */}
+                <input
+                  type="text"
+                  placeholder="Catatan Transaksi..."
+                  value={localNote}
+                  onChange={e => { setLocalNote(e.target.value); setIsDirty(true); }}
+                  className="w-full bg-[#121827] text-white text-sm font-bold px-5 py-3.5 rounded-[16px] border border-gray-800/60 focus:border-blue-500/60 outline-none transition-colors placeholder-gray-600"
+                />
 
-                {/* Kategori */}
-                <div className="py-3 border-b border-gray-100 dark:border-gray-800/60">
-                  <label className="text-[8px] font-black text-gray-400 uppercase tracking-widest block mb-1.5">Kategori</label>
-                  <input
-                    list="edit-cat-list" type="text"
-                    value={localCategory}
-                    onChange={e => { setLocalCategory(e.target.value); setIsDirty(true); }}
-                    className="w-full bg-transparent outline-none font-bold text-sm text-gray-900 dark:text-white"
-                  />
-                  <datalist id="edit-cat-list">
-                    {existingCategories?.map(cat => <option key={cat} value={cat} />)}
-                  </datalist>
-                </div>
-
-                {/* Tanggal */}
-                <div className="py-3 flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-gray-400">
-                    <Calendar size={13} />
-                    <label className="text-[8px] font-black uppercase tracking-widest">Tanggal</label>
+                {/* 3. AREA KATEGORI (Label + Pills) */}
+                <div className="pt-1">
+                  <div className="flex items-center gap-1.5 px-1 mb-2.5">
+                    <Tags size={12} className="text-gray-500" />
+                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
+                      Pilih Kategori
+                    </p>
                   </div>
-                  <input
-                    type="date"
-                    value={localDate}
-                    onChange={e => { if (e.target.value) { setLocalDate(e.target.value); setIsDirty(true); } }}
-                    className="bg-transparent outline-none text-sm font-bold text-gray-900 dark:text-white text-right"
-                  />
+
+                  {existingCategories && existingCategories.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {existingCategories.map((cat, index) => {
+                        const colorTheme = pillColors[index % pillColors.length];
+                        const isSelected = localCategory === cat;
+
+                        return (
+                          <button
+                            key={cat}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              setLocalCategory(cat);
+                              setIsDirty(true);
+                            }}
+                            className={`px-3.5 py-1.5 rounded-full text-[11px] font-bold border transition-all duration-300 ${isSelected ? colorTheme.active : colorTheme.base
+                              }`}
+                          >
+                            {cat}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-gray-600 italic px-1">Belum ada kategori tersedia.</p>
+                  )}
+                </div>
+
+                {/* 4. Tanggal, Batal & Simpan (Inline) */}
+                <div className="flex gap-3 h-[48px] pt-2">
+
+                  {/* Icon Kalender */}
+                  <div className="relative w-[48px] h-full shrink-0 bg-[#121827] rounded-[16px] border border-gray-800/60 hover:border-gray-500 transition-colors flex items-center justify-center overflow-hidden group">
+                    <Calendar size={18} className="text-gray-400 group-hover:text-white transition-colors" />
+                    <input
+                      type="date"
+                      value={localDate}
+                      onChange={e => { if (e.target.value) { setLocalDate(e.target.value); setIsDirty(true); } }}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                    />
+                  </div>
+
+                  {/* Batal */}
+                  <button
+                    onClick={onClose}
+                    className="flex-1 bg-[#121827] border border-gray-800/60 text-gray-400 hover:text-white hover:bg-gray-800 rounded-[16px] font-bold text-sm transition-all"
+                  >
+                    Batal
+                  </button>
+
+                  {/* Simpan */}
+                  <button
+                    onClick={handleSubmit}
+                    disabled={isSubmitting || !isDirty}
+                    className={`flex-1 rounded-[16px] font-bold text-sm transition-all ${isDirty
+                      ? "bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-900/30"
+                      : "bg-[#121827] border border-gray-800/60 text-gray-600 cursor-not-allowed"
+                      }`}
+                  >
+                    {isSubmitting ? "..." : "Simpan"}
+                  </button>
                 </div>
 
               </div>
             </div>
           </motion.div>
-
-          {/* Konfirmasi */}
-          <AnimatePresence>
-            {showConfirm && (
-              <motion.div
-                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                className="fixed inset-0 z-[102] flex items-center justify-center p-6"
-                onClick={() => setShowConfirm(false)}
-              >
-                <motion.div
-                  initial={{ scale: 0.92 }} animate={{ scale: 1 }} exit={{ scale: 0.92 }}
-                  transition={{ duration: 0.12 }}
-                  onClick={e => e.stopPropagation()}
-                  className="w-full max-w-[260px] bg-white dark:bg-[#121827] rounded-[20px] p-5 shadow-2xl text-center border border-gray-100 dark:border-gray-800"
-                >
-                  <p className="font-black text-sm text-gray-900 dark:text-white mb-1">Simpan perubahan?</p>
-                  <p className="text-[10px] text-gray-400 mb-4">Perubahan belum disimpan.</p>
-                  <div className="flex gap-2">
-                    <button onClick={() => { setShowConfirm(false); setIsDirty(false); onClose(); }}
-                      className="flex-1 py-2.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 font-black text-[10px] uppercase tracking-widest rounded-xl">
-                      Buang
-                    </button>
-                    <button onClick={() => { setShowConfirm(false); handleSubmit(); }}
-                      className="flex-1 py-2.5 bg-blue-600 text-white font-black text-[10px] uppercase tracking-widest rounded-xl">
-                      Simpan
-                    </button>
-                  </div>
-                </motion.div>
-              </motion.div>
-            )}
-          </AnimatePresence>
         </>
       )}
     </AnimatePresence>

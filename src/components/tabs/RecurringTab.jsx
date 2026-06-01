@@ -1,4 +1,5 @@
 "use client";
+import { memo } from "react";
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabaseClient";
@@ -42,8 +43,9 @@ const getNextColor = (dateStr) => {
   return "text-gray-400";
 };
 
-export default function RecurringTab({ activeWallet, onNotify }) {
+const RecurringTabComponent = memo(function RecurringTab({ activeWallet, onNotify }) {
   const [items, setItems]           = useState([]);
+  const [isDirty, setIsDirty] = useState(false);
   const [isLoading, setIsLoading]   = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingId, setEditingId]   = useState(null);
@@ -442,9 +444,9 @@ export default function RecurringTab({ activeWallet, onNotify }) {
               exit={{ y: 500, opacity: 0 }}
               transition={{ type: "spring", damping: 28, stiffness: 280 }}
               onSubmit={handleSave}
-              className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto bg-white dark:bg-[#0a0f1c] border-t border-gray-100 dark:border-gray-800 rounded-t-[32px] shadow-2xl z-50 max-h-[85dvh] overflow-y-auto no-scrollbar"
+              className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto bg-white dark:bg-[#0a0f1c] border-t border-gray-100 dark:border-gray-800 rounded-t-[32px] shadow-2xl z-50 max-h-[92dvh] overflow-y-auto no-scrollbar"
             >
-              <div className="p-6 space-y-4">
+              <div className="p-6 pb-8 space-y-4">
                 <div className="w-10 h-1 bg-gray-200 dark:bg-gray-700 rounded-full mx-auto mb-1" />
                 <div className="flex justify-between items-center">
                   <h3 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-widest">
@@ -562,4 +564,7 @@ export default function RecurringTab({ activeWallet, onNotify }) {
       </AnimatePresence>
     </div>
   );
-}
+
+});
+
+export default RecurringTabComponent;

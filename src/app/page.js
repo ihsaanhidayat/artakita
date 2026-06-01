@@ -24,7 +24,6 @@ import MoreTab from "@/components/tabs/MoreTab";
 
 // Modal components
 import EditTrxModal from "@/components/modals/EditTrxModal";
-import NewWalletModal from "@/components/modals/NewWalletModal";
 import AddUserModal from "@/components/modals/AddUserModal";
 import ForcePasswordModal from "@/components/modals/ForcePasswordModal";
 import WalletModal from "@/components/modals/WalletModal";
@@ -173,22 +172,20 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
   const [quickTimeFilter, setQuickTimeFilter] = useState("month");
   const [dateRange, setDateRange] = useState({ from: "", to: "" });
-  const [selectedMonth, setSelectedMonth] = useState(() => new Date().toISOString().slice(0, 7));
-  const [recentMonths] = useState(getRecentMonths);
+  // selectedMonth dihapus — tampilkan semua transaksi
   const [allBudgets, setAllBudgets] = useState([]);
 
   // ── Goals ─────────────────────────────────────────────────────────────────
   const [goals, setGoals] = useState([]);
   const [isNewGoalOpen, setIsNewGoalOpen] = useState(false);
   const [newGoalData, setNewGoalData] = useState({ name: "", target: "", current: "" });
+  const [isDirtyGoal, setIsDirtyGoal] = useState(false);
   const [goalDeleteModal, setGoalDeleteModal] = useState({ isOpen: false, goalId: null, goalName: "" });
   const [activeGoalInput, setActiveGoalInput] = useState(null);
   const [flexibleSavingsAmt, setFlexibleSavingsAmt] = useState("");
 
   // ── Modals ────────────────────────────────────────────────────────────────
   const [editTrxModal, setEditTrxModal] = useState({ isOpen: false, data: null });
-  const [newWalletName, setNewWalletName] = useState("");
-  const [isNewWalletOpen, setIsNewWalletOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
   const [goalDeleteOpen, setGoalDeleteOpen] = useState(false);
@@ -332,11 +329,11 @@ export default function Home() {
   // Budgets
   useEffect(() => {
     const fetch = async () => {
-      const { data } = await supabase.from("budgets").select("*").eq("month_year", selectedMonth);
+      const { data } = await supabase.from("budgets").select("*").eq("month_year", new Date().toISOString().slice(0, 7));
       if (data) setAllBudgets(data);
     };
     fetch();
-  }, [selectedMonth]);
+  }, []);
 
   // Goals
   useEffect(() => {
@@ -349,10 +346,8 @@ export default function Home() {
   }, [activeTab]);
 
   // ── Derived Data ──────────────────────────────────────────────────────────
-  const transactionsThisMonth = useMemo(() =>
-    (allTransactions || []).filter(t => t.created_at?.startsWith(selectedMonth)),
-    [allTransactions, selectedMonth]
-  );
+  // transactionsThisMonth = semua transaksi (filter bulan dihapus)
+  const transactionsThisMonth = allTransactions || [];
 
   const existingCategories = useMemo(() =>
     [...new Set((allTransactions || []).map(t => t.category).filter(Boolean))].sort(),
@@ -367,7 +362,7 @@ export default function Home() {
   // Reset display count saat filter berubah
   useEffect(() => {
     setPageDisplayCount(PAGE_SIZE_DISPLAY);
-  }, [typeFilter, categoryFilter, searchQuery, selectedMonth, dateRange]);
+  }, [typeFilter, categoryFilter, searchQuery, dateRange]);
 
   const allFilteredTransactions = useMemo(() => {
     return transactionsThisMonth.filter(t => {
@@ -385,30 +380,19 @@ export default function Home() {
         t.note.toLowerCase().includes(sl) ||
         t.category.toLowerCase().includes(sl);
 
-      // Waktu
+      // Waktu — hanya date range custom
       let matchTime = true;
-      if (t.created_at) {
+      if (t.created_at && dateRange.from && dateRange.to) {
         const trxDate = new Date(t.created_at);
-        const today = new Date();
-
-        if (dateRange.from && dateRange.to) {
-          // Custom date range override quick filter
-          const from = new Date(dateRange.from);
-          const to = new Date(dateRange.to);
-          to.setHours(23, 59, 59, 999);
-          matchTime = trxDate >= from && trxDate <= to;
-        } else if (quickTimeFilter === "today") {
-          matchTime = trxDate.toDateString() === today.toDateString();
-        } else if (quickTimeFilter === "week") {
-          const pastWeek = new Date(today);
-          pastWeek.setDate(today.getDate() - 7);
-          matchTime = trxDate >= pastWeek && trxDate <= today;
-        }
+        const from = new Date(dateRange.from);
+        const to = new Date(dateRange.to);
+        to.setHours(23, 59, 59, 999);
+        matchTime = trxDate >= from && trxDate <= to;
       }
 
       return matchType && matchCat && matchSearch && matchTime;
     });
-  }, [transactionsThisMonth, typeFilter, categoryFilter, searchQuery, quickTimeFilter, dateRange]);
+  }, [transactionsThisMonth, typeFilter, categoryFilter, searchQuery, dateRange]);
 
   // Slice untuk display — pagination di page level
   const filteredTransactions = useMemo(() =>
@@ -446,21 +430,6 @@ export default function Home() {
     }
   }, [updateTransaction, showNotification]);
 
-  const handleCreateWallet = useCallback(async e => {
-    e.preventDefault();
-    if (!newWalletName.trim()) return;
-    try {
-      const result = await addWallet(newWalletName);
-      if (result) {
-        setIsNewWalletOpen(false);
-        setNewWalletName("");
-        setActiveWallet({ id: result.id, name: result.name });
-      }
-    } catch (err) {
-      showNotification("Gagal membuat rekening: " + err.message, "error");
-    }
-  }, [addWallet, newWalletName, showNotification]);
-
   // ── AI classify helper ────────────────────────────────────────────────────
   const classifyCategory = useCallback((note) => {
     const stopWords = new Set(["beli", "bayar", "untuk", "ke", "di", "dari", "dan", "atau", "dengan", "yang", "nya", "ini", "itu"]);
@@ -491,7 +460,9 @@ export default function Home() {
     const best = Object.entries(scoreMap).sort((a, b) => b[1] - a[1])[0];
     if (!best) return null;
     const cat = userCategories.find(c => c.id === best[0]);
-    return cat?.name || null;
+    if (!cat?.name) return null;
+    // Title Case normalize
+    return cat.name.trim().toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
   }, [aiKeywords, userCategories]);
 
   // ── Simpan keyword ke DB background ───────────────────────────────────────
@@ -605,7 +576,7 @@ export default function Home() {
     if (!error && data) {
       setGoals(p => [...p, data[0]]);
       setIsNewGoalOpen(false);
-      setNewGoalData({ name: "", target: "", current: "" });
+      setNewGoalData({ name: "", target: "", current: "" }); setIsDirtyGoal(false);
     }
   }, [newGoalData]);
 
@@ -628,31 +599,20 @@ export default function Home() {
     e.preventDefault();
     setAddUserModal(p => ({ ...p, isLoading: true }));
     try {
-      // 1. Ambil access token dari session yang sedang aktif
-      const token = auth.session?.access_token;
-      if (!token) throw new Error("Sesi tidak valid, silakan login ulang.");
-
       const res = await fetch("/api/admin/add-user", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          // 2. Sisipkan token ke header API
-          "Authorization": `Bearer ${token}`
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username: addUserModal.username, password: addUserModal.password }),
       });
-
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-
       showNotification(`Akses untuk @${addUserModal.username} berhasil dibuat!`, "success");
       setAddUserModal({ isOpen: false, username: "", password: "", isLoading: false });
     } catch (err) {
       showNotification("Gagal: " + err.message, "error");
       setAddUserModal(p => ({ ...p, isLoading: false }));
     }
-    // 3. Tambahkan auth.session ke dependency array agar React tahu kapan token berubah
-  }, [addUserModal, auth.session, showNotification]);
+  }, [addUserModal, showNotification]);
 
   // Nav Finance tap → reset ke rows
   const handleFinanceTabClick = useCallback(() => {
@@ -796,8 +756,6 @@ export default function Home() {
               categoryFilter={categoryFilter} setCategoryFilter={setCategoryFilter}
               dynamicCategories={dynamicCategories}
               dateRange={dateRange} setDateRange={setDateRange}
-              selectedMonth={selectedMonth} setSelectedMonth={setSelectedMonth}
-              recentMonths={recentMonths}
               filteredTransactions={filteredTransactions}
               transactions={transactions}
               mounted={mounted}
@@ -819,8 +777,7 @@ export default function Home() {
             <StatsTab
               key="stats"
               filteredTransactions={transactionsThisMonth}
-              transactions={transactionsThisMonth}
-              selectedMonth={selectedMonth}
+              transactions={allTransactions}
               balance={balance}
             />
           )}
@@ -838,7 +795,8 @@ export default function Home() {
               isNewGoalOpen={isNewGoalOpen}
               setIsNewGoalOpen={setIsNewGoalOpen}
               newGoalData={newGoalData}
-              setNewGoalData={setNewGoalData}
+              setNewGoalData={d => { setNewGoalData(d); setIsDirtyGoal(true); }}
+              isDirtyGoal={isDirtyGoal}
               handleAddGoal={handleAddGoal}
               activeGoalInput={activeGoalInput}
               setActiveGoalInput={setActiveGoalInput}
@@ -884,18 +842,31 @@ export default function Home() {
             setActiveWallet(w);
             setIsWalletModalOpen(false);
           }}
-          onAddWallet={() => { setIsWalletModalOpen(false); setIsNewWalletOpen(true); }}
+          onAddWallet={async (name) => {
+            const result = await addWallet(name);
+            if (result) {
+              setActiveWallet({ id: result.id, name: result.name });
+            }
+          }}
+          onDeleteWallet={(deletedId) => {
+            // Karena kita menggunakan custom hook useWallets,
+            // cara terbaik me-refreshnya adalah dengan jeda singkat lalu me-reload halus
+            // Ini akan memastikan DOM tidak crash mencari komponen yang hilang
+            setTimeout(() => {
+              window.location.reload();
+            }, 800);
+          }}
           onNotify={showNotification}
         />
 
-        {/* ── New Wallet Modal ── */}
+        {/* ── New Wallet Modal ──
         <NewWalletModal
           isOpen={isNewWalletOpen}
           name={newWalletName}
           setName={setNewWalletName}
           onSubmit={handleCreateWallet}
           onClose={() => { setIsNewWalletOpen(false); setNewWalletName(""); }}
-        />
+        /> */}
 
         {/* ── Edit Transaction Modal ── */}
         <EditTrxModal

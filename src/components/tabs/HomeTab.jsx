@@ -325,8 +325,6 @@ const HomeTabComponent = memo(function HomeTab({
   categoryFilter,  setCategoryFilter,
   dynamicCategories,
   dateRange,       setDateRange,
-  selectedMonth,   setSelectedMonth,
-  recentMonths,
   filteredTransactions,
   transactions,
   mounted,
@@ -476,19 +474,10 @@ const HomeTabComponent = memo(function HomeTab({
             <span className="text-[9px] font-black text-blue-600 dark:text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded-md">
               {totalCount && totalCount > filteredTransactions.length
                 ? `${filteredTransactions.length} / ${totalCount}`
-                : filteredTransactions.length
-              }
+                : filteredTransactions.length}
             </span>
           </div>
-          <select
-            value={selectedMonth}
-            onChange={e => setSelectedMonth(e.target.value)}
-            className="appearance-none bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300 rounded-xl pl-3 pr-7 py-1.5 text-[9px] font-black uppercase tracking-widest outline-none cursor-pointer"
-          >
-            {recentMonths.map(m => (
-              <option key={m.value} value={m.value ?? ""}>{m.label}</option>
-            ))}
-          </select>
+
         </div>
       </div>
 
@@ -557,7 +546,7 @@ const HomeTabComponent = memo(function HomeTab({
                         )}
                       </p>
                       <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                        <span className="text-[9px] font-black text-gray-400 bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700/50 px-2 py-0.5 rounded-lg">
+                        <span className="text-[9px] font-black text-gray-400 bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700/50 px-2 py-0.5 rounded-lg uppercase tracking-widest">
                           {trx.category}
                         </span>
                         <span className="text-[9px] text-gray-300 dark:text-gray-700">
