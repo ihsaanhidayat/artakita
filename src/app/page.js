@@ -24,6 +24,7 @@ import MoreTab from "@/components/tabs/MoreTab";
 
 // Modal components
 import EditTrxModal from "@/components/modals/EditTrxModal";
+import NewWalletModal from "@/components/modals/NewWalletModal";
 import AddUserModal from "@/components/modals/AddUserModal";
 import ForcePasswordModal from "@/components/modals/ForcePasswordModal";
 import WalletModal from "@/components/modals/WalletModal";
@@ -186,6 +187,8 @@ export default function Home() {
 
   // ── Modals ────────────────────────────────────────────────────────────────
   const [editTrxModal, setEditTrxModal] = useState({ isOpen: false, data: null });
+  const [newWalletName, setNewWalletName] = useState("");
+  const [isNewWalletOpen, setIsNewWalletOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
   const [goalDeleteOpen, setGoalDeleteOpen] = useState(false);
@@ -415,9 +418,7 @@ export default function Home() {
   // ── Handlers ─────────────────────────────────────────────────────────────
   const handleSaveTrxEdit = useCallback(async (updatedData) => {
     if (!updatedData?.note || !updatedData?.amount || !updatedData?.category) return;
-
     try {
-      // 1. Update data transaksi harian (Kode asli Anda)
       await updateTransaction(
         updatedData.id,
         updatedData.note,
@@ -425,58 +426,27 @@ export default function Home() {
         updatedData.amount,
         updatedData.created_at
       );
-
-      // 2. ── LOGIKA SMART RECURRING ──
-      if (updatedData.isRecurring) {
-        // Fallback: Jika tanggal tidak dipilih, gunakan hari ini
-        const todayStr = new Date().toISOString().slice(0, 10);
-        const nextDate = updatedData.recurringNextDate || todayStr;
-
-        // Payload yang akan dikirim ke database
-        const payload = {
-          wallet_id: updatedData.wallet_id || activeWallet?.id,
-          type: updatedData.type,
-          category: updatedData.category,
-          note: updatedData.note,
-          amount: updatedData.amount,
-          frequency: updatedData.recurringFreq || "monthly",
-          next_run_date: nextDate,
-          is_active: true
-        };
-
-        console.log("Mencoba simpan rutin dengan data:", payload); // <-- Cek data di console
-
-        const { data: recurringData, error: recurringError } = await supabase
-          .from("recurring_transactions")
-          .insert([payload])
-          .select(); // Tambahkan .select() agar Supabase membalas dengan data utuh
-
-        if (recurringError) {
-          // Paksa error menjadi teks agar terbaca jelas
-          console.error("Detail Error Supabase:", JSON.stringify(recurringError, null, 2));
-
-          showNotification("Transaksi diubah, tapi gagal membuat jadwal rutin", "error");
-          setEditTrxModal({ isOpen: false, data: null });
-          return;
-        }
-      }
-      // ── END LOGIKA SMART RECURRING ──
-
-      // 3. Tutup modal & tampilkan pesan sukses yang dinamis
       setEditTrxModal({ isOpen: false, data: null });
-      showNotification(
-        updatedData.isRecurring
-          ? "Transaksi diubah & Jadwal Rutin aktif!"
-          : "Transaksi berhasil diubah!",
-        "success"
-      );
-
+      showNotification("Transaksi berhasil diubah!", "success");
     } catch (err) {
       showNotification("Gagal mengubah: " + err.message, "error");
     }
   }, [updateTransaction, showNotification]);
-  // Catatan: Jika activeWallet dipakai di atas dan ada warning dependency dari React, 
-  // Anda bisa menambahkan activeWallet ke dalam array kotak ini.
+
+  const handleCreateWallet = useCallback(async e => {
+    e.preventDefault();
+    if (!newWalletName.trim()) return;
+    try {
+      const result = await addWallet(newWalletName);
+      if (result) {
+        setIsNewWalletOpen(false);
+        setNewWalletName("");
+        setActiveWallet({ id: result.id, name: result.name });
+      }
+    } catch (err) {
+      showNotification("Gagal membuat rekening: " + err.message, "error");
+    }
+  }, [addWallet, newWalletName, showNotification]);
 
   // ── AI classify helper ────────────────────────────────────────────────────
   const classifyCategory = useCallback((note) => {
@@ -686,11 +656,7 @@ export default function Home() {
     return (
       <div className={appClass}>
         <main className="w-full max-w-lg mx-auto relative min-h-screen bg-white dark:bg-black">
-          <Toast
-            isOpen={notification.isOpen}
-            message={notification.message}
-            type={notification.type}
-          />
+          <Toast isOpen={notification.isOpen} message={notification.message} type={notification.type} />
           <div className="pt-8 px-3 pb-32">
             <h2 className="text-xl font-black text-gray-900 dark:text-white tracking-tight mb-6">
               Manajemen Pengguna
@@ -710,44 +676,6 @@ export default function Home() {
       </div>
     );
   }
-
-  // Fungsi untuk membuat rekening pertama
-  const handleCreateWallet = async (e) => {
-    e.preventDefault(); // Mencegah halaman me-refresh saat form disubmit
-
-    if (!newWalletName.trim()) return;
-
-    try {
-      // Dapatkan data user yang sedang login (Asumsi menggunakan Supabase)
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData?.user) throw new Error("Tidak ada user aktif");
-
-      // Simpan ke tabel wallets di Supabase
-      const { data, error } = await supabase
-        .from("wallets")
-        .insert([{
-          name: newWalletName.trim(),
-          user_id: userData.user.id
-          // balance: 0 // (Opsional) Jika Anda butuh set saldo awal 0
-        }])
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      // Update state lokal agar layar langsung berubah masuk ke aplikasi
-      setWallets([...wallets, data]);
-      setActiveWallet(data); // Set dompet baru ini sebagai dompet aktif
-      setNewWalletName("");
-
-      // Tampilkan notifikasi sukses (Sesuaikan jika Anda punya fungsi notif sendiri)
-      // setNotification({ isOpen: true, message: "Rekening berhasil dibuat!", type: "success" });
-
-    } catch (error) {
-      console.error("Error membuat rekening:", error);
-      // setNotification({ isOpen: true, message: "Gagal membuat rekening", type: "error" });
-    }
-  };
 
   // Non-admin tanpa wallet
   if (!activeWallet && !isRoleLoading) {
@@ -801,11 +729,12 @@ export default function Home() {
     <div className={appClass}>
       <main className="w-full max-w-lg mx-auto relative min-h-screen overflow-x-hidden bg-white dark:bg-black">
 
-        {/* ── Toast — posisinya sekarang otomatis di atas (top-6) ── */}
+        {/* ── Toast — posisi bawah dekat QuickCommandBar ── */}
         <Toast
           isOpen={notification.isOpen}
           message={notification.message}
           type={notification.type}
+          position="bottom"
         />
 
         {/* ── Force Password Modal ── */}
@@ -931,31 +860,18 @@ export default function Home() {
             setActiveWallet(w);
             setIsWalletModalOpen(false);
           }}
-          onAddWallet={async (name) => {
-            const result = await addWallet(name);
-            if (result) {
-              setActiveWallet({ id: result.id, name: result.name });
-            }
-          }}
-          onDeleteWallet={(deletedId) => {
-            // Karena kita menggunakan custom hook useWallets,
-            // cara terbaik me-refreshnya adalah dengan jeda singkat lalu me-reload halus
-            // Ini akan memastikan DOM tidak crash mencari komponen yang hilang
-            setTimeout(() => {
-              window.location.reload();
-            }, 800);
-          }}
+          onAddWallet={() => { setIsWalletModalOpen(false); setIsNewWalletOpen(true); }}
           onNotify={showNotification}
         />
 
-        {/* ── New Wallet Modal ──
+        {/* ── New Wallet Modal ── */}
         <NewWalletModal
           isOpen={isNewWalletOpen}
           name={newWalletName}
           setName={setNewWalletName}
           onSubmit={handleCreateWallet}
           onClose={() => { setIsNewWalletOpen(false); setNewWalletName(""); }}
-        /> */}
+        />
 
         {/* ── Edit Transaction Modal ── */}
         <EditTrxModal
