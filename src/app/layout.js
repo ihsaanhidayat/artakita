@@ -6,7 +6,13 @@ const inter = Inter({ subsets: ["latin"] });
 export default function RootLayout({ children }) {
   return (
     <html lang="id" suppressHydrationWarning={true}>
-      {/* FIX: inter.className diterapkan agar font Inter aktif di seluruh app */}
+      <head>
+        {/* iOS PWA fullscreen */}
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="ArtaKita" />
+        <link rel="apple-touch-icon" href="/artakita.png" />
+      </head>
       <body className={inter.className}>{children}</body>
     </html>
   );
@@ -18,6 +24,7 @@ export const viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  viewportFit: "cover",
 };
 
 export const metadata = {
