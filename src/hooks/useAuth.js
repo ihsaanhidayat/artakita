@@ -154,7 +154,7 @@ export function useAuth() {
 
   // ── Force change password ─────────────────────────────────────────────────
   const handleForceChangePassword = async (e) => {
-    e.preventDefault();
+    e?.preventDefault();
     if (forcePasswordModal.newPassword.length < 6) {
       setAuthError("Password baru minimal 6 karakter!");
       return;
