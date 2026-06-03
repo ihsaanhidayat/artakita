@@ -1,65 +1,72 @@
 "use client";
+import { memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X } from "lucide-react";
+import { Save, Loader2 } from "lucide-react";
 
-export default function AddUserModal({ isOpen, data, setData, onSubmit, onClose }) {
+const AddUserModal = memo(function AddUserModal({ isOpen, data, setData, onSubmit, onClose }) {
+  const isDirty = data?.username?.trim().length > 0 || data?.password?.length > 0;
+
   return (
     <AnimatePresence>
       {isOpen && (
-        <motion.div
-          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md p-4"
-        >
+        <>
           <motion.div
-            initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="w-full max-w-sm bg-white dark:bg-[#121827] rounded-[32px] p-6 shadow-2xl border border-gray-100 dark:border-gray-800/80"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            transition={{ duration: 0.12 }}
+            onClick={() => { if (!isDirty) onClose(); }}
+            className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm"
+          />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.15, ease: "easeOut" }}
+            className="fixed inset-0 z-[101] flex items-start justify-center px-4"
+            style={{ paddingTop: "20vh" }}
+            onClick={e => e.stopPropagation()}
           >
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-base font-black text-gray-900 dark:text-white uppercase tracking-widest">
-                Tambah Pengguna
-              </h3>
-              <button onClick={onClose} className="p-2 text-gray-400 hover:text-red-500 bg-gray-50 dark:bg-gray-800/50 rounded-full transition-colors">
-                <X size={18} />
-              </button>
+            <div className="w-full max-w-sm bg-white dark:bg-[#0d1117] rounded-[24px] shadow-2xl border border-gray-100 dark:border-gray-800 overflow-hidden">
+              <div className="px-5 py-3.5 flex items-center justify-between bg-violet-500/10 border-b border-violet-500/20">
+                <p className="text-sm font-black text-violet-500">Tambah User</p>
+                <button
+                  onClick={isDirty ? onSubmit : onClose}
+                  disabled={data?.isLoading}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-black text-[10px] uppercase tracking-widest ml-3 shrink-0 transition-all disabled:opacity-40 ${
+                    isDirty ? "bg-violet-600 text-white" : "bg-gray-100 dark:bg-gray-800 text-gray-400"
+                  }`}
+                >
+                  {data?.isLoading ? <Loader2 size={11} className="animate-spin" /> : <Save size={11} />}
+                  {data?.isLoading ? "..." : isDirty ? "Buat" : "Tutup"}
+                </button>
+              </div>
+              <div className="px-5 py-4 space-y-0">
+                <div className="border-b border-gray-100 dark:border-gray-800/60 py-3">
+                  <label className="text-[8px] font-black text-gray-400 uppercase tracking-widest block mb-1.5">Username</label>
+                  <input
+                    autoFocus type="text"
+                    placeholder="username"
+                    value={data?.username ?? ""}
+                    onChange={e => setData(p => ({ ...p, username: e.target.value }))}
+                    className="w-full bg-transparent outline-none font-bold text-sm text-gray-900 dark:text-white"
+                  />
+                </div>
+                <div className="py-3">
+                  <label className="text-[8px] font-black text-gray-400 uppercase tracking-widest block mb-1.5">Password</label>
+                  <input
+                    type="password"
+                    placeholder="Min 6 karakter"
+                    value={data?.password ?? ""}
+                    onChange={e => setData(p => ({ ...p, password: e.target.value }))}
+                    className="w-full bg-transparent outline-none font-bold text-sm text-gray-900 dark:text-white"
+                  />
+                </div>
+              </div>
             </div>
-
-            <form onSubmit={onSubmit} className="space-y-4">
-              <div>
-                <label className="block text-xs font-black text-gray-500 uppercase tracking-widest mb-2 ml-1">
-                  Username Baru
-                </label>
-                <input
-                  type="text" required autoFocus
-                  value={data.username}
-                  onChange={(e) => setData({ ...data, username: e.target.value.replace(/\s+/g, "") })}
-                  placeholder="Contoh: ayu, agus, dsb."
-                  className="w-full bg-gray-50 dark:bg-[#0a0f1c] border border-gray-200 dark:border-gray-800 rounded-2xl py-4 px-5 text-sm text-gray-900 dark:text-white outline-none focus:border-blue-500 font-bold transition-all"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-black text-gray-500 uppercase tracking-widest mb-2 ml-1">
-                  Password Sementara
-                </label>
-                <input
-                  type="text" required
-                  value={data.password}
-                  onChange={(e) => setData({ ...data, password: e.target.value })}
-                  placeholder="Minimal 6 karakter"
-                  className="w-full bg-gray-50 dark:bg-[#0a0f1c] border border-gray-200 dark:border-gray-800 rounded-2xl py-4 px-5 text-sm text-gray-900 dark:text-white outline-none focus:border-blue-500 font-bold transition-all"
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={data.isLoading}
-                className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800 text-white font-black text-sm uppercase tracking-widest py-4 rounded-2xl transition-all shadow-lg shadow-blue-500/30 mt-4"
-              >
-                {data.isLoading ? "Memproses..." : "Daftarkan Akses"}
-              </button>
-            </form>
           </motion.div>
-        </motion.div>
+        </>
       )}
     </AnimatePresence>
   );
-}
+});
+
+export default AddUserModal;

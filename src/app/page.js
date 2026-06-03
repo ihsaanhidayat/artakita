@@ -24,7 +24,6 @@ import MoreTab from "@/components/tabs/MoreTab";
 
 // Modal components
 import EditTrxModal from "@/components/modals/EditTrxModal";
-import NewWalletModal from "@/components/modals/NewWalletModal";
 import AddUserModal from "@/components/modals/AddUserModal";
 import ForcePasswordModal from "@/components/modals/ForcePasswordModal";
 import WalletModal from "@/components/modals/WalletModal";
@@ -188,7 +187,6 @@ export default function Home() {
   // ── Modals ────────────────────────────────────────────────────────────────
   const [editTrxModal, setEditTrxModal] = useState({ isOpen: false, data: null });
   const [newWalletName, setNewWalletName] = useState("");
-  const [isNewWalletOpen, setIsNewWalletOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
   const [goalDeleteOpen, setGoalDeleteOpen] = useState(false);
@@ -864,14 +862,6 @@ export default function Home() {
           onNotify={showNotification}
         />
 
-        {/* ── New Wallet Modal ── */}
-        <NewWalletModal
-          isOpen={isNewWalletOpen}
-          name={newWalletName}
-          setName={setNewWalletName}
-          onSubmit={handleCreateWallet}
-          onClose={() => { setIsNewWalletOpen(false); setNewWalletName(""); }}
-        />
 
         {/* ── Edit Transaction Modal ── */}
         <EditTrxModal

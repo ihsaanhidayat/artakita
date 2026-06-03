@@ -1,57 +1,69 @@
 "use client";
+import { memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Save, Loader2, ShieldAlert } from "lucide-react";
 
-export default function ForcePasswordModal({
-  isOpen, newPassword, setNewPassword,
-  onSubmit, isLoading, error,
+const ForcePasswordModal = memo(function ForcePasswordModal({
+  isOpen, newPassword, setNewPassword, onSubmit, isLoading, error,
 }) {
+  const isDirty = newPassword?.length > 0;
+
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[999999] flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+        <>
           <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="w-full max-w-sm bg-white dark:bg-[#121827] rounded-[32px] p-6 shadow-2xl border border-red-500/30 text-center"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            transition={{ duration: 0.12 }}
+            className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm"
+          />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.15, ease: "easeOut" }}
+            className="fixed inset-0 z-[101] flex items-start justify-center px-4"
+            style={{ paddingTop: "20vh" }}
+            onClick={e => e.stopPropagation()}
           >
-            <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4 text-red-500">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-              </svg>
+            <div className="w-full max-w-sm bg-white dark:bg-[#0d1117] rounded-[24px] shadow-2xl border border-gray-100 dark:border-gray-800 overflow-hidden">
+              <div className="px-5 py-3.5 flex items-center justify-between bg-amber-500/10 border-b border-amber-500/20">
+                <div className="flex items-center gap-2">
+                  <ShieldAlert size={16} className="text-amber-500" />
+                  <p className="text-sm font-black text-amber-500">Ganti Password</p>
+                </div>
+                <button
+                  onClick={onSubmit}
+                  disabled={isLoading || !isDirty}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-black text-[10px] uppercase tracking-widest ml-3 shrink-0 transition-all disabled:opacity-40 ${
+                    isDirty ? "bg-amber-600 text-white" : "bg-gray-100 dark:bg-gray-800 text-gray-400"
+                  }`}
+                >
+                  {isLoading ? <Loader2 size={11} className="animate-spin" /> : <Save size={11} />}
+                  {isLoading ? "..." : "Simpan"}
+                </button>
+              </div>
+              <div className="px-5 py-4">
+                <p className="text-xs text-gray-500 mb-3">Password harus diganti untuk melanjutkan.</p>
+                {error && <p className="text-xs text-red-500 mb-3 font-bold">{error}</p>}
+                <div>
+                  <label className="text-[8px] font-black text-gray-400 uppercase tracking-widest block mb-1.5">Password Baru</label>
+                  <input
+                    autoFocus type="password"
+                    placeholder="Min 6 karakter"
+                    value={newPassword ?? ""}
+                    onChange={e => setNewPassword(e.target.value)}
+                    onKeyDown={e => { if (e.key === "Enter") onSubmit(); }}
+                    className="w-full bg-transparent outline-none font-bold text-sm text-gray-900 dark:text-white border-b-2 border-gray-200 dark:border-gray-800 focus:border-amber-500 transition-colors pb-2"
+                  />
+                </div>
+              </div>
             </div>
-
-            <h3 className="text-lg font-black text-gray-900 dark:text-white mb-2 tracking-tight">
-              Ganti Password Anda
-            </h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-6 font-bold leading-relaxed">
-              Demi keamanan, Anda wajib mengganti password default sebelum dapat mengakses sistem keuangan.
-            </p>
-
-            <form onSubmit={onSubmit} className="space-y-4">
-              <input
-                type="password"
-                required
-                minLength="6"
-                placeholder="Masukkan Password Baru"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                className="w-full bg-gray-50 dark:bg-black border border-gray-200 dark:border-gray-800 rounded-2xl py-3 px-4 text-sm font-bold text-center text-gray-900 dark:text-white outline-none focus:border-red-500 transition-all"
-              />
-              {error && (
-                <p className="text-xs font-bold text-red-500 bg-red-500/10 py-2 rounded-xl">{error}</p>
-              )}
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="w-full py-3.5 bg-red-500 hover:bg-red-600 text-white font-black text-[10px] uppercase tracking-widest rounded-2xl shadow-lg shadow-red-500/30 transition-all disabled:opacity-50"
-              >
-                {isLoading ? "Menyimpan..." : "Simpan & Lanjutkan"}
-              </button>
-            </form>
           </motion.div>
-        </div>
+        </>
       )}
     </AnimatePresence>
   );
-}
+});
+
+export default ForcePasswordModal;
