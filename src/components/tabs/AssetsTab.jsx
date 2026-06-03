@@ -7,6 +7,7 @@ import { uploadPhoto, deletePhoto } from "@/lib/imageUtils";
 import { parseFlexibleNumber, fmt, formatDateTime } from "@/lib/utils";
 import PhotoViewer from "@/components/PhotoViewer";
 import PhotoUploadButton from "@/components/PhotoUploadButton";
+import Toast from "@/components/Toast";
 import {
   Plus, Trash2, Edit3, X, Save, Eye,
   Package, Store, Calendar, Tag,
@@ -14,33 +15,33 @@ import {
 } from "lucide-react";
 
 const CONDITIONS = [
-  { value: "baru",        label: "Baru",         color: "text-blue-500",   bg: "bg-blue-500/10 border-blue-500/20" },
-  { value: "baik",        label: "Baik",          color: "text-green-500",  bg: "bg-green-500/10 border-green-500/20" },
-  { value: "perlu_servis",label: "Perlu Servis",  color: "text-amber-500",  bg: "bg-amber-500/10 border-amber-500/20" },
-  { value: "rusak",       label: "Rusak",         color: "text-red-500",    bg: "bg-red-500/10 border-red-500/20" },
+  { value: "baru", label: "Baru", color: "text-blue-500", bg: "bg-blue-500/10 border-blue-500/20" },
+  { value: "baik", label: "Baik", color: "text-green-500", bg: "bg-green-500/10 border-green-500/20" },
+  { value: "perlu_servis", label: "Perlu Servis", color: "text-amber-500", bg: "bg-amber-500/10 border-amber-500/20" },
+  { value: "rusak", label: "Rusak", color: "text-red-500", bg: "bg-red-500/10 border-red-500/20" },
 ];
 
 const getCondition = (val) => CONDITIONS.find(c => c.value === val) || CONDITIONS[1];
 
 const AssetsTabComponent = memo(function AssetsTab({ activeWallet }) {
-  const [assets, setAssets]             = useState([]);
+  const [assets, setAssets] = useState([]);
   const [isDirty, setIsDirty] = useState(false);
-  const [isLoading, setIsLoading]       = useState(false);
-  const [isFormOpen, setIsFormOpen]     = useState(false);
-  const [editingId, setEditingId]       = useState(null);
-  const [expandedId, setExpandedId]     = useState(null);
-  const [deleteModal, setDeleteModal]   = useState({ show: false, id: null, name: "" });
-  const [viewer, setViewer]             = useState({ open: false, url: null, label: "" });
-  const [toast, setToast]               = useState({ show: false, msg: "", type: "error" });
+  const [isLoading, setIsLoading] = useState(false);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [expandedId, setExpandedId] = useState(null);
+  const [deleteModal, setDeleteModal] = useState({ show: false, id: null, name: "" });
+  const [viewer, setViewer] = useState({ open: false, url: null, label: "" });
+  const [toast, setToast] = useState({ show: false, msg: "", type: "error" });
 
   // Form state
   const [form, setForm] = useState({
     name: "", store_name: "", purchase_date: "",
     price: "", condition: "baik", notes: "",
   });
-  const [photoFile, setPhotoFile]     = useState(null);
+  const [photoFile, setPhotoFile] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
-  const [isSaving, setIsSaving]       = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const showToast = (msg, type = "error") => {
     setToast({ show: true, msg, type });
@@ -73,12 +74,12 @@ const AssetsTabComponent = memo(function AssetsTab({ activeWallet }) {
 
   const openEdit = (asset) => {
     setForm({
-      name:          asset.name || "",
-      store_name:    asset.store_name || "",
+      name: asset.name || "",
+      store_name: asset.store_name || "",
       purchase_date: asset.purchase_date || "",
-      price:         asset.price ? String(asset.price) : "",
-      condition:     asset.condition || "baik",
-      notes:         asset.notes || "",
+      price: asset.price ? String(asset.price) : "",
+      condition: asset.condition || "baik",
+      notes: asset.notes || "",
     });
     setPhotoFile(null);
     setEditingId(asset.id);
@@ -106,7 +107,7 @@ const AssetsTabComponent = memo(function AssetsTab({ activeWallet }) {
       if (photoFile && userId) {
         setIsUploading(true);
         const assetId = editingId || crypto.randomUUID();
-        const path    = `assets/${userId}/${assetId}.jpg`;
+        const path = `assets/${userId}/${assetId}.jpg`;
         try {
           photoUrl = await uploadPhoto(photoFile, path, supabase);
         } catch (err) {
@@ -119,14 +120,14 @@ const AssetsTabComponent = memo(function AssetsTab({ activeWallet }) {
       }
 
       const payload = {
-        name:          form.name.trim(),
-        store_name:    form.store_name.trim() || null,
+        name: form.name.trim(),
+        store_name: form.store_name.trim() || null,
         purchase_date: form.purchase_date || null,
-        price:         parsedPrice,
-        condition:     form.condition,
-        notes:         form.notes.trim() || null,
-        photo_url:     photoUrl,
-        wallet_id:     activeWallet.id,
+        price: parsedPrice,
+        condition: form.condition,
+        notes: form.notes.trim() || null,
+        photo_url: photoUrl,
+        wallet_id: activeWallet.id,
       };
 
       if (editingId) {
@@ -155,7 +156,7 @@ const AssetsTabComponent = memo(function AssetsTab({ activeWallet }) {
     if (asset?.photo_url) {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        await deletePhoto(`assets/${session.user.id}/${asset.id}.jpg`, supabase).catch(() => {});
+        await deletePhoto(`assets/${session.user.id}/${asset.id}.jpg`, supabase).catch(() => { });
       }
     }
     await supabase.from("assets").delete().eq("id", deleteModal.id);
@@ -205,7 +206,7 @@ const AssetsTabComponent = memo(function AssetsTab({ activeWallet }) {
       <div className="space-y-3 flex-1">
         {isLoading && assets.length === 0 && (
           <div className="space-y-3">
-            {[1,2,3].map(i => (
+            {[1, 2, 3].map(i => (
               <div key={i} className="h-20 bg-gray-50 dark:bg-gray-900/40 rounded-[24px] animate-pulse" />
             ))}
           </div>
@@ -219,7 +220,7 @@ const AssetsTabComponent = memo(function AssetsTab({ activeWallet }) {
         )}
 
         {assets.map((asset, index) => {
-          const cond       = getCondition(asset.condition);
+          const cond = getCondition(asset.condition);
           const isExpanded = expandedId === asset.id;
 
           return (
@@ -463,11 +464,10 @@ const AssetsTabComponent = memo(function AssetsTab({ activeWallet }) {
                           key={c.value}
                           type="button"
                           onClick={() => setForm(p => ({ ...p, condition: c.value }))}
-                          className={`py-2 rounded-xl font-black text-[9px] uppercase tracking-widest border transition-all ${
-                            form.condition === c.value
-                              ? `${c.bg} ${c.color}`
-                              : "bg-gray-50 dark:bg-gray-900/40 border-gray-200 dark:border-gray-800 text-gray-400"
-                          }`}
+                          className={`py-2 rounded-xl font-black text-[9px] uppercase tracking-widest border transition-all ${form.condition === c.value
+                            ? `${c.bg} ${c.color}`
+                            : "bg-gray-50 dark:bg-gray-900/40 border-gray-200 dark:border-gray-800 text-gray-400"
+                            }`}
                         >
                           {c.label}
                         </button>
@@ -540,26 +540,11 @@ const AssetsTabComponent = memo(function AssetsTab({ activeWallet }) {
         )}
       </AnimatePresence>
 
-      {/* Toast */}
-      <AnimatePresence>
-        {toast.show && (
-          <motion.div
-            initial={{ opacity: 0, y: -40, scale: 0.9 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -20, scale: 0.9 }}
-            className="fixed top-6 left-0 right-0 z-[999999] flex justify-center px-4 pointer-events-none"
-          >
-            <div className={`flex items-center gap-3 px-5 py-3.5 rounded-full shadow-2xl backdrop-blur-xl border ${
-              toast.type === "error"
-                ? "bg-red-500/10 border-red-500/20 text-red-500"
-                : "bg-green-500/10 border-green-500/20 text-green-500"
-            }`}>
-              <X size={15} />
-              <span className="text-xs font-bold tracking-wide">{toast.msg}</span>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <Toast
+        isOpen={toast.show}
+        message={toast.msg || toast.message}
+        type={toast.type}
+      />
     </div>
   );
 

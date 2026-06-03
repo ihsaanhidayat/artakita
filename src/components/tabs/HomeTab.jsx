@@ -12,7 +12,7 @@ async function getSignedUrl(path) {
   }
   try {
     // Extract path dari full URL jika perlu
-    const storagePath = path.includes('/object/') 
+    const storagePath = path.includes('/object/')
       ? path.split('/object/').pop().replace(/^(sign|public)\/artakita_bucket\//, '')
       : path;
     const { data, error } = await supabase.storage
@@ -28,11 +28,11 @@ import {
   Moon, Sun, Wallet,
   ArrowUpCircle, ArrowDownCircle,
   Coffee, ShoppingBag, Receipt, Layers,
-  Edit3, Trash2, Eye, EyeOff, Loader2,
+  Edit3, Trash2, Eye, EyeOff, Loader2, Repeat,
   SlidersHorizontal, X, ChevronDown, Camera, Image
 } from "lucide-react";
-import PhotoViewer   from "@/components/PhotoViewer";
-import BudgetAlert   from "@/components/BudgetAlert";
+import PhotoViewer from "@/components/PhotoViewer";
+import BudgetAlert from "@/components/BudgetAlert";
 import { formatDateTime, fmt } from "@/lib/utils";
 import { HOME } from "@/lib/constants";
 import { supabase } from "@/lib/supabaseClient";
@@ -40,10 +40,10 @@ import { uploadPhoto } from "@/lib/imageUtils";
 
 const getCatIcon = (cat) => {
   switch (cat) {
-    case "Makan":   return <Coffee  size={17} />;
+    case "Makan": return <Coffee size={17} />;
     case "Belanja": return <ShoppingBag size={17} />;
     case "Tagihan": return <Receipt size={17} />;
-    default:        return <Layers  size={17} />;
+    default: return <Layers size={17} />;
   }
 };
 
@@ -62,12 +62,12 @@ const Skeleton = () => (
 
 // ── Collapsed Search+Filter Bar ───────────────────────────────────────────────
 const FilterBar = memo(function FilterBar({
-  searchQuery,    setSearchQuery,
+  searchQuery, setSearchQuery,
   categoryFilter, setCategoryFilter,
-  dateRange,      setDateRange,
+  dateRange, setDateRange,
   dynamicCategories,
 }) {
-  const [isOpen,   setIsOpen]   = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
   const [showCats, setShowCats] = useState(false);
 
   const activeCount = [
@@ -87,11 +87,10 @@ const FilterBar = memo(function FilterBar({
       {!isOpen ? (
         <button
           onClick={() => setIsOpen(true)}
-          className={`w-full flex items-center justify-between px-4 py-2.5 rounded-2xl border transition-all ${
-            activeCount > 0
-              ? "bg-blue-500/10 border-blue-500/30 text-blue-500"
-              : "bg-gray-50 dark:bg-[#121827] border-gray-200 dark:border-gray-800 text-gray-400"
-          }`}
+          className={`w-full flex items-center justify-between px-4 py-2.5 rounded-2xl border transition-all ${activeCount > 0
+            ? "bg-blue-500/10 border-blue-500/30 text-blue-500"
+            : "bg-gray-50 dark:bg-[#121827] border-gray-200 dark:border-gray-800 text-gray-400"
+            }`}
         >
           <div className="flex items-center gap-2">
             <SlidersHorizontal size={14} />
@@ -126,11 +125,10 @@ const FilterBar = memo(function FilterBar({
             <div className="relative shrink-0">
               <button
                 onClick={() => setShowCats(p => !p)}
-                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${
-                  categoryFilter !== "Semua"
-                    ? "bg-blue-500 text-white"
-                    : "bg-gray-200 dark:bg-gray-800 text-gray-500 dark:text-gray-400"
-                }`}
+                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${categoryFilter !== "Semua"
+                  ? "bg-blue-500 text-white"
+                  : "bg-gray-200 dark:bg-gray-800 text-gray-500 dark:text-gray-400"
+                  }`}
               >
                 {categoryFilter === "Semua" ? "Semua" : categoryFilter}
                 <ChevronDown size={9} />
@@ -155,11 +153,10 @@ const FilterBar = memo(function FilterBar({
                         <button
                           key={cat}
                           onClick={() => { setCategoryFilter(cat); setShowCats(false); }}
-                          className={`w-full text-left px-4 py-2 text-xs font-bold transition-colors ${
-                            categoryFilter === cat
-                              ? "text-blue-500 bg-blue-500/10"
-                              : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/40"
-                          }`}
+                          className={`w-full text-left px-4 py-2 text-xs font-bold transition-colors ${categoryFilter === cat
+                            ? "text-blue-500 bg-blue-500/10"
+                            : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/40"
+                            }`}
                         >
                           {cat}
                         </button>
@@ -211,9 +208,9 @@ const FilterBar = memo(function FilterBar({
 // ── FotoInline — icon kiri card, tampil sebagai kotak inisial ────────────────
 // Tap → 2 pill Kamera / Galeri muncul di atas — fixed positioning agar tidak terpotong
 const FotoInline = memo(function FotoInline({ trxId, userId, category, type, onPhotoAdded }) {
-  const [isOpen,      setIsOpen]      = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [popupPos,    setPopupPos]    = useState({ top: 0, left: 0 });
+  const [popupPos, setPopupPos] = useState({ top: 0, left: 0 });
   const btnRef = useRef(null);
   const camRef = useRef(null);
   const galRef = useRef(null);
@@ -225,7 +222,7 @@ const FotoInline = memo(function FotoInline({ trxId, userId, category, type, onP
     try {
       const { uploadPhoto: upload } = await import("@/lib/imageUtils");
       const path = `receipts/${userId}/${trxId}.jpg`;
-      const url  = await upload(file, path, supabase);
+      const url = await upload(file, path, supabase);
       await supabase.from("transactions").update({ receipt_url: url }).eq("id", trxId);
       onPhotoAdded?.(trxId, url);
     } catch (err) {
@@ -240,7 +237,7 @@ const FotoInline = memo(function FotoInline({ trxId, userId, category, type, onP
     const rect = btnRef.current.getBoundingClientRect();
     // Posisi popup di atas tombol — fixed agar tidak terpotong parent
     setPopupPos({
-      top:  rect.top - 8,   // 8px di atas tombol
+      top: rect.top - 8,   // 8px di atas tombol
       left: rect.left,
     });
     setIsOpen(p => !p);
@@ -256,13 +253,12 @@ const FotoInline = memo(function FotoInline({ trxId, userId, category, type, onP
         ref={btnRef}
         onClick={handleOpen}
         disabled={isUploading}
-        className={`w-11 h-11 rounded-2xl flex items-center justify-center font-black text-sm transition-all active:scale-90 ${
-          isUploading
-            ? "bg-blue-500/10 text-blue-400"
-            : isIncome
+        className={`w-11 h-11 rounded-2xl flex items-center justify-center font-black text-sm transition-all active:scale-90 ${isUploading
+          ? "bg-blue-500/10 text-blue-400"
+          : isIncome
             ? "bg-green-500/10 text-green-600 dark:text-green-400 hover:bg-green-500/20"
             : "bg-red-500/10 text-red-500 dark:text-red-400 hover:bg-red-500/20"
-        }`}
+          }`}
       >
         {isUploading ? <Loader2 size={14} className="animate-spin" /> : initials}
       </button>
@@ -320,11 +316,11 @@ const HomeTabComponent = memo(function HomeTab({
   isDarkMode, setIsDarkMode,
   activeWallet, onOpenWalletModal,
   balance, filteredIncome, filteredExpense,
-  typeFilter,      setTypeFilter,
-  searchQuery,     setSearchQuery,
-  categoryFilter,  setCategoryFilter,
+  typeFilter, setTypeFilter,
+  searchQuery, setSearchQuery,
+  categoryFilter, setCategoryFilter,
   dynamicCategories,
-  dateRange,       setDateRange,
+  dateRange, setDateRange,
   filteredTransactions,
   transactions,
   mounted,
@@ -336,9 +332,9 @@ const HomeTabComponent = memo(function HomeTab({
   onEditTransaction, onDeleteTransaction,
   session,
 }) {
-  const [viewerUrl,   setViewerUrl]   = useState(null);
+  const [viewerUrl, setViewerUrl] = useState(null);
   const [viewerLabel, setViewerLabel] = useState("");
-  const [photoMap,    setPhotoMap]    = useState({}); // { trxId: signedUrl }
+  const [photoMap, setPhotoMap] = useState({}); // { trxId: signedUrl }
   const [viewerLoading, setViewerLoading] = useState(false);
 
   const handlePhotoAdded = useCallback((trxId, url) => {
@@ -404,16 +400,15 @@ const HomeTabComponent = memo(function HomeTab({
           <BudgetAlert budgets={allBudgets} transactions={transactionsThisMonth} />
 
           {(!isOnline || pendingCount > 0) && (
-            <div className={`flex items-center gap-2 px-3 py-2 rounded-xl text-[10px] font-bold mt-2 ${
-              !isOnline
-                ? "bg-amber-500/10 border border-amber-500/20 text-amber-500"
-                : "bg-blue-500/10 border border-blue-500/20 text-blue-500"
-            }`}>
+            <div className={`flex items-center gap-2 px-3 py-2 rounded-xl text-[10px] font-bold mt-2 ${!isOnline
+              ? "bg-amber-500/10 border border-amber-500/20 text-amber-500"
+              : "bg-blue-500/10 border border-blue-500/20 text-blue-500"
+              }`}>
               <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${!isOnline ? "bg-amber-500" : "bg-blue-500 animate-pulse"}`} />
               <span>
                 {!isOnline ? HOME.OFFLINE_MSG
                   : isSyncing ? HOME.SYNCING_MSG(pendingCount)
-                  : HOME.PENDING_MSG(pendingCount)}
+                    : HOME.PENDING_MSG(pendingCount)}
               </span>
             </div>
           )}
@@ -424,11 +419,10 @@ const HomeTabComponent = memo(function HomeTab({
           <div className="grid grid-cols-2 gap-3">
             <button
               onClick={() => setTypeFilter(typeFilter === "income" ? "all" : "income")}
-              className={`p-4 rounded-[20px] border transition-all ${
-                typeFilter === "income"
-                  ? "bg-green-500/10 border-green-500 shadow-lg shadow-green-500/20"
-                  : "bg-gray-50 dark:bg-gray-900/40 border-gray-100 dark:border-gray-800/50"
-              }`}
+              className={`p-4 rounded-[20px] border transition-all ${typeFilter === "income"
+                ? "bg-green-500/10 border-green-500 shadow-lg shadow-green-500/20"
+                : "bg-gray-50 dark:bg-gray-900/40 border-gray-100 dark:border-gray-800/50"
+                }`}
             >
               <div className="flex items-center gap-1.5 text-green-600 dark:text-green-500 mb-1.5">
                 <ArrowDownCircle size={14} />
@@ -440,11 +434,10 @@ const HomeTabComponent = memo(function HomeTab({
             </button>
             <button
               onClick={() => setTypeFilter(typeFilter === "expense" ? "all" : "expense")}
-              className={`p-4 rounded-[20px] border transition-all ${
-                typeFilter === "expense"
-                  ? "bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20"
-                  : "bg-gray-50 dark:bg-gray-900/40 border-gray-100 dark:border-gray-800/50"
-              }`}
+              className={`p-4 rounded-[20px] border transition-all ${typeFilter === "expense"
+                ? "bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20"
+                : "bg-gray-50 dark:bg-gray-900/40 border-gray-100 dark:border-gray-800/50"
+                }`}
             >
               <div className="flex items-center gap-1.5 text-red-600 dark:text-red-500 mb-1.5">
                 <ArrowUpCircle size={14} />
@@ -459,9 +452,9 @@ const HomeTabComponent = memo(function HomeTab({
 
         {/* ── Collapsed Filter Bar ── */}
         <FilterBar
-          searchQuery={searchQuery}       setSearchQuery={setSearchQuery}
+          searchQuery={searchQuery} setSearchQuery={setSearchQuery}
           categoryFilter={categoryFilter} setCategoryFilter={setCategoryFilter}
-          dateRange={dateRange}           setDateRange={setDateRange}
+          dateRange={dateRange} setDateRange={setDateRange}
           dynamicCategories={dynamicCategories}
         />
 
@@ -509,11 +502,10 @@ const HomeTabComponent = memo(function HomeTab({
                   initial={{ opacity: 0, x: -8 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, scale: 0.96 }}
-                  className={`flex items-center justify-between p-4 rounded-[22px] border transition-all mb-2.5 ${
-                    trx._pending
-                      ? "bg-amber-50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800/30"
-                      : "bg-white dark:bg-gray-900/20 border-gray-100 dark:border-gray-800/40"
-                  }`}
+                  className={`flex items-center justify-between p-4 rounded-[22px] border transition-all mb-2.5 ${trx._pending
+                    ? "bg-amber-50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800/30"
+                    : "bg-white dark:bg-gray-900/20 border-gray-100 dark:border-gray-800/40"
+                    }`}
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     {/* Icon kiri: mata terbuka (lihat foto) atau inisial+upload */}
@@ -546,10 +538,21 @@ const HomeTabComponent = memo(function HomeTab({
                         )}
                       </p>
                       <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                        {/* 1. INI KATEGORI (Yang muncul di screenshot Anda) */}
                         <span className="text-[9px] font-black text-gray-400 bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700/50 px-2 py-0.5 rounded-lg uppercase tracking-widest">
                           {trx.category}
                         </span>
-                        <span className="text-[9px] text-gray-300 dark:text-gray-700">
+
+                        {/* 2. INI BADGE RUTIN KITA (Mengecek status is_recurring) */}
+                        {trx.is_recurring && (
+                          <div className="flex items-center gap-1 px-1.5 py-[3px] bg-gradient-to-r from-blue-500/10 to-indigo-500/10 border border-blue-500/20 rounded-[6px] shadow-[0_0_8px_rgba(59,130,246,0.15)] shrink-0">
+                            <Repeat size={9} className="text-blue-500" strokeWidth={3} />
+                            <span className="text-[7px] font-black text-blue-500 uppercase tracking-[0.2em] leading-none mt-[1px]">RUTIN KITA</span>
+                          </div>
+                        )}
+
+                        {/* 3. TANGGAL */}
+                        <span className="text-[9px] text-gray-300 dark:text-gray-700 ml-1">
                           {formatDateTime(trx.created_at)}
                         </span>
                       </div>
@@ -557,9 +560,8 @@ const HomeTabComponent = memo(function HomeTab({
                   </div>
 
                   <div className="flex flex-col items-end gap-2 shrink-0 ml-2">
-                    <p className={`font-black text-sm tracking-tight ${
-                      trx.type === "income" ? "text-green-600 dark:text-green-400" : "text-red-500 dark:text-red-400"
-                    }`}>
+                    <p className={`font-black text-sm tracking-tight ${trx.type === "income" ? "text-green-600 dark:text-green-400" : "text-red-500 dark:text-red-400"
+                      }`}>
                       {trx.type === "income" ? "+" : "-"}Rp {Number(trx.amount).toLocaleString("id-ID")}
                     </p>
                     {!trx._pending && (

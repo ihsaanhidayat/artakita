@@ -1286,27 +1286,11 @@ export default function DebtsPage({ activeWallet, balance }) {
             </motion.form>
           </>
         )}
-      </AnimatePresence>
-      {/* â”€â”€ Toast Notification â”€â”€ */}
-      <AnimatePresence>
-        {toast.show && (
-          <motion.div
-            initial={{ opacity: 0, y: -40, scale: 0.9 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -20, scale: 0.9 }}
-            className="fixed top-6 left-0 right-0 z-[999999] flex justify-center px-4 pointer-events-none"
-          >
-            <div className={`flex items-center gap-3 px-5 py-3.5 rounded-full shadow-2xl backdrop-blur-xl border ${
-              toast.type === "error"
-                ? "bg-red-500/10 border-red-500/20 text-red-500"
-                : "bg-green-500/10 border-green-500/20 text-green-500"
-            }`}>
-              <X size={15} />
-              <span className="text-xs font-bold tracking-wide">{toast.message}</span>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <Toast 
+  isOpen={toast.show} 
+  message={toast.msg || toast.message} 
+  type={toast.type} 
+/>
 
       {/* â”€â”€ Modal Konfirmasi Hapus â”€â”€ */}
       <AnimatePresence>

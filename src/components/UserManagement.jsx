@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 
 // Selalu arahkan ke server yang benar — penting untuk akses dari HP/device lain
 const getBase = () => typeof window !== "undefined" ? window.location.origin : "";
@@ -81,14 +81,9 @@ export default function UserManagement({ onNotify }) {
       // Kirim session token sebagai auth header
       const { data: { session } } = await supabase.auth.getSession();
 
-      // Debug — hapus setelah fix
-      console.log("Session:", session ? "ada" : "null");
-      console.log("Token:", session?.access_token ? session.access_token.slice(0, 20) + "..." : "NULL");
-
       if (!session?.access_token) {
         // Coba refresh session
         const { data: refreshed } = await supabase.auth.refreshSession();
-        console.log("Refreshed:", refreshed?.session ? "OK" : "GAGAL");
       }
 
       const token = session?.access_token;
@@ -122,9 +117,14 @@ export default function UserManagement({ onNotify }) {
     }
     setAddModal(p => ({ ...p, loading: true }));
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token || tokenRef.current;
       const res = await fetch(`${getBase()}/api/admin/add-user`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({ username: addModal.username, password: addModal.password }),
       });
       const data = await res.json();
@@ -147,9 +147,14 @@ export default function UserManagement({ onNotify }) {
     }
     setResetModal(p => ({ ...p, loading: true }));
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token || tokenRef.current;
       const res = await fetch(`${getBase()}/api/admin/reset-password`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({ userId: resetModal.userId, newPassword: resetModal.password }),
       });
       const data = await res.json();
@@ -169,7 +174,7 @@ export default function UserManagement({ onNotify }) {
     try {
       const res = await fetch(`${getBase()}/api/admin/delete-user`, {
         method: "DELETE",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}` },
         body: JSON.stringify({ userId: deleteModal.userId }),
       });
       const data = await res.json();
@@ -189,9 +194,14 @@ export default function UserManagement({ onNotify }) {
     setActionLoading(user.id);
     const action = user.banned ? "unban" : "ban";
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token || tokenRef.current;
       const res = await fetch(`${getBase()}/api/admin/toggle-user`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({ userId: user.id, action }),
       });
       const data = await res.json();

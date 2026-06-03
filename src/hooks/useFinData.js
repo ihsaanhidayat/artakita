@@ -6,11 +6,11 @@ const DISPLAY_PAGE = 10;
 
 export const useFinData = (walletId) => {
   const [allTransactions, setAllTransactions] = useState([]);
-  const [balance,         setBalance]         = useState(0);
-  const [totalIncome,     setTotalIncome]      = useState(0);
-  const [totalExpense,    setTotalExpense]     = useState(0);
-  const [isLoading,       setIsLoading]        = useState(false);
-  const [displayCount,    setDisplayCount]     = useState(DISPLAY_PAGE);
+  const [balance, setBalance] = useState(0);
+  const [totalIncome, setTotalIncome] = useState(0);
+  const [totalExpense, setTotalExpense] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+  const [displayCount, setDisplayCount] = useState(DISPLAY_PAGE);
 
   const { isOnline, isSyncing, pendingCount, addToQueue, syncQueue, updateCache, getCached } =
     useOfflineSync(walletId, () => { fetchAll(); });
@@ -34,7 +34,7 @@ export const useFinData = (walletId) => {
     try {
       const { data, error } = await supabase
         .from("transactions")
-        .select("id, wallet_id, user_id, note, amount, category, type, created_at, receipt_url, debt_id")
+        .select("id, wallet_id, user_id, note, amount, category, type, created_at, receipt_url, debt_id, is_recurring")
         .eq("wallet_id", walletId)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -80,7 +80,7 @@ export const useFinData = (walletId) => {
     allTransactions.slice(0, displayCount),
     [allTransactions, displayCount]
   );
-  const hasMore  = displayCount < allTransactions.length;
+  const hasMore = displayCount < allTransactions.length;
   const loadMore = useCallback(() => setDisplayCount(p => p + DISPLAY_PAGE), []);
 
   // ── Add ───────────────────────────────────────────────────────────────────
@@ -92,12 +92,12 @@ export const useFinData = (walletId) => {
     if (!session) throw new Error("Sesi login kedaluwarsa.");
 
     const payload = {
-      user_id:    session.user.id,
-      wallet_id:  walletId,
-      note:       note.trim(),
-      amount:     Number(amount),
+      user_id: session.user.id,
+      wallet_id: walletId,
+      note: note.trim(),
+      amount: Number(amount),
       category,
-      type:       trxType,
+      type: trxType,
       // Backdate support
       ...(customDate ? { created_at: new Date(customDate).toISOString() } : {}),
     };
@@ -108,7 +108,7 @@ export const useFinData = (walletId) => {
     try {
       const result = await supabase
         .from("transactions").insert([payload]).select().single();
-      data  = result.data;
+      data = result.data;
       error = result.error;
     } catch (networkErr) {
       // Network error nyata → masuk queue
@@ -138,7 +138,7 @@ export const useFinData = (walletId) => {
       try {
         const { uploadPhoto } = await import("@/lib/imageUtils");
         const path = `receipts/${session.user.id}/${data.id}.jpg`;
-        const url  = await uploadPhoto(receiptFile, path, supabase);
+        const url = await uploadPhoto(receiptFile, path, supabase);
         await supabase.from("transactions").update({ receipt_url: url }).eq("id", data.id);
         data.receipt_url = url;
       } catch (err) {
@@ -161,7 +161,7 @@ export const useFinData = (walletId) => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         const { deletePhoto } = await import("@/lib/imageUtils");
-        await deletePhoto(`receipts/${session.user.id}/${id}.jpg`, supabase).catch(() => {});
+        await deletePhoto(`receipts/${session.user.id}/${id}.jpg`, supabase).catch(() => { });
       }
     }
     if (trx?._pending) {
