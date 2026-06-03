@@ -1,12 +1,25 @@
 "use client";
-import { memo } from "react";
+import { memo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Save, Loader2, ShieldAlert } from "lucide-react";
 
 const ForcePasswordModal = memo(function ForcePasswordModal({
   isOpen, newPassword, setNewPassword, onSubmit, isLoading, error,
 }) {
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [mismatch, setMismatch] = useState(false);
+
   const isDirty = newPassword?.length > 0;
+  const canSubmit = isDirty && newPassword === confirmPassword;
+
+  const handleSubmit = () => {
+    if (newPassword !== confirmPassword) {
+      setMismatch(true);
+      return;
+    }
+    setMismatch(false);
+    onSubmit();
+  };
 
   return (
     <AnimatePresence>
@@ -33,28 +46,40 @@ const ForcePasswordModal = memo(function ForcePasswordModal({
                   <p className="text-sm font-black text-amber-500">Ganti Password</p>
                 </div>
                 <button
-                  onClick={onSubmit}
-                  disabled={isLoading || !isDirty}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-black text-[10px] uppercase tracking-widest ml-3 shrink-0 transition-all disabled:opacity-40 ${
-                    isDirty ? "bg-amber-600 text-white" : "bg-gray-100 dark:bg-gray-800 text-gray-400"
-                  }`}
+                  onClick={handleSubmit}
+                  disabled={isLoading || !canSubmit}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-black text-[10px] uppercase tracking-widest ml-3 shrink-0 transition-all disabled:opacity-40 ${canSubmit ? "bg-amber-600 text-white" : "bg-gray-100 dark:bg-gray-800 text-gray-400"
+                    }`}
                 >
                   {isLoading ? <Loader2 size={11} className="animate-spin" /> : <Save size={11} />}
                   {isLoading ? "..." : "Simpan"}
                 </button>
               </div>
-              <div className="px-5 py-4">
+              <div className="px-5 py-4 space-y-0">
                 <p className="text-xs text-gray-500 mb-3">Password harus diganti untuk melanjutkan.</p>
                 {error && <p className="text-xs text-red-500 mb-3 font-bold">{error}</p>}
-                <div>
+                {mismatch && <p className="text-xs text-red-500 mb-3 font-bold">Password tidak cocok!</p>}
+
+                <div className="border-b border-gray-100 dark:border-gray-800/60 py-3">
                   <label className="text-[8px] font-black text-gray-400 uppercase tracking-widest block mb-1.5">Password Baru</label>
                   <input
                     autoFocus type="password"
                     placeholder="Min 6 karakter"
                     value={newPassword ?? ""}
-                    onChange={e => setNewPassword(e.target.value)}
-                    onKeyDown={e => { if (e.key === "Enter") onSubmit(); }}
-                    className="w-full bg-transparent outline-none font-bold text-sm text-gray-900 dark:text-white border-b-2 border-gray-200 dark:border-gray-800 focus:border-amber-500 transition-colors pb-2"
+                    onChange={e => { setNewPassword(e.target.value); setMismatch(false); }}
+                    className="w-full bg-transparent outline-none font-bold text-sm text-gray-900 dark:text-white"
+                  />
+                </div>
+
+                <div className="py-3">
+                  <label className="text-[8px] font-black text-gray-400 uppercase tracking-widest block mb-1.5">Konfirmasi Password</label>
+                  <input
+                    type="password"
+                    placeholder="Ketik ulang password"
+                    value={confirmPassword}
+                    onChange={e => { setConfirmPassword(e.target.value); setMismatch(false); }}
+                    onKeyDown={e => { if (e.key === "Enter") handleSubmit(); }}
+                    className="w-full bg-transparent outline-none font-bold text-sm text-gray-900 dark:text-white"
                   />
                 </div>
               </div>

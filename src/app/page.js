@@ -655,20 +655,20 @@ export default function Home() {
       <div className={appClass}>
         <main className="w-full max-w-lg mx-auto relative min-h-screen bg-white dark:bg-black">
           <Toast isOpen={notification.isOpen} message={notification.message} type={notification.type} />
-          <div className="pt-8 px-3 pb-32">
-            <h2 className="text-xl font-black text-gray-900 dark:text-white tracking-tight mb-6">
-              Manajemen Pengguna
-            </h2>
+          <div className="pt-8 px-3 pb-8">
+            {/* Header + Logout kanan atas */}
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-black text-gray-900 dark:text-white tracking-tight">
+                Manajemen Pengguna
+              </h2>
+              <button
+                onClick={auth.handleLogout}
+                className="px-3 py-1.5 bg-red-500/10 border border-red-500/20 text-red-500 font-black text-[9px] uppercase tracking-widest rounded-xl hover:bg-red-500/20 active:scale-95 transition-all"
+              >
+                Keluar
+              </button>
+            </div>
             <UserManagement onNotify={showNotification} />
-          </div>
-          {/* Logout */}
-          <div className="fixed bottom-6 left-0 right-0 max-w-lg mx-auto px-4">
-            <button
-              onClick={auth.handleLogout}
-              className="w-full py-3.5 bg-red-500/10 border border-red-500/20 text-red-500 font-black text-xs uppercase tracking-widest rounded-2xl transition-all"
-            >
-              Keluar dari Akun
-            </button>
           </div>
         </main>
       </div>
