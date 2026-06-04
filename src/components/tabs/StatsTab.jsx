@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabaseClient";
 import { parseFlexibleNumber, fmt, CHART_COLORS } from "@/lib/utils";
 import { STATS } from "@/lib/constants";
-import { ChevronDown, Target, AlertTriangle, CheckCircle2, Edit3, Save, X, Loader2 } from "lucide-react";
+import { ChevronDown, AlertTriangle, CheckCircle2, Edit3, Save, X } from "lucide-react";
 
 const getHealth = (exp, inc) => {
   if (inc === 0 && exp === 0) return { grade: "-",  color: "text-gray-400",   bar: "bg-gray-400",   pct: 0,   msg: STATS.GRADE["-"] };

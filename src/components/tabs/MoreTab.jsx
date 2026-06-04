@@ -4,13 +4,13 @@ import { useLanguage } from "@/hooks/useLanguage";
 import GuideTab from "@/components/tabs/GuideTab";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Download, Users, Info, LogOut,
+  Download, Info, LogOut,
   Heart, ChevronRight, Shield,
   Globe, BookOpen
 } from "lucide-react";
-import { MORE, ABOUT, APP_VERSION, APP_AUTHOR } from "@/lib/constants";
+import { MORE, ABOUT, APP_AUTHOR } from "@/lib/constants";
 import { supabase } from "@/lib/supabaseClient";
-import { parseFlexibleNumber, fmt } from "@/lib/utils";
+import { fmt } from "@/lib/utils";
 import UserManagement from "@/components/UserManagement";
 import DeleteModal from "@/components/DeleteModal";
 
@@ -397,7 +397,7 @@ const MoreTab = memo(function MoreTab({
         </h2>
 
         {/* Menu groups */}
-        <div className="space-y-2 flex-1 pb-44">
+        <div className="space-y-2 flex-1 pb-32">
           {menuGroups.map((group, gi) => (
             <div key={gi}>
               {group.label && (

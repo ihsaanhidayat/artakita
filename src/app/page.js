@@ -13,7 +13,7 @@ import { useFinData } from "@/hooks/useFinData";
 import { useWallets } from "@/hooks/useWallets";
 
 // Utils
-import { parseFlexibleNumber, getRecentMonths } from "@/lib/utils";
+import { parseFlexibleNumber } from "@/lib/utils";
 import { NAV } from "@/lib/constants";
 
 // Tab components

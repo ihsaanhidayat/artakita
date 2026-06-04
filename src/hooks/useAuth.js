@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
 
 /**
@@ -13,13 +13,13 @@ import { supabase } from "@/lib/supabaseClient";
  * - Profile status check
  */
 export function useAuth() {
-  const [session, setSession] = useState(null);
-  const [isAuthLoading, setIsAuthLoading] = useState(false);
-  const [authError, setAuthError] = useState("");
-  const [authUsername, setAuthUsername] = useState("");
-  const [authPassword, setAuthPassword] = useState("");
-  const [loginAttempts, setLoginAttempts] = useState(0);
-  const [isLocked, setIsLocked] = useState(false);
+  const [session, setSession]                   = useState(null);
+  const [isAuthLoading, setIsAuthLoading]       = useState(false);
+  const [authError, setAuthError]               = useState("");
+  const [authUsername, setAuthUsername]         = useState("");
+  const [authPassword, setAuthPassword]         = useState("");
+  const [loginAttempts, setLoginAttempts]       = useState(0);
+  const [isLocked, setIsLocked]                 = useState(false);
   const [forcePasswordModal, setForcePasswordModal] = useState({
     isOpen: false,
     newPassword: "",
@@ -117,7 +117,7 @@ export function useAuth() {
     setIsAuthLoading(true);
     setAuthError("");
 
-    const raw = authUsername.trim().toLowerCase();
+    const raw   = authUsername.trim().toLowerCase();
     const email = raw.includes("@") ? raw : `${raw}@artakita.internal`;
 
     const { error } = await supabase.auth.signInWithPassword({
@@ -183,9 +183,9 @@ export function useAuth() {
   return {
     session,
     isAuthLoading,
-    authError, setAuthError,
-    authUsername, setAuthUsername,
-    authPassword, setAuthPassword,
+    authError,     setAuthError,
+    authUsername,  setAuthUsername,
+    authPassword,  setAuthPassword,
     isLocked,
     forcePasswordModal, setForcePasswordModal,
     handleLogin,

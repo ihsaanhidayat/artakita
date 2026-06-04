@@ -1,8 +1,8 @@
 "use client";
-import { memo, useState, useCallback } from "react";
+import { memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Trash2 } from "lucide-react";
-import { fmt, parseFlexibleNumber } from "@/lib/utils";
+import { fmt } from "@/lib/utils";
 import CategoryPills from "@/components/CategoryPills";
 
 const SavingsTab = memo(function SavingsTab({

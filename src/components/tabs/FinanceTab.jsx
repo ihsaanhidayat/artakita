@@ -2,7 +2,7 @@
 import { memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ArrowUpRight, ArrowDownLeft,
+  ArrowUpRight,
   RefreshCw, Package, Tag,
   PiggyBank, ChevronRight
 } from "lucide-react";

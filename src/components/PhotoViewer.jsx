@@ -1,9 +1,9 @@
 "use client";
-import { useEffect, useState, useCallback } from "react";
+import { memo, useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, ZoomIn, ZoomOut, RotateCcw, AlertTriangle } from "lucide-react";
+import { X, ZoomIn, ZoomOut, AlertTriangle } from "lucide-react";
 
-export default function PhotoViewer({ url, isOpen, onClose, label }) {
+const PhotoViewer = function PhotoViewer({ url, isOpen, onClose, label }) {
   const [scale,   setScale]   = useState(1);
   const [loaded,  setLoaded]  = useState(false);
   const [error,   setError]   = useState(false);
@@ -45,7 +45,7 @@ export default function PhotoViewer({ url, isOpen, onClose, label }) {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.15 }}
-          className="fixed inset-0 z-[999998] bg-black/96 flex flex-col"
+          className="fixed inset-0 z-[200] bg-black/96 flex flex-col"
         >
           {/* Top bar — selalu terlihat, tidak tertutup loading */}
           <div className="flex justify-between items-center px-4 py-4 shrink-0 z-10">
@@ -134,3 +134,5 @@ export default function PhotoViewer({ url, isOpen, onClose, label }) {
     </AnimatePresence>
   );
 }
+
+export default memo(PhotoViewer);

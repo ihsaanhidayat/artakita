@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useMemo } from "react";
+import { memo, useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AlertTriangle, X } from "lucide-react";
 
@@ -12,7 +12,7 @@ import { AlertTriangle, X } from "lucide-react";
  * - Muncul kembali saat ada transaksi baru ke kategori tersebut
  *   (berdasarkan jumlah transaksi di kategori itu)
  */
-export default function BudgetAlert({ budgets = [], transactions = [] }) {
+const BudgetAlert = function BudgetAlert({ budgets = [], transactions = [] }) {
   // dismissed: { [categoryName]: transactionCount saat dismiss }
   const [dismissed, setDismissed] = useState({});
 
@@ -121,3 +121,5 @@ export default function BudgetAlert({ budgets = [], transactions = [] }) {
     </div>
   );
 }
+
+export default memo(BudgetAlert);

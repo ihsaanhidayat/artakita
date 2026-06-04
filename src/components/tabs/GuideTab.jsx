@@ -2,13 +2,10 @@
 import { memo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  BookOpen, ChevronDown, ChevronRight,
+  BookOpen, ChevronDown,
   Home, BarChart3, Landmark, MoreHorizontal,
-  Wallet, ArrowUpRight, RefreshCw, Package,
-  PiggyBank, Tag, Download, Users, Info,
-  Zap, Shield, Wifi, WifiOff, Globe,
-  Moon, Sun, Plus, Edit3, Trash2,
-  CheckCircle2, AlertTriangle, Star
+  Wallet,
+  Zap, WifiOff, Star
 } from "lucide-react";
 
 // ── Section data ──────────────────────────────────────────────────────────────
