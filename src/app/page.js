@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback, useMemo, memo } from "react";
+import { tokenizeInput, classifyFromPatterns, learnFromTransaction } from "@/lib/aiEngine";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Home as HomeIcon, BarChart3,
@@ -159,6 +160,7 @@ export default function Home() {
   // ── AI & Role ─────────────────────────────────────────────────────────────
   const [userCategories, setUserCategories] = useState([]);
   const [aiKeywords,     setAiKeywords]     = useState([]);
+  const [userPatterns,  setUserPatterns]  = useState([]);
   const [isSmartLoading, setIsSmartLoading] = useState(false);
   const [isAdmin,        setIsAdmin]        = useState(false);
   const [isRoleLoading,  setIsRoleLoading]  = useState(true);

@@ -166,12 +166,21 @@ const QuickCommandBar = memo(function QuickCommandBar({
     if (!text || isSmartLoading) return;
     if (typeof onProcessTransaction !== "function") return;
 
-    // Validasi format
-    const clean = text.toLowerCase().replace(/^(in|out)\s+/, "");
-    const hasAmount = /^[\d.,]+(?:k|rb|ribu|m|jt|juta)?\s+\S+/.test(clean);
-    if (!hasAmount) {
+    // Smart tokenize — tidak perlu format kaku
+    const { amount, note } = tokenizeInput(text);
+    
+    // Validasi: harus ada minimal note atau amount
+    const hasContent = note?.length > 0 || amount;
+    if (!hasContent) {
       setHasTriedOnce(true);
-      setInputError(true); // permanent hingga berhasil
+      setInputError(true);
+      inputRef.current?.focus();
+      return;
+    }
+    // Jika ada note tapi tidak ada amount → error
+    if (!amount && note) {
+      setHasTriedOnce(true);
+      setInputError(true);
       inputRef.current?.focus();
       return;
     }
@@ -192,6 +201,7 @@ const QuickCommandBar = memo(function QuickCommandBar({
     setSelDate(TODAY());
     setShowCal(false);
     setSelCategory(null);
+    setSuggestions([]);
     setIsOpen(false);
   }, [inputText, selCategory, selDate, isSmartLoading, onProcessTransaction]);
 
@@ -242,7 +252,7 @@ const QuickCommandBar = memo(function QuickCommandBar({
       </AnimatePresence>
 
       {/* Container */}
-      <div className="fixed bottom-[82px] right-4 z-50" style={{ maxWidth: "calc(512px - 2rem)" }}>
+      <div className="fixed right-4 z-50" style={{ bottom: "calc(82px + env(safe-area-inset-bottom, 0px))", maxWidth: "calc(512px - 2rem)" }}>
         <AnimatePresence mode="wait" initial={false}>
 
           {/* FAB */}
@@ -462,6 +472,38 @@ const QuickCommandBar = memo(function QuickCommandBar({
                 onChange={e => { if (e.target.files?.[0]) { /* handle foto dari QCB jika perlu */ } e.target.value=""; }}
                 className="hidden" />
 
+              {/* Autocomplete Chips — suggestion bar di atas input */}
+              {suggestions.length > 0 && (
+                <div className="px-4 pt-2 pb-1 flex gap-2 overflow-x-auto no-scrollbar">
+                  {suggestions.map((s, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => {
+                        // Fill input dengan phrase + auto-submit
+                        const { amount } = tokenizeInput(inputText);
+                        const filled = amount ? `${amount} ${s.phrase}` : s.phrase;
+                        setInputText(filled);
+                        setSelCategory(s.categoryId ? { id: s.categoryId, name: s.categoryName } : null);
+                        setSuggestions([]);
+                        // Auto submit jika amount sudah ada
+                        if (amount) {
+                          setTimeout(() => inputRef.current?.form?.requestSubmit(), 50);
+                        } else {
+                          inputRef.current?.focus();
+                        }
+                      }}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 border border-white/10 rounded-xl text-white text-[10px] font-black whitespace-nowrap transition-all shrink-0"
+                    >
+                      <span>{s.phrase}</span>
+                      {s.categoryName && (
+                        <span className="text-blue-300 opacity-70">· {s.categoryName}</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+
               {/* Hint */}
               <div className="px-4 pb-3">
                 <AnimatePresence>
@@ -478,10 +520,8 @@ const QuickCommandBar = memo(function QuickCommandBar({
                   )}
                 </AnimatePresence>
                 <p className="text-[9px] text-white/20 font-bold">
-                  <span className="text-green-400/50">in</span> = trx masuk
-                  {" · "}
-                  <span className="text-blue-400/50">pos Kategori</span> = pilihan kategori
-                  {selDate !== TODAY() && <span className="text-amber-400/50"> · backdate: {dateLabel(selDate)}</span>}
+                  ketik bebas · <span className="text-green-400/50">in</span> = pemasukan
+                  {selDate !== TODAY() && <span className="text-amber-400/50"> · {dateLabel(selDate)}</span>}
                 </p>
               </div>
             </motion.div>
