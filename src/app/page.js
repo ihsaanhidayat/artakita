@@ -128,6 +128,7 @@ export default function Home() {
 
   // ── Auth ──────────────────────────────────────────────────────────────────
   const auth = useAuth();
+  const { sessionWarning, extendSession } = auth;
 
   // ── UI State ──────────────────────────────────────────────────────────────
   const [mounted, setMounted]       = useState(false);
@@ -645,6 +646,18 @@ export default function Home() {
   const appClass = `min-h-screen transition-colors duration-300 ${isDarkMode ? "dark bg-[#0a0f1c]" : "bg-gray-50"}`;
 
   // ── Render guards ─────────────────────────────────────────────────────────
+  // Loading — saat init session, jangan tampilkan login screen
+  if (auth.isAuthLoading && !auth.session) {
+    return (
+      <div className={appClass}>
+        <main className="w-full max-w-lg mx-auto min-h-screen flex flex-col items-center justify-center gap-4">
+          <h1 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">ArtaKita.</h1>
+          <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+        </main>
+      </div>
+    );
+  }
+
   if (!auth.session) return <div className={appClass}><LoginScreen auth={auth} /></div>;
 
   // Tunggu role check selesai
