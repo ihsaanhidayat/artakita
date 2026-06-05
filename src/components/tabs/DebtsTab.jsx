@@ -34,7 +34,7 @@ const DebtChart = memo(function DebtChart({ debts, balance }) {
         {bars.map((bar, i) => {
           const pct = Math.max((bar.value / maxVal) * 100, 2);
           return (
-            <div key={i} className="flex-1 flex flex-col items-center gap-1 h-full justify-end">
+            <div key={i} className="flex-1 flex flex-col items-center gap-2 h-full justify-end">
               <span className="text-[8px] font-black text-gray-400">{fmtShort(bar.value)}</span>
               <div className="w-full flex items-end" style={{ height: "72px" }}>
                 <motion.div
@@ -150,6 +150,7 @@ const DebtCard = memo(function DebtCard({
   };
 
   const saveEdit = async () => {
+    try {
     const newInitial = Math.abs(parseFlexibleNumber(editData.initial_amount));
     if (newInitial <= 0) return;
     if (!editData.person_name.trim()) return;
@@ -168,6 +169,7 @@ const DebtCard = memo(function DebtCard({
   };
 
   const handlePay = async () => {
+    try {
     const amount = parseFlexibleNumber(payAmount);
     setPayError("");
     if (amount <= 0)                             { setPayError(DEBT.EXCEED_ZERO); return; }
@@ -207,7 +209,7 @@ const DebtCard = memo(function DebtCard({
           </span>
           {/* Badge lunas */}
           {isLunas && (
-            <span className="flex items-center gap-1 text-[8px] font-black text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full uppercase tracking-widest shrink-0">
+            <span className="flex items-center gap-2 text-[8px] font-black text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full uppercase tracking-widest shrink-0">
               <CheckCircle2 size={8} /> {DEBT.PAID_BADGE}
             </span>
           )}
@@ -707,7 +709,7 @@ const DebtsTabComponent = memo(function DebtsTab({ activeWallet, balance }) {
       {/* Tab + Sort header */}
       <div className="flex items-center gap-2 mb-3 flex-none">
         {/* Tab pills */}
-        <div className="flex flex-1 bg-gray-100 dark:bg-[#121827] p-1 rounded-[14px] border border-gray-200 dark:border-gray-800/60 shadow-inner">
+        <div className="flex flex-1 bg-gray-100 dark:bg-[#121827] p-2 rounded-[14px] border border-gray-200 dark:border-gray-800/60 shadow-inner">
           {[
             { key: "debt",       label: DEBT.TAB_DEBT,    count: activeDebts.length },
             { key: "receivable", label: DEBT.TAB_RECEIVE, count: activeReceive.length },
@@ -716,7 +718,7 @@ const DebtsTabComponent = memo(function DebtsTab({ activeWallet, balance }) {
             <button
               key={key}
               onClick={() => { setActiveTab(key); setExpandedId(null); }}
-              className={`flex-1 flex items-center justify-center gap-1 text-[8px] font-black uppercase tracking-widest py-2 rounded-xl transition-all duration-200 ${
+              className={`flex-1 flex items-center justify-center gap-2 text-[8px] font-black uppercase tracking-widest py-2 rounded-xl transition-all duration-200 ${
                 activeTab === key
                   ? "bg-white dark:bg-blue-600 text-blue-600 dark:text-white shadow-sm"
                   : "text-gray-400"
@@ -724,7 +726,7 @@ const DebtsTabComponent = memo(function DebtsTab({ activeWallet, balance }) {
             >
               {label}
               {count > 0 && (
-                <span className={`text-[7px] font-black px-1 py-0.5 rounded-full ${
+                <span className={`text-[9px] font-black px-1 py-0.5 rounded-full ${
                   activeTab === key ? "bg-blue-100 dark:bg-white/20 text-blue-600 dark:text-white" : "bg-gray-200 dark:bg-gray-700 text-gray-500"
                 }`}>
                   {count}

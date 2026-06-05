@@ -457,7 +457,7 @@ const RecurringTabComponent = memo(function RecurringTab({ activeWallet, onNotif
                 </div>
 
                 {/* Tipe */}
-                <div className="flex bg-gray-100 dark:bg-gray-800/60 p-1 rounded-2xl">
+                <div className="flex bg-gray-100 dark:bg-gray-800/60 p-2 rounded-2xl">
                   {[{ val: "expense", label: "Pengeluaran", Icon: ArrowUpCircle, cls: "text-red-500 bg-white dark:bg-red-500/20 border-red-500/20" },
                     { val: "income",  label: "Pemasukan",   Icon: ArrowDownCircle, cls: "text-green-500 bg-white dark:bg-green-500/20 border-green-500/20" }
                   ].map(({ val, label, Icon, cls }) => (

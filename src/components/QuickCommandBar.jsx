@@ -268,7 +268,7 @@ const QuickCommandBar = memo(function QuickCommandBar({
               animate={{ opacity: 1, y: 0,  scale: 1 }}
               exit={{ opacity: 0,  y: 6,  scale: 0.98 }}
               transition={{ duration: 0.16, ease: [0.16, 1, 0.3, 1] }}
-              className="w-[calc(100vw-2rem)] max-w-[480px] bg-[#1a1f2e] border border-white/10 rounded-3xl shadow-2xl shadow-black/40 overflow-visible"
+              className="w-[calc(100vw-2rem)] max-w-full max-w-lg bg-[#1a1f2e] border border-white/10 rounded-3xl shadow-2xl shadow-black/40 overflow-visible"
               style={{ right: 0, position: "absolute", bottom: 0 }}
             >
 

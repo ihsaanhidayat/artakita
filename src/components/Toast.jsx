@@ -17,7 +17,7 @@ const Toast = function Toast({ isOpen, message, type = "error", position = "bott
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: isBottom ? 12 : -12, scale: 0.92 }}
           transition={{ type: "spring", stiffness: 400, damping: 28 }}
-          className={`fixed ${isBottom ? "bottom-[160px]" : "top-6"} left-0 right-0 z-[999] flex justify-center px-4 pointer-events-none`}
+          className={`fixed ${isBottom ? "bottom-[160px]" : "top-6"} left-0 right-0 z-[99] flex justify-center px-4 pointer-events-none`}
         >
           <div className={`flex items-center gap-2.5 px-5 py-3 rounded-full shadow-2xl backdrop-blur-xl border max-w-xs text-center ${
             type === "error"

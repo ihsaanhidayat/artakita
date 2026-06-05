@@ -27,7 +27,7 @@ const timeAgo = (isoString) => {
 
 // ── Komponen Badge Role ───────────────────────────────────────────────────────
 const RoleBadge = ({ role }) => (
-  <span className={`flex items-center gap-1 text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${
+  <span className={`flex items-center gap-2 text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${
     role === "admin"
       ? "bg-amber-500/10 border border-amber-500/20 text-amber-500"
       : "bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-500"
@@ -40,17 +40,17 @@ const RoleBadge = ({ role }) => (
 // ── Komponen Status Badge ─────────────────────────────────────────────────────
 const StatusBadge = ({ banned, mustChange }) => {
   if (banned) return (
-    <span className="flex items-center gap-1 text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-red-500/10 border border-red-500/20 text-red-500">
+    <span className="flex items-center gap-2 text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-red-500/10 border border-red-500/20 text-red-500">
       <ShieldOff size={9} /> Nonaktif
     </span>
   );
   if (mustChange) return (
-    <span className="flex items-center gap-1 text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-orange-500/10 border border-orange-500/20 text-orange-500">
+    <span className="flex items-center gap-2 text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-orange-500/10 border border-orange-500/20 text-orange-500">
       <KeyRound size={9} /> Ganti Password
     </span>
   );
   return (
-    <span className="flex items-center gap-1 text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-green-500/10 border border-green-500/20 text-green-500">
+    <span className="flex items-center gap-2 text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-green-500/10 border border-green-500/20 text-green-500">
       <ShieldCheck size={9} /> Aktif
     </span>
   );
@@ -329,7 +329,7 @@ export default function UserManagement({ onNotify }) {
                               <RoleBadge role={user.role} />
                               <StatusBadge banned={user.banned} mustChange={user.must_change_password} />
                             </div>
-                            <div className="flex items-center gap-1 text-[9px] text-gray-400">
+                            <div className="flex items-center gap-2 text-[9px] text-gray-400">
                               <Clock size={9} />
                               <span>Login: {timeAgo(user.last_sign_in_at)}</span>
                             </div>

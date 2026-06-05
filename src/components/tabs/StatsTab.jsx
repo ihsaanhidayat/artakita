@@ -297,7 +297,7 @@ const StatsTab = memo(function StatsTab({ filteredTransactions, transactions, ba
                                       setIsDirtyBudget(false);
                                     }
                                   }}
-                                  className={`p-1.5 rounded-xl transition-colors ${editingBudget?.category === cat ? "text-blue-500 bg-blue-500/10" : "text-gray-400 hover:text-blue-500 bg-white dark:bg-gray-800"}`}>
+                                  className={`p-2.5 rounded-xl transition-colors ${editingBudget?.category === cat ? "text-blue-500 bg-blue-500/10" : "text-gray-400 hover:text-blue-500 bg-white dark:bg-gray-800"}`}>
                                   <Edit3 size={12} />
                                 </button>
                               </div>

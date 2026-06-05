@@ -49,7 +49,7 @@ const PhotoViewer = function PhotoViewer({ url, isOpen, onClose, label }) {
         >
           {/* Top bar — selalu terlihat, tidak tertutup loading */}
           <div className="flex justify-between items-center px-4 py-4 shrink-0 z-10">
-            <p className="text-xs font-bold text-white/70 truncate max-w-[200px]">
+            <p className="text-xs font-bold text-white/70 truncate max-w-[60vw]">
               {label || "Foto"}
             </p>
             <button

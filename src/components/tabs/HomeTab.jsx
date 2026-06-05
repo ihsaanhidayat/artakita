@@ -149,7 +149,7 @@ const FilterBar = memo(function FilterBar({
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: 4, scale: 0.97 }}
                       transition={{ duration: 0.12 }}
-                      className="absolute right-0 top-full mt-1.5 bg-white dark:bg-[#0d1117] border border-gray-100 dark:border-gray-800 rounded-2xl shadow-2xl z-[21] py-1.5 min-w-[140px] max-h-52 overflow-y-auto no-scrollbar"
+                      className="absolute right-0 top-full mt-1.5 bg-white dark:bg-[#0d1117] border border-gray-100 dark:border-gray-800 rounded-2xl shadow-2xl z-[21] py-1.5 min-w-[120px] max-w-[35vw] max-h-52 overflow-y-auto no-scrollbar"
                     >
                       {dynamicCategories.map(cat => (
                         <button

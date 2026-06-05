@@ -106,7 +106,7 @@ const BudgetAlert = function BudgetAlert({ budgets = [], transactions = [] }) {
               {/* Close button */}
               <button
                 onClick={() => dismiss(alert.category_name)}
-                className={`p-1 rounded-lg transition-colors shrink-0 ${
+                className={`p-2 rounded-lg transition-colors shrink-0 ${
                   isOver
                     ? "text-red-400 hover:text-red-600 hover:bg-red-500/10"
                     : "text-amber-400 hover:text-amber-600 hover:bg-amber-500/10"
