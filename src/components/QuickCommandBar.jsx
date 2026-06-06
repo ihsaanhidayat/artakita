@@ -184,7 +184,7 @@ const QuickCommandBar = memo(function QuickCommandBar({
             (posPartial.length === 0))
           .slice(0, 4)
           .map((c, i) => ({
-            phrase: c.name,  // simpan nama saja
+            phrase: c.name, // simpan nama saja
             categoryId: c.id,
             categoryName: c.name,
             score: 1000,
@@ -339,7 +339,7 @@ const QuickCommandBar = memo(function QuickCommandBar({
             key="backdrop"
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             transition={{ duration: 0.1 }}
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40"
+            className="fixed inset-0 z-[199]" style={{ background: "transparent" }}
             onMouseDown={e => e.preventDefault()}
             onClick={() => {
               if (!inputText.trim()) {
@@ -357,7 +357,7 @@ const QuickCommandBar = memo(function QuickCommandBar({
       </AnimatePresence>
 
       {/* Container */}
-      <div className="fixed right-4 z-50" style={{ bottom: "calc(82px + env(safe-area-inset-bottom, 0px))", maxWidth: "calc(512px - 2rem)" }}>
+      <div className="relative z-50 flex items-center justify-center">
         <AnimatePresence mode="wait" initial={false}>
 
           {/* FAB */}
@@ -369,7 +369,7 @@ const QuickCommandBar = memo(function QuickCommandBar({
               exit={{ scale: 0.9, opacity: 0 }}
               transition={{ duration: 0.12, ease: "easeOut" }}
               onClick={() => setIsOpen(true)}
-              className="w-14 h-14 bg-blue-600 hover:bg-blue-500 active:scale-90 rounded-full shadow-2xl shadow-blue-600/40 flex items-center justify-center transition-colors"
+              className="w-12 h-12 active:scale-90 rounded-[18px] flex items-center justify-center transition-all" style={{ background: "linear-gradient(135deg, var(--a1), var(--a2))", boxShadow: "0 0 24px color-mix(in srgb, var(--a1) 30%, transparent), 0 8px 32px color-mix(in srgb, var(--a2) 20%, transparent)" }}
             >
               <TerminalSquare size={22} className="text-white" />
             </motion.button>
@@ -383,8 +383,19 @@ const QuickCommandBar = memo(function QuickCommandBar({
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 6, scale: 0.98 }}
               transition={{ duration: 0.16, ease: [0.16, 1, 0.3, 1] }}
-              className="w-[calc(100vw-2rem)] max-w-full max-w-lg bg-[#1a1f2e] border border-white/10 rounded-3xl shadow-2xl shadow-black/40 overflow-visible"
-              style={{ right: 0, position: "absolute", bottom: 0 }}
+              className="rounded-3xl overflow-visible"
+              style={{
+                position: "fixed",
+                bottom: "calc(72px + env(safe-area-inset-bottom,0px) + 8px)",
+                left: "50%",
+                transform: "translateX(-50%)",
+                width: "calc(100vw - 2rem)",
+                maxWidth: 480,
+                background: "var(--bg-2)",
+                border: "1px solid var(--border)",
+                boxShadow: "0 24px 48px rgba(0,0,0,0.5), 0 0 0 1px color-mix(in srgb,var(--a1) 15%,transparent)",
+                zIndex: 200,
+              }}
             >
 
               {/* ── Preview bar ── */}
@@ -451,7 +462,7 @@ const QuickCommandBar = memo(function QuickCommandBar({
                                 animate={{ opacity: 1, y: 0, scale: 1 }}
                                 exit={{ opacity: 0, y: 4, scale: 0.96 }}
                                 transition={{ duration: 0.12 }}
-                                className="absolute bottom-full right-0 mb-1.5 bg-[#1a1f2e] border border-white/10 rounded-2xl shadow-2xl z-[61] overflow-hidden min-w-[140px]"
+                                className="absolute bottom-full right-0 mb-1.5 ds-bg-2 border border-white/10 rounded-2xl shadow-2xl z-[61] overflow-hidden min-w-[140px]"
                               >
                                 {candidates.map((cat, ci) => {
                                   const catName = typeof cat === "string" ? cat : cat?.name;

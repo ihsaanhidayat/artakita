@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useOfflineSync } from "@/hooks/useOfflineSync";
 
@@ -34,7 +34,7 @@ export const useFinData = (walletId) => {
     try {
       const { data, error } = await supabase
         .from("transactions")
-        .select("id, wallet_id, user_id, note, amount, category, type, created_at, receipt_url, debt_id, is_recurring")
+        .select("id, wallet_id, user_id, note, amount, category, type, created_at, receipt_url, debt_id")
         .eq("wallet_id", walletId)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -63,17 +63,36 @@ export const useFinData = (walletId) => {
   }, [walletId]);
 
   // ── Realtime subscription ─────────────────────────────────────────────────
+  const fetchAllRef = useRef(fetchAll);
+  useEffect(() => { fetchAllRef.current = fetchAll; }, [fetchAll]);
+
   useEffect(() => {
     if (!walletId) return;
-    const channel = supabase
-      .channel(`trx:${walletId}`)
-      .on("postgres_changes", {
-        event: "*", schema: "public", table: "transactions",
-        filter: `wallet_id=eq.${walletId}`,
-      }, () => { fetchAll(); })
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [walletId, fetchAll]);
+    let channel = null;
+    let active = true;
+
+    // Delay singkat agar React StrictMode cleanup selesai dulu
+    const timer = setTimeout(() => {
+      if (!active) return;
+      try {
+        channel = supabase
+          .channel(`trx:${walletId}`)
+          .on("postgres_changes", {
+            event: "*", schema: "public", table: "transactions",
+            filter: `wallet_id=eq.${walletId}`,
+          }, () => { if (active) fetchAllRef.current?.(); })
+          .subscribe();
+      } catch (e) {
+        // Channel sudah ada — abaikan
+      }
+    }, 100);
+
+    return () => {
+      active = false;
+      clearTimeout(timer);
+      if (channel) supabase.removeChannel(channel).catch(() => { });
+    };
+  }, [walletId]);
 
   // ── Pagination React-side ─────────────────────────────────────────────────
   const transactions = useMemo(() =>

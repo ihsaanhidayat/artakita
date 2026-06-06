@@ -1,24 +1,38 @@
 /** @type {import('tailwindcss').Config} */
-export default {
-  darkMode: 'class',
+const config = {
+  darkMode: "class",
   content: [
-    "./src/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
     extend: {
-      keyframes: {
-        shake: {
-          "0%, 100%": { transform: "translateX(0)" },
-          "20%": { transform: "translateX(-6px)" },
-          "40%": { transform: "translateX(6px)" },
-          "60%": { transform: "translateX(-4px)" },
-          "80%": { transform: "translateX(4px)" },
-        },
+      fontFamily: {
+        sans:    ["var(--font-display)", "system-ui", "sans-serif"],
+        mono:    ["var(--font-mono)", "monospace"],
+        display: ["var(--font-display)", "sans-serif"],
+      },
+      colors: {
+        aurora: { cyan: "#22d3ee", purple: "#a855f7" },
       },
       animation: {
-        shake: "shake 0.5s ease-in-out",
+        "dot-pulse": "dot-pulse 2s ease infinite",
+        "fade-up":   "fadeUp 0.4s ease both",
+      },
+      keyframes: {
+        "dot-pulse": {
+          "0%, 100%": { opacity: "1", transform: "scale(1)" },
+          "50%":      { opacity: "0.4", transform: "scale(0.7)" },
+        },
+        fadeUp: {
+          from: { opacity: "0", transform: "translateY(8px)" },
+          to:   { opacity: "1", transform: "translateY(0)" },
+        },
       },
     },
   },
   plugins: [],
 };
+
+export default config;

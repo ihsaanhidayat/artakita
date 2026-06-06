@@ -1,41 +1,113 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&family=DM+Mono:wght@300;400&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* ── Custom utilities ───────────────────────────────────────────────────── */
-@layer utilities {
-  /* Sembunyikan scrollbar di semua browser */
-  .no-scrollbar::-webkit-scrollbar { display: none; }
-  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+/* ══════════ DESIGN TOKENS ══════════ */
+:root {
+  --bg-0: #000000; --bg-1: #0A0A0A; --bg-2: #171717; --bg-3: #111111;
+  --border: #1F2937; --border2: rgba(255,255,255,0.05);
+  --text-1: rgba(255,255,255,0.95); --text-2: rgba(255,255,255,0.38);
+  --text-3: rgba(255,255,255,0.20); --text-4: rgba(255,255,255,0.10);
+  --income: #4ade80; --expense: rgba(255,255,255,0.78);
+  --nav-bg: rgba(0,0,0,0.75); --a1: #22d3ee; --a2: #a855f7;
+  --ff-sans: 'DM Sans', sans-serif; --ff-mono: 'DM Mono', monospace;
 }
 
-/* ── Global scrollbar removal ───────────────────────────────────────────── */
-* {
-  -ms-overflow-style: none !important;
-  scrollbar-width: none !important;
-}
-*::-webkit-scrollbar {
-  display: none !important;
-  width: 0 !important;
-  height: 0 !important;
-}
-
-/* ── Prevent horizontal scroll ──────────────────────────────────────────── */
-body, main {
-  overflow-x: hidden !important;
+/* Light mode — html tidak ada class dark */
+html:not(.dark) {
+  --bg-0: #FAFAFA; --bg-1: #FFFFFF; --bg-2: #FFFFFF; --bg-3: #F9FAFB;
+  --border: #E5E7EB; --border2: #E5E7EB;
+  --text-1: rgba(0,0,0,0.92); --text-2: rgba(0,0,0,0.45);
+  --text-3: rgba(0,0,0,0.25); --text-4: rgba(0,0,0,0.10);
+  --income: #16a34a; --expense: rgba(0,0,0,0.78);
+  --nav-bg: rgba(255,255,255,0.85); --a1: #0891b2; --a2: #7c3aed;
 }
 
-/* ── Remove number input spin buttons ───────────────────────────────────── */
-input[type="number"]::-webkit-inner-spin-button,
-input[type="number"]::-webkit-outer-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-input[type="number"] {
-  -moz-appearance: textfield;
+/* ══════════ BASE ══════════ */
+html { background: var(--bg-0) !important; }
+body {
+  font-family: var(--ff-sans);
+  background: var(--bg-0) !important;
+  color: var(--text-1);
+  -webkit-font-smoothing: antialiased;
 }
 
-/* ── Safe area padding untuk notch/home indicator (iOS) ─────────────────── */
-.pb-safe {
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+/* ══════════ DS UTILITIES — !important agar override Tailwind ══════════ */
+.ds-bg-0 { background: var(--bg-0) !important; }
+.ds-bg-1 { background: var(--bg-1) !important; }
+.ds-bg-2 { background: var(--bg-2) !important; }
+.ds-bg-3 { background: var(--bg-3) !important; }
+.ds-t1   { color: var(--text-1) !important; }
+.ds-t2   { color: var(--text-2) !important; }
+.ds-t3   { color: var(--text-3) !important; }
+.ds-t4   { color: var(--text-4) !important; }
+.ds-border { border-color: var(--border) !important; }
+
+.ds-card {
+  background: var(--bg-1) !important;
+  border: 1px solid var(--border);
+  border-radius: 24px;
 }
+.ds-card-sm {
+  background: var(--bg-3) !important;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+}
+.ds-layer2 {
+  background: var(--bg-2) !important;
+  border: 1px solid var(--border2);
+  border-radius: 20px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+}
+.ds-nav {
+  background: var(--nav-bg) !important;
+  border-top: 1px solid var(--border);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+}
+.ds-aurora-text {
+  background: linear-gradient(90deg, var(--a1), var(--a2)) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+}
+.ds-aurora-bg { background: color-mix(in srgb, var(--a1) 8%, transparent) !important; }
+.ds-aurora-border-c { border-color: color-mix(in srgb, var(--a1) 25%, transparent) !important; }
+.ds-aurora-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 10px; border-radius: 100px;
+  background: color-mix(in srgb, var(--a1) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--a1) 20%, transparent);
+}
+.ds-aurora-card {
+  position: relative;
+  background: var(--bg-2) !important;
+  border-radius: 20px;
+}
+.ds-aurora-card::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 21px;
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--a1) 22%, transparent),
+    color-mix(in srgb, var(--a2) 18%, transparent));
+  z-index: -1;
+}
+
+/* ══════════ LIVE DOT ══════════ */
+@keyframes ds-pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.7)} }
+.ds-live-dot {
+  display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--a1); animation: ds-pulse 2s ease infinite;
+}
+
+/* ══════════ MISC ══════════ */
+.no-scrollbar { -ms-overflow-style:none; scrollbar-width:none; }
+.no-scrollbar::-webkit-scrollbar { display:none; }
+.ff-mono { font-family: var(--ff-mono) !important; }
+.pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
+.pt-safe { padding-top: env(safe-area-inset-top, 0px); }
+@keyframes spin { to { transform: rotate(360deg); } }

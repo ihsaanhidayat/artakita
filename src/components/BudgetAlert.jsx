@@ -3,20 +3,9 @@ import { memo, useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AlertTriangle, X } from "lucide-react";
 
-/**
- * BudgetAlert — Peringatan budget mendekati/melebihi batas
- *
- * Behavior:
- * - Muncul saat ada kategori yang >= 80% atau over budget
- * - Bisa di-close (dismiss per kategori)
- * - Muncul kembali saat ada transaksi baru ke kategori tersebut
- *   (berdasarkan jumlah transaksi di kategori itu)
- */
 const BudgetAlert = function BudgetAlert({ budgets = [], transactions = [] }) {
-  // dismissed: { [categoryName]: transactionCount saat dismiss }
   const [dismissed, setDismissed] = useState({});
 
-  // Hitung pengeluaran per kategori bulan ini
   const spentByCategory = useMemo(() => {
     const map = {};
     (transactions || []).forEach(t => {
@@ -28,7 +17,6 @@ const BudgetAlert = function BudgetAlert({ budgets = [], transactions = [] }) {
     return map;
   }, [transactions]);
 
-  // Hitung jumlah transaksi per kategori (untuk trigger re-show)
   const countByCategory = useMemo(() => {
     const map = {};
     (transactions || []).forEach(t => {
@@ -40,7 +28,6 @@ const BudgetAlert = function BudgetAlert({ budgets = [], transactions = [] }) {
     return map;
   }, [transactions]);
 
-  // Cari alert yang perlu ditampilkan
   const alerts = useMemo(() => {
     return (budgets || [])
       .filter(b => b.limit_amount > 0)
@@ -49,23 +36,14 @@ const BudgetAlert = function BudgetAlert({ budgets = [], transactions = [] }) {
         const pct   = (spent / b.limit_amount) * 100;
         const count = countByCategory[b.category_name] || 0;
         const dismissedAt = dismissed[b.category_name];
-
-        // Tampilkan jika:
-        // 1. >= 80% terpakai, DAN
-        // 2. Belum di-dismiss, ATAU sudah ada transaksi baru sejak dismiss
-        const shouldShow = pct >= 80 &&
-          (dismissedAt === undefined || count > dismissedAt);
-
+        const shouldShow = pct >= 80 && (dismissedAt === undefined || count > dismissedAt);
         return { ...b, spent, pct, shouldShow, count };
       })
       .filter(a => a.shouldShow)
-      .sort((a, b) => b.pct - a.pct); // yang paling over duluan
+      .sort((a, b) => b.pct - a.pct);
   }, [budgets, spentByCategory, countByCategory, dismissed]);
 
-  const dismiss = (categoryName) => {
-    const count = countByCategory[categoryName] || 0;
-    setDismissed(prev => ({ ...prev, [categoryName]: count }));
-  };
+  const dismiss = (cat) => setDismissed(prev => ({ ...prev, [cat]: countByCategory[cat] || 0 }));
 
   if (alerts.length === 0) return null;
 
@@ -74,6 +52,15 @@ const BudgetAlert = function BudgetAlert({ budgets = [], transactions = [] }) {
       <AnimatePresence>
         {alerts.map(alert => {
           const isOver = alert.pct >= 100;
+          // Design system: pakai aurora tones, bukan merah keras
+          const accentColor = isOver ? "var(--a2)" : "var(--a1)";
+          const bgColor = isOver
+            ? "color-mix(in srgb, var(--a2) 8%, transparent)"
+            : "color-mix(in srgb, var(--a1) 7%, transparent)";
+          const borderColor = isOver
+            ? "color-mix(in srgb, var(--a2) 22%, transparent)"
+            : "color-mix(in srgb, var(--a1) 20%, transparent)";
+
           return (
             <motion.div
               key={alert.category_name}
@@ -81,38 +68,26 @@ const BudgetAlert = function BudgetAlert({ budgets = [], transactions = [] }) {
               animate={{ opacity: 1, y: 0,  scale: 1 }}
               exit={{ opacity: 0, y: -4, scale: 0.97 }}
               transition={{ duration: 0.18, ease: "easeOut" }}
-              className={`flex items-start gap-3 px-3 py-2.5 rounded-2xl border ${
-                isOver
-                  ? "bg-red-500/10 border-red-500/25"
-                  : "bg-amber-500/10 border-amber-500/25"
-              }`}
+              className="flex items-start gap-3 px-3 py-2.5 rounded-2xl"
+              style={{ background: bgColor, border: `1px solid ${borderColor}` }}
             >
-              <AlertTriangle
-                size={14}
-                className={`shrink-0 mt-0.5 ${isOver ? "text-red-500" : "text-amber-500"}`}
-              />
+              <AlertTriangle size={13} className="shrink-0 mt-0.5" style={{ color: accentColor }} />
               <div className="flex-1 min-w-0">
-                <p className={`text-[10px] font-black ${isOver ? "text-red-500" : "text-amber-500"}`}>
-                  {isOver ? "Anggaran Terlampaui!" : "Anggaran Hampir Habis"}
+                <p className="text-[10px] font-black" style={{ color: accentColor }}>
+                  {isOver ? "Anggaran Terlampaui" : "Anggaran Hampir Habis"}
                 </p>
-                <p className="text-[9px] text-gray-500 dark:text-gray-400 mt-0.5">
-                  <span className="font-bold text-gray-700 dark:text-gray-300">{alert.category_name}</span>
-                  {" · "}
-                  {alert.pct.toFixed(0)}% terpakai
-                  {" · "}
-                  Rp {Number(alert.spent).toLocaleString("id-ID")} / Rp {Number(alert.limit_amount).toLocaleString("id-ID")}
+                <p className="text-[9px] mt-0.5 ds-t3">
+                  <span className="ds-t2 font-bold">{alert.category_name}</span>
+                  {" · "}{alert.pct.toFixed(0)}% terpakai
+                  {" · "}Rp {Number(alert.spent).toLocaleString("id-ID")} / Rp {Number(alert.limit_amount).toLocaleString("id-ID")}
                 </p>
               </div>
-              {/* Close button */}
               <button
                 onClick={() => dismiss(alert.category_name)}
-                className={`p-2 rounded-lg transition-colors shrink-0 ${
-                  isOver
-                    ? "text-red-400 hover:text-red-600 hover:bg-red-500/10"
-                    : "text-amber-400 hover:text-amber-600 hover:bg-amber-500/10"
-                }`}
+                className="p-1.5 rounded-xl transition-colors shrink-0 ds-t3 hover:ds-t2"
+                style={{ background: "var(--bg-3)", border: "1px solid var(--border)" }}
               >
-                <X size={13} />
+                <X size={12} />
               </button>
             </motion.div>
           );
@@ -120,6 +95,6 @@ const BudgetAlert = function BudgetAlert({ budgets = [], transactions = [] }) {
       </AnimatePresence>
     </div>
   );
-}
+};
 
 export default memo(BudgetAlert);
