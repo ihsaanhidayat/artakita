@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Moon, Sun, Wallet, ArrowDownCircle, ArrowUpCircle,
   Edit3, Trash2, Eye, Loader2,
-  Search, SlidersHorizontal, X, Camera, Image
+  Search, SlidersHorizontal, X, Camera, Image, Calendar,
 } from "lucide-react";
 import PhotoViewer from "@/components/PhotoViewer";
 import BudgetAlert from "@/components/BudgetAlert";
@@ -215,6 +215,13 @@ const HomeTabComponent = memo(function HomeTab({
   const [viewerLabel, setViewerLabel] = useState("");
   const [photoMap, setPhotoMap] = useState({});
   const [viewerLoading, setViewerLoading] = useState(false);
+  const [inlineDeleteId, setInlineDeleteId] = useState(null);
+
+  // --- STATE BARU UNTUK INLINE EDIT ---
+  const [inlineEditId, setInlineEditId] = useState(null);
+  const [editData, setEditData] = useState({ note: "", amount: "", category: "" });
+
+  const [customCatMode, setCustomCatMode] = useState(false);
 
   const handlePhotoAdded = useCallback((id, url) => setPhotoMap(p => ({ ...p, [id]: url })), []);
   const openViewer = useCallback(async (raw, label) => {
@@ -343,87 +350,269 @@ const HomeTabComponent = memo(function HomeTab({
               <motion.div key={trx.id} layout
                 initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.97 }} transition={{ duration: 0.15 }}
-                className="flex items-center justify-between px-4 py-3.5 rounded-[20px] mb-2 transition-colors"
+                // CATATAN: 'flex items-center justify-between' dipindah ke dalam agar mode edit bisa muat
+                className="relative overflow-hidden px-4 py-3.5 rounded-[20px] mb-2 transition-colors"
                 style={{
-                  background: "rgba(255, 255, 255, 0.02)", // Efek kaca tipis (Glassmorphism base)
-                  border: `1px solid ${trx._pending ? "color-mix(in srgb,#f59e0b 25%,transparent)" : "rgba(255, 255, 255, 0.05)"}`, // Border putih super redup
+                  background: "rgba(255, 255, 255, 0.02)",
+                  border: `1px solid ${trx._pending ? "color-mix(in srgb,#f59e0b 25%,transparent)" : "rgba(255, 255, 255, 0.05)"}`,
                   borderLeft: trx.type === "income"
                     ? `2px solid color-mix(in srgb, var(--income) 60%, transparent)`
-                    : `2px solid color-mix(in srgb, #fb7185 60%, transparent)`, // Garis tepi Aurora (Hijau/Merah)
+                    : `2px solid color-mix(in srgb, #fb7185 60%, transparent)`,
                 }}
               >
-                <div className="flex items-center gap-3 min-w-0">
-                  {hasPhoto ? (
-                    <button onClick={() => openViewer(photoUrl, trx.note)}
-                      className="w-11 h-11 rounded-2xl shrink-0 flex items-center justify-center active:scale-90 transition-all"
-                      style={{ background: "color-mix(in srgb,#a855f7 10%,transparent)", border: "1px solid color-mix(in srgb,#a855f7 20%,transparent)", color: "#a855f7" }}>
-                      {viewerLoading && viewerLabel === trx.note ? <Loader2 size={15} className="animate-spin" /> : <Eye size={16} />}
-                    </button>
+
+                {/* ── BUNGKUS DENGAN ANIMATE PRESENCE UNTUK EFEK MORPHING (EDIT vs NORMAL) ── */}
+                <AnimatePresence mode="wait">
+                  {inlineEditId === trx.id ? (
+
+                    /* ==========================================
+                       MODE EDIT: SUPER COMPACT GLASS FORM 
+                       ========================================== */
+                    <motion.div
+                      key="edit-mode"
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      transition={{ duration: 0.15 }}
+                      className="w-full flex flex-col gap-2 py-1"
+                    >
+                      {/* BARIS 1: NAMA ITEM | NOMINAL CERDAS */}
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={editData.note}
+                          onChange={e => setEditData({ ...editData, note: e.target.value })}
+                          className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-[12px] font-bold text-white outline-none focus:border-blue-500/50 transition-all placeholder-white/30"
+                          placeholder="Nama Item..."
+                        />
+                        <div className="relative w-[110px] shrink-0">
+                          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] font-black text-white/40">Rp</span>
+                          <input
+                            type="text" // Menggunakan text agar bisa menampung huruf 'k' atau 'jt'
+                            value={editData.amount}
+                            onChange={e => setEditData({ ...editData, amount: e.target.value })}
+                            className="w-full bg-white/5 border border-white/10 rounded-xl pl-7 pr-3 py-2 text-[12px] font-bold text-white outline-none focus:border-blue-500/50 transition-all ff-mono"
+                            placeholder="30k / 3jt"
+                          />
+                        </div>
+                      </div>
+
+                      {/* BARIS 2: DATE ICON | KATEGORI AKTIF | 2 SUGGESTION CHIPS + POS | BATAL & SIMPAN */}
+                      <div className="flex items-center gap-1.5">
+
+                        {/* 1. Date Icon Picker */}
+                        <div className="relative w-8 h-8 shrink-0 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white/50 hover:text-white transition-colors">
+                          <Calendar size={13} />
+                          <input
+                            type="date"
+                            value={editData.date}
+                            onChange={e => setEditData({ ...editData, date: e.target.value })}
+                            className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                          />
+                          {/* Titik indikator biru jika tanggalnya diganti dari aslinya */}
+                          {editData.date !== (trx.created_at?.slice(0, 10) || "") && (
+                            <div className="absolute top-1.5 right-1.5 w-1 h-1 bg-blue-400 rounded-full shadow-[0_0_5px_#60a5fa]" />
+                          )}
+                        </div>
+
+                        {/* 2. Kategori Aktif (Bisa Diketik Manual) */}
+                        <input
+                          id={`cat-input-${trx.id}`}
+                          type="text"
+                          value={editData.category}
+                          onChange={e => setEditData({ ...editData, category: e.target.value.toUpperCase() })}
+                          className="w-[65px] shrink-0 bg-blue-500/10 border border-blue-500/30 rounded-xl px-2 py-1.5 text-[9px] font-black uppercase tracking-widest text-blue-300 outline-none focus:border-blue-400 transition-all text-center"
+                          placeholder="POS"
+                        />
+
+                        {/* 3. Dua Suggestion Chips & Tombol + POS */}
+                        <div className="flex-1 flex gap-1 overflow-x-auto no-scrollbar mask-fade-right pr-2">
+                          {(dynamicCategories || ["JAJAN", "MAKAN", "BENSIN"])
+                            .filter(c => c !== editData.category) // Sembunyikan jika sedang aktif
+                            .slice(0, 2) // Ambil 2 teratas saja
+                            .map(cat => (
+                              <button
+                                key={cat}
+                                onClick={() => setEditData({ ...editData, category: cat })}
+                                className="px-2.5 py-1.5 shrink-0 rounded-xl bg-white/5 text-white/40 border border-white/10 hover:bg-white/10 text-[9px] font-black uppercase tracking-widest transition-colors"
+                              >
+                                {cat}
+                              </button>
+                            ))}
+
+                          {/* Tombol + POS (Lainnya) */}
+                          <button
+                            onClick={() => {
+                              setEditData({ ...editData, category: "" }); // Kosongkan input
+                              // Trik agar langsung fokus ke input kategori
+                              setTimeout(() => document.getElementById(`cat-input-${trx.id}`)?.focus(), 50);
+                            }}
+                            className="px-2.5 py-1.5 shrink-0 rounded-xl bg-white/5 text-white/40 border border-dashed border-white/20 hover:bg-white/10 text-[9px] font-black uppercase tracking-widest transition-colors"
+                          >
+                            + POS
+                          </button>
+                        </div>
+
+                        {/* 4. Aksi Batal & Simpan */}
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            onClick={() => { setInlineEditId(null); setCustomCatMode?.(false); }}
+                            className="px-2.5 py-1.5 rounded-xl bg-white/5 text-white/50 hover:bg-white/10 text-[9px] font-black uppercase tracking-widest transition-colors"
+                          >
+                            Batal
+                          </button>
+                          <button
+                            onClick={() => {
+                              // LOGIKA NOMINAL CERDAS (Ubah 'k' dan 'jt' jadi angka beneran)
+                              let finalAmount = editData.amount;
+                              if (typeof finalAmount === 'string') {
+                                let str = finalAmount.toLowerCase().trim();
+                                if (str.endsWith('k')) finalAmount = parseFloat(str) * 1000;
+                                else if (str.endsWith('jt') || str.endsWith('m')) finalAmount = parseFloat(str) * 1000000;
+                                else finalAmount = parseFloat(str.replace(/[^0-9.-]+/g, "")) || 0;
+                              }
+
+                              // Tembak Data ke Fungsi Utama
+                              onEditTransaction({
+                                ...trx,
+                                ...editData,
+                                amount: finalAmount
+                              });
+                              setInlineEditId(null);
+                            }}
+                            className="px-3 py-1.5 rounded-xl bg-blue-500/20 text-blue-400 border border-blue-500/30 hover:bg-blue-500/30 text-[9px] font-black uppercase tracking-widest transition-colors shadow-[0_0_12px_rgba(59,130,246,0.25)] active:scale-95"
+                          >
+                            Simpan
+                          </button>
+                        </div>
+
+                      </div>
+                    </motion.div>
+
                   ) : (
-                    <FotoInline trxId={trx.id} userId={session?.user?.id} category={trx.category} type={trx.type} onPhotoAdded={handlePhotoAdded} />
+
+                    /* ==========================================
+                       2. MODE NORMAL: DESAIN ASLI KARTU TRANSAKSI
+                       ========================================== */
+                    <motion.div
+                      key="normal-mode"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="flex items-center justify-between w-full"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        {hasPhoto ? (
+                          <button onClick={() => openViewer(photoUrl, trx.note)}
+                            className="w-11 h-11 rounded-2xl shrink-0 flex items-center justify-center active:scale-90 transition-all"
+                            style={{ background: "color-mix(in srgb,#a855f7 10%,transparent)", border: "1px solid color-mix(in srgb,#a855f7 20%,transparent)", color: "#a855f7" }}>
+                            {viewerLoading && viewerLabel === trx.note ? <Loader2 size={15} className="animate-spin" /> : <Eye size={16} />}
+                          </button>
+                        ) : (
+                          <FotoInline trxId={trx.id} userId={session?.user?.id} category={trx.category} type={trx.type} onPhotoAdded={handlePhotoAdded} />
+                        )}
+                        <div className="min-w-0">
+                          <p className="text-[14px] font-light truncate leading-snug" style={{ color: "rgba(255,255,255,0.92)", fontFamily: "var(--ff-sans)" }}>
+                            {trx.note}
+                            {trx._pending && <span className="ml-1.5 text-[8px] font-black rounded-full px-1.5 py-0.5 uppercase" style={{ color: "#f59e0b", background: "color-mix(in srgb,#f59e0b 10%,transparent)" }}>Menunggu</span>}
+                          </p>
+                          <div className="flex items-center gap-1.5 mt-1">
+                            {(() => {
+                              const colors = [
+                                { c: "#38bdf8", bg: "rgba(56, 189, 248, 0.1)" },
+                                { c: "#a78bfa", bg: "rgba(167, 139, 250, 0.1)" },
+                                { c: "#fbbf24", bg: "rgba(251, 191, 36, 0.1)" },
+                                { c: "#34d399", bg: "rgba(52, 211, 153, 0.1)" },
+                                { c: "#f472b6", bg: "rgba(244, 114, 182, 0.1)" }
+                              ];
+                              const charCode = trx.category ? trx.category.charCodeAt(0) : 0;
+                              const theme = colors[charCode % colors.length];
+
+                              return (
+                                <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full"
+                                  style={{
+                                    background: theme.bg,
+                                    border: `1px solid color-mix(in srgb, ${theme.c} 25%, transparent)`,
+                                    color: theme.c,
+                                    textShadow: `0 0 8px color-mix(in srgb, ${theme.c} 40%, transparent)`
+                                  }}>
+                                  {trx.category}
+                                </span>
+                              );
+                            })()}
+                            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)' }}>{formatDateTime(trx.created_at)}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col items-end gap-2 shrink-0 ml-2">
+                        <p className="text-[14px] font-bold tracking-tight ff-mono"
+                          style={{
+                            color: trx.type === "income" ? "var(--income)" : "#fb7185",
+                            textShadow: trx.type === "income"
+                              ? "0 0 12px color-mix(in srgb, var(--income) 40%, transparent)"
+                              : "0 0 12px rgba(251, 113, 133, 0.4)"
+                          }}>
+                          {trx.type === "income" ? "+" : "−"} Rp {Number(trx.amount).toLocaleString("id-ID")}
+                        </p>
+                        {!trx._pending && (
+                          <div className="flex gap-1.5">
+                            {[
+                              [() => {
+                                setInlineEditId(trx.id);
+                                // Tambahkan date dari created_at, ambil 10 digit pertama (YYYY-MM-DD)
+                                setEditData({
+                                  note: trx.note,
+                                  amount: trx.amount,
+                                  category: trx.category,
+                                  date: trx.created_at ? trx.created_at.slice(0, 10) : ""
+                                });
+                                setInlineDeleteId(null);
+                                setCustomCatMode(false); // Reset mode kategori
+                              }, <Edit3 size={12} />, "hover:text-blue-400"],
+                              [() => {
+                                setInlineDeleteId(trx.id);
+                                setInlineEditId(null);
+                              }, <Trash2 size={12} />, "hover:text-rose-400"],
+                            ].map(([onClick, icon, hoverCls], i) => (
+                              <button key={i} onClick={onClick}
+                                className={`w-7 h-7 rounded-xl flex items-center justify-center ds-t3 ${hoverCls} active:scale-90 transition-all`}
+                                style={{ background: "var(--bg-3)", border: "1px solid var(--border)" }}>
+                                {icon}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
+
                   )}
-                  <div className="min-w-0">
-                    <p className="text-[14px] font-light truncate leading-snug" style={{ color: "rgba(255,255,255,0.92)", fontFamily: "var(--ff-sans)" }}>
-                      {trx.note}
-                      {trx._pending && <span className="ml-1.5 text-[8px] font-black rounded-full px-1.5 py-0.5 uppercase" style={{ color: "#f59e0b", background: "color-mix(in srgb,#f59e0b 10%,transparent)" }}>Menunggu</span>}
-                    </p>
-                    <div className="flex items-center gap-1.5 mt-1">
-                      {/* ── DYNAMIC AURORA CATEGORY BADGE ── */}
-                      {(() => {
-                        const colors = [
-                          { c: "#38bdf8", bg: "rgba(56, 189, 248, 0.1)" }, // Sky Blue
-                          { c: "#a78bfa", bg: "rgba(167, 139, 250, 0.1)" }, // Violet/Purple
-                          { c: "#fbbf24", bg: "rgba(251, 191, 36, 0.1)" },  // Amber/Yellow
-                          { c: "#34d399", bg: "rgba(52, 211, 153, 0.1)" },  // Emerald Green
-                          { c: "#f472b6", bg: "rgba(244, 114, 182, 0.1)" }  // Pink/Rose
-                        ];
-                        // Ambil warna unik berdasarkan huruf pertama dari nama kategori
-                        const charCode = trx.category ? trx.category.charCodeAt(0) : 0;
-                        const theme = colors[charCode % colors.length];
+                </AnimatePresence>
 
-                        return (
-                          <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full"
-                            style={{
-                              background: theme.bg,
-                              border: `1px solid color-mix(in srgb, ${theme.c} 25%, transparent)`,
-                              color: theme.c,
-                              textShadow: `0 0 8px color-mix(in srgb, ${theme.c} 40%, transparent)` // Efek Glow Tipis
-                            }}>
-                            {trx.category}
-                          </span>
-                        );
-                      })()}
-
-                      <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)' }}>{formatDateTime(trx.created_at)}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex flex-col items-end gap-2 shrink-0 ml-2">
-                  <p className="text-[14px] font-bold tracking-tight ff-mono" // Dibuat font-bold agar lebih menonjol
-                    style={{
-                      color: trx.type === "income" ? "var(--income)" : "#fb7185",
-                      textShadow: trx.type === "income"
-                        ? "0 0 12px color-mix(in srgb, var(--income) 40%, transparent)"
-                        : "0 0 12px rgba(251, 113, 133, 0.4)" // Efek cahaya (Glow) Aurora
-                    }}>
-                    {trx.type === "income" ? "+" : "−"} Rp {Number(trx.amount).toLocaleString("id-ID")}
-                  </p>
-                  {!trx._pending && (
-                    <div className="flex gap-1.5">
-                      {[
-                        [() => onEditTransaction(trx), <Edit3 size={12} />, "hover:text-blue-400"],
-                        [() => onDeleteTransaction(trx), <Trash2 size={12} />, "hover:text-white/60"],
-                      ].map(([onClick, icon, hoverCls], i) => (
-                        <button key={i} onClick={onClick}
-                          className={`w-7 h-7 rounded-xl flex items-center justify-center ds-t3 ${hoverCls} active:scale-90 transition-all`}
-                          style={{ background: "var(--bg-3)", border: "1px solid var(--border)" }}>
-                          {icon}
+                {/* ==========================================
+                   3. MODE HAPUS: SLIDING OVERLAY MERAH
+                   ========================================== */}
+                <AnimatePresence>
+                  {inlineDeleteId === trx.id && (
+                    <motion.div initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} transition={{ type: "spring", damping: 25, stiffness: 280 }}
+                      className="absolute inset-0 z-20 flex items-center justify-between px-5 backdrop-blur-md"
+                      style={{ background: "rgba(225, 29, 72, 0.85)", borderLeft: "2px solid #fb7185" }}>
+                      <div className="flex items-center gap-2">
+                        <Trash2 size={15} className="text-white" />
+                        <span className="text-[11px] font-black text-white uppercase tracking-widest">Hapus Permanen?</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <button onClick={() => setInlineDeleteId(null)} className="px-3 py-1.5 rounded-[10px] bg-white/20 text-white text-[9px] font-black uppercase tracking-widest hover:bg-white/30 transition-colors">
+                          Batal
                         </button>
-                      ))}
-                    </div>
+                        <button onClick={() => { onDeleteTransaction(trx); setInlineDeleteId(null); }} className="px-3 py-1.5 rounded-[10px] bg-white text-rose-600 text-[9px] font-black uppercase tracking-widest shadow-[0_0_15px_rgba(255,255,255,0.4)] active:scale-95 transition-all">
+                          Hapus
+                        </button>
+                      </div>
+                    </motion.div>
                   )}
-                </div>
+                </AnimatePresence>
+
               </motion.div>
             );
           })}
