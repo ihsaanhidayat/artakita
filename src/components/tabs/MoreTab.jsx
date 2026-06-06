@@ -418,7 +418,7 @@ const MoreTab = memo(function MoreTab({
  <item.Icon size={18} className={item.color} />
  </div>
  <div className="flex-1 min-w-0">
- <p className="text-sm font-bold ds-t1">{item.label}</p>
+ <p className="text-sm font-light" style={{ color:"var(--text-1)" }}>{item.label}</p>
  <p className="text-[10px] ds-t3 mt-0.5">{item.sub}</p>
  </div>
  {/* Toggle pill ID / EN */}
@@ -451,7 +451,7 @@ const MoreTab = memo(function MoreTab({
  <item.Icon size={18} className={item.color} />
  </div>
  <div className="flex-1 min-w-0">
- <p className="text-sm font-bold ds-t1">{item.label}</p>
+ <p className="text-sm font-light" style={{ color:"var(--text-1)" }}>{item.label}</p>
  <p className="text-[10px] ds-t3 mt-0.5">{item.loading ? (isID ? "Memproses..." : "Processing...") : item.sub}</p>
  </div>
  <ChevronRight size={16} className="ds-t3 shrink-0" />

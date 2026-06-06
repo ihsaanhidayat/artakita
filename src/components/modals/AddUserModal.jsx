@@ -32,7 +32,7 @@ const AddUserModal = memo(function AddUserModal({ isOpen, data, setData, onSubmi
          onClick={isDirty ? onSubmit : onClose}
          disabled={data?.isLoading}
          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-black text-[10px] uppercase tracking-widest ml-3 shrink-0 transition-all disabled:opacity-40 ${
-          isDirty ? "bg-violet-600 text-white" : "ds-bg-3text-gray-400"
+          isDirty ? "bg-violet-600 text-white" : "ds-bg-3 text-gray-400"
          }`}
         >
          {data?.isLoading ? <Loader2 size={11} className="animate-spin" /> : <Save size={11} />}

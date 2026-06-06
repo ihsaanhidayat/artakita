@@ -92,12 +92,12 @@ const StatsTab = memo(function StatsTab({ filteredTransactions, transactions, ba
  key="stats"
  initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
  transition={{ duration: 0.12 }}
- className="pt-8 px-3 pb-32 h-[100dvh] overflow-y-auto no-scrollbar w-full"
+ className="pt-8 px-3 pb-32 h-[100dvh] overflow-y-auto no-scrollbar w-full" style={{ background: "var(--bg-0)" }}
  >
- <h2 className="text-xl font-black ds-t1 tracking-tight mb-5">{STATS.TITLE}</h2>
+ <h2 className="text-[22px] font-light tracking-[-1px] mb-5" style={{ color: "var(--text-1)" }}>{STATS.TITLE}</h2>
 
  {/* Sub-tab */}
- <div className="flex ds-bg-3 p-1 rounded-[14px] mb-5 border ds-border shadow-inner">
+ <div className="flex p-1 rounded-[14px] mb-5" style={{ background: "var(--bg-3)", border: "1px solid var(--border)" }}>
  {[
  { key: "pengeluaran", label: STATS.TAB_EXPENSE },
  { key: "alokasi", label: STATS.TAB_ALLOCATION },
@@ -119,7 +119,7 @@ const StatsTab = memo(function StatsTab({ filteredTransactions, transactions, ba
  transition={{ duration: 0.15 }} className="space-y-4"
  >
  {/* Hero card — grade + pengeluaran + pemasukan dalam 1 card */}
- <div className="ds-bg-1 border ds-border rounded-[28px] p-5 shadow-sm overflow-hidden relative">
+ <div className="rounded-[28px] p-5 overflow-hidden relative" style={{ background: "var(--bg-1)", border: "1px solid var(--border)" }}>
  {/* Accent bar */}
  <div className={`absolute top-0 left-0 right-0 h-0.5 ${health.bar} opacity-60`} />
 
@@ -141,7 +141,7 @@ const StatsTab = memo(function StatsTab({ filteredTransactions, transactions, ba
  <span>Pengeluaran vs Pemasukan</span>
  <span className={health.color}>{Math.min(100, (totalExpense / totalIncome * 100)).toFixed(0)}%</span>
  </div>
- <div className="w-full h-2 ds-bg-3 rounded-full overflow-hidden">
+ <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: "var(--bg-3)" }}>
  <motion.div
  initial={{ width: 0 }}
  animate={{ width: `${Math.min(100, (totalExpense / totalIncome) * 100)}%` }}
@@ -166,7 +166,7 @@ const StatsTab = memo(function StatsTab({ filteredTransactions, transactions, ba
  </div>
 
  {/* Rincian Kategori — collapsed default */}
- <div className="ds-bg-1 rounded-[24px] border ds-border shadow-sm overflow-hidden">
+ <div className="rounded-[24px] overflow-hidden mb-3" style={{ background: "var(--bg-1)", border: "1px solid var(--border)" }}>
  <button onClick={() => setCatExpanded(!catExpanded)}
  className="w-full flex items-center justify-between p-5"
  >
@@ -195,7 +195,7 @@ const StatsTab = memo(function StatsTab({ filteredTransactions, transactions, ba
  </div>
  <p className="font-black text-sm ds-t1">Rp {item.value.toLocaleString("id-ID")}</p>
  </div>
- <div className="w-full h-2 ds-bg-3 rounded-full overflow-hidden">
+ <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: "var(--bg-3)" }}>
  <motion.div
  initial={{ width: 0 }}
  animate={{ width: `${pct}%` }}
@@ -244,7 +244,7 @@ const StatsTab = memo(function StatsTab({ filteredTransactions, transactions, ba
  </div>
 
  {/* Alokasi per kategori — collapsed default */}
- <div className="ds-bg-1 rounded-[24px] border ds-border shadow-sm overflow-hidden">
+ <div className="rounded-[24px] overflow-hidden mb-3" style={{ background: "var(--bg-1)", border: "1px solid var(--border)" }}>
  <button onClick={() => setAllocExpanded(!allocExpanded)}
  className="w-full flex items-center justify-between p-5"
  >

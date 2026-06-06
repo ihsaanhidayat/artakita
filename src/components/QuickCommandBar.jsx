@@ -379,16 +379,17 @@ const QuickCommandBar = memo(function QuickCommandBar({
           {isOpen && (
             <motion.div
               key="panel"
-              initial={{ opacity: 0, y: 10, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 6, scale: 0.98 }}
+              /* 1. Tambahkan x: "-50%" di sini agar Framer Motion yang menguncinya di tengah */
+              initial={{ opacity: 0, y: 10, scale: 0.98, x: "-50%" }}
+              animate={{ opacity: 1, y: 0, scale: 1, x: "-50%" }}
+              exit={{ opacity: 0, y: 6, scale: 0.98, x: "-50%" }}
               transition={{ duration: 0.16, ease: [0.16, 1, 0.3, 1] }}
               className="rounded-3xl overflow-visible"
               style={{
                 position: "fixed",
                 bottom: "calc(72px + env(safe-area-inset-bottom,0px) + 8px)",
                 left: "50%",
-                transform: "translateX(-50%)",
+                /* transform: "translateX(-50%)" dihapus karena sudah diurus motion */
                 width: "calc(100vw - 2rem)",
                 maxWidth: 480,
                 background: "var(--bg-2)",
@@ -411,8 +412,8 @@ const QuickCommandBar = memo(function QuickCommandBar({
                     <div className="flex items-center gap-2 px-4 pt-3 pb-1 flex-wrap">
                       {/* Tipe */}
                       <span className={`text-[9px] font-black px-2 py-1 rounded-lg uppercase tracking-widest ${preview.type === "income"
-                          ? "bg-green-500/15 text-green-400"
-                          : "bg-red-500/15 text-red-400"
+                        ? "bg-green-500/15 text-green-400"
+                        : "bg-red-500/15 text-red-400"
                         }`}>
                         {preview.type === "income" ? "Masuk" : "Keluar"}
                       </span>
@@ -437,10 +438,10 @@ const QuickCommandBar = memo(function QuickCommandBar({
                           disabled={!canClick}
                           onClick={() => canClick && setShowCandList(p => !p)}
                           className={`flex items-center gap-1 text-[9px] font-black px-2.5 py-1 rounded-lg uppercase tracking-widest transition-all ${preview.isManual || isExact
-                              ? "bg-blue-500/20 text-blue-400 cursor-default"
-                              : canClick
-                                ? "bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 active:scale-95"
-                                : "bg-white/10 text-white/40 cursor-default"
+                            ? "bg-blue-500/20 text-blue-400 cursor-default"
+                            : canClick
+                              ? "bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 active:scale-95"
+                              : "bg-white/10 text-white/40 cursor-default"
                             }`}
                         >
                           {preview.isManual ? "📌" : candidates.length > 0 ? "🤖" : ""}
@@ -471,8 +472,8 @@ const QuickCommandBar = memo(function QuickCommandBar({
                                       key={`cat-${ci}-${catName}`}
                                       onClick={() => { setSelCategory(catName); setShowCandList(false); }}
                                       className={`w-full text-left px-4 py-2.5 text-xs font-bold transition-colors flex items-center justify-between gap-3 ${shownCat === catName
-                                          ? "text-blue-400 bg-blue-500/10"
-                                          : "text-white/70 hover:bg-white/5"
+                                        ? "text-blue-400 bg-blue-500/10"
+                                        : "text-white/70 hover:bg-white/5"
                                         }`}
                                     >
                                       {catName}

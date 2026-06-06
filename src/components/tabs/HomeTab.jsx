@@ -359,7 +359,7 @@ const HomeTabComponent = memo(function HomeTab({
           <FotoInline trxId={trx.id} userId={session?.user?.id} category={trx.category} type={trx.type} onPhotoAdded={handlePhotoAdded} />
          )}
          <div className="min-w-0">
-          <p className="text-[14px] font-light ds-t1 truncate leading-snug" style={{ fontFamily: "var(--ff-sans)" }}>
+          <p className="text-[14px] font-light truncate leading-snug" style={{ color: "rgba(255,255,255,0.92)" }} style={{ fontFamily: "var(--ff-sans)" }}>
            {trx.note}
            {trx._pending && <span className="ml-1.5 text-[8px] font-black rounded-full px-1.5 py-0.5 uppercase" style={{ color: "#f59e0b", background: "color-mix(in srgb,#f59e0b 10%,transparent)" }}>Menunggu</span>}
           </p>
@@ -368,15 +368,15 @@ const HomeTabComponent = memo(function HomeTab({
             style={{ background: "var(--bg-3)", border: "1px solid var(--border)" }}>
             {trx.category}
            </span>
-           <span className="text-[9px] ds-t4">{formatDateTime(trx.created_at)}</span>
+           <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)' }}>{formatDateTime(trx.created_at)}</span>
           </div>
          </div>
         </div>
 
         <div className="flex flex-col items-end gap-2 shrink-0 ml-2">
          <p className="text-[14px] font-light tracking-tight ff-mono"
-          style={{ color: trx.type === "income" ? "var(--income)" : "var(--expense)" }}>
-          {trx.type === "income" ? "+" : "−"}Rp {Number(trx.amount).toLocaleString("id-ID")}
+          style={{ color: trx.type === "income" ? "var(--income)" : "rgba(255,255,255,0.92)" }}>
+          {trx.type === "income" ? "+" : "−"} Rp {Number(trx.amount).toLocaleString("id-ID")}
          </p>
          {!trx._pending && (
           <div className="flex gap-1.5">

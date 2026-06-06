@@ -129,7 +129,7 @@ const EditTrxModal = memo(function EditTrxModal({
          onClick={handleSubmit}
          disabled={isSubmitting}
          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-black text-[10px] uppercase tracking-widest ml-3 shrink-0 transition-all disabled:opacity-40 ${
-          isDirty ? "bg-blue-600 text-white" : "ds-bg-3text-gray-400"
+          isDirty ? "bg-blue-600 text-white" : "ds-bg-3 text-gray-400"
          }`}
         >
          <Save size={11} />

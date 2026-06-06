@@ -788,7 +788,7 @@ export default function Home() {
   return (
    <div className={appClass}>
     <main className="w-full max-w-lg mx-auto min-h-screen flex flex-col items-center justify-center gap-4">
-     <h1 className="text-2xl font-light ds-t1 tracking-[-1px]">ArtaKita.</h1>
+     <h1 className="text-2xl font-light tracking-[-1px]" style={{ color:"var(--text-1)" }}>ArtaKita.</h1>
      <div className="w-6 h-6 border-2 border-t-transparent rounded-full animate-spin" />
     </main>
    </div>
@@ -833,14 +833,14 @@ export default function Home() {
    return (
     <div className={appClass}>
      <main className="w-full max-w-lg mx-auto min-h-screen flex flex-col items-center justify-center p-6">
-      <div className="w-full bg-white p-8 rounded-[32px] shadow-2xl border ds-border text-center">
+      <div className="w-full p-8 rounded-[32px] text-center" style={{ background:"var(--bg-1)",border:"1px solid var(--border)" }}>
        <div className="w-16 h-16 bg-blue-500/10 rounded-2xl flex items-center justify-center mx-auto mb-5">
         <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-500"><rect width="20" height="14" x="2" y="5" rx="2"/><path d="M2 10h20"/></svg>
        </div>
-       <h2 className="text-xl font-black ds-t1 tracking-tight mb-2">
+       <h2 className="text-xl font-light tracking-tight mb-2" style={{ color:"var(--text-1)" }}>
         Buat Rekening Pertama
        </h2>
-       <p className="text-sm ds-t2 mb-6 leading-relaxed">
+       <p className="text-sm mb-6 leading-relaxed" style={{ color:"var(--text-2)" }}>
         Selamat datang! Buat rekening untuk mulai mencatat keuangan kamu.
        </p>
        <form onSubmit={handleCreateWallet} className="space-y-3">
