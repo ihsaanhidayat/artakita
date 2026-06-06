@@ -368,10 +368,32 @@ const HomeTabComponent = memo(function HomeTab({
                       {trx._pending && <span className="ml-1.5 text-[8px] font-black rounded-full px-1.5 py-0.5 uppercase" style={{ color: "#f59e0b", background: "color-mix(in srgb,#f59e0b 10%,transparent)" }}>Menunggu</span>}
                     </p>
                     <div className="flex items-center gap-1.5 mt-1">
-                      <span className="text-[9px] font-black uppercase tracking-wider ds-t3 px-2 py-0.5 rounded-full"
-                        style={{ background: "var(--bg-3)", border: "1px solid var(--border)" }}>
-                        {trx.category}
-                      </span>
+                      {/* ── DYNAMIC AURORA CATEGORY BADGE ── */}
+                      {(() => {
+                        const colors = [
+                          { c: "#38bdf8", bg: "rgba(56, 189, 248, 0.1)" }, // Sky Blue
+                          { c: "#a78bfa", bg: "rgba(167, 139, 250, 0.1)" }, // Violet/Purple
+                          { c: "#fbbf24", bg: "rgba(251, 191, 36, 0.1)" },  // Amber/Yellow
+                          { c: "#34d399", bg: "rgba(52, 211, 153, 0.1)" },  // Emerald Green
+                          { c: "#f472b6", bg: "rgba(244, 114, 182, 0.1)" }  // Pink/Rose
+                        ];
+                        // Ambil warna unik berdasarkan huruf pertama dari nama kategori
+                        const charCode = trx.category ? trx.category.charCodeAt(0) : 0;
+                        const theme = colors[charCode % colors.length];
+
+                        return (
+                          <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full"
+                            style={{
+                              background: theme.bg,
+                              border: `1px solid color-mix(in srgb, ${theme.c} 25%, transparent)`,
+                              color: theme.c,
+                              textShadow: `0 0 8px color-mix(in srgb, ${theme.c} 40%, transparent)` // Efek Glow Tipis
+                            }}>
+                            {trx.category}
+                          </span>
+                        );
+                      })()}
+
                       <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)' }}>{formatDateTime(trx.created_at)}</span>
                     </div>
                   </div>
