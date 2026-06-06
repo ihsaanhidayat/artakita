@@ -9,7 +9,7 @@ import {
 import { supabase } from "@/lib/supabaseClient";
 
 // Hooks
-import { useAuth }    from "@/hooks/useAuth";
+import { useAuth } from "@/hooks/useAuth";
 import { useFinData } from "@/hooks/useFinData";
 import { useWallets } from "@/hooks/useWallets";
 
@@ -18,29 +18,29 @@ import { parseFlexibleNumber } from "@/lib/utils";
 import { NAV } from "@/lib/constants";
 
 // Tab components
-import HomeTab      from "@/components/tabs/HomeTab";
-import StatsTab     from "@/components/tabs/StatsTab";
-import FinanceTab   from "@/components/tabs/FinanceTab";
-import MoreTab      from "@/components/tabs/MoreTab";
+import HomeTab from "@/components/tabs/HomeTab";
+import StatsTab from "@/components/tabs/StatsTab";
+import FinanceTab from "@/components/tabs/FinanceTab";
+import MoreTab from "@/components/tabs/MoreTab";
 
 // Modal components
-import EditTrxModal       from "@/components/modals/EditTrxModal";
-import AddUserModal       from "@/components/modals/AddUserModal";
+import EditTrxModal from "@/components/modals/EditTrxModal";
+import AddUserModal from "@/components/modals/AddUserModal";
 import ForcePasswordModal from "@/components/modals/ForcePasswordModal";
-import WalletModal        from "@/components/modals/WalletModal";
+import WalletModal from "@/components/modals/WalletModal";
 
 // Shared components
-import Toast       from "@/components/Toast";
+import Toast from "@/components/Toast";
 import DeleteModal from "@/components/DeleteModal";
-import QuickCommandBar    from "@/components/QuickCommandBar";
-import UserManagement    from "@/components/UserManagement";
+import QuickCommandBar from "@/components/QuickCommandBar";
+import UserManagement from "@/components/UserManagement";
 
 // ── Nav items — 4 tab statis ──────────────────────────────────────────────────
 const NAV_ITEMS = [
-  { id: "home",    label: NAV.HOME,    Icon: HomeIcon  },
-  { id: "stats",   label: NAV.STATS,   Icon: BarChart3 },
-  { id: "finance", label: NAV.FINANCE, Icon: Landmark  },
-  { id: "more",    label: NAV.MORE,    Icon: MoreHorizontal },
+  { id: "home", label: NAV.HOME, Icon: HomeIcon },
+  { id: "stats", label: NAV.STATS, Icon: BarChart3 },
+  { id: "finance", label: NAV.FINANCE, Icon: Landmark },
+  { id: "more", label: NAV.MORE, Icon: MoreHorizontal },
 ];
 
 // ── Login Screen ──────────────────────────────────────────────────────────────
@@ -125,6 +125,83 @@ const WalletLoader = memo(function WalletLoader() {
 });
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
+
+// ── Seed user_patterns dari transaksi lama ────────────────────────────────────
+async function seedUserPatterns(supabase, userId) {
+  try {
+    const stopWords = new Set(["beli", "bayar", "untuk", "ke", "di", "dari", "dan", "atau", "dengan", "yang", "nya", "ini", "itu"]);
+    const { data: trxs } = await supabase
+      .from("transactions").select("note, category")
+      .eq("user_id", userId).not("note", "is", null).not("category", "is", null);
+    const { data: cats } = await supabase
+      .from("user_categories").select("id, name").eq("user_id", userId);
+    if (!trxs?.length || !cats?.length) return;
+
+    const catMap = Object.fromEntries(cats.map(c => [c.name.toLowerCase(), c.id]));
+    // Hitung frekuensi per (phrase, category)
+    const freqMap = {};
+    // Hitung juga berapa kategori berbeda per phrase (untuk detect ambiguity)
+    const phraseCatCount = {}; // phrase → Set of categoryIds
+
+    for (const trx of trxs) {
+      const catId = catMap[trx.category?.toLowerCase()];
+      if (!catId) continue;
+      const cleanNote = trx.note.toLowerCase().trim();
+      const words = cleanNote.split(/\s+/).filter(w => w.length > 2 && !stopWords.has(w));
+      const phrases = new Set([cleanNote, ...words]);
+      for (let i = 0; i < words.length - 1; i++) phrases.add(words[i] + " " + words[i + 1]);
+      for (const phrase of phrases) {
+        const key = phrase + "__" + catId;
+        freqMap[key] = (freqMap[key] || 0) + 1;
+        if (!phraseCatCount[phrase]) phraseCatCount[phrase] = new Set();
+        phraseCatCount[phrase].add(catId);
+      }
+    }
+
+    // Hapus phrases yang ambiguous (pernah masuk >1 kategori)
+    // kecuali jika salah satu kategori jauh lebih dominan (>= 3x lebih sering)
+    for (const phrase of Object.keys(phraseCatCount)) {
+      const cats = phraseCatCount[phrase];
+      if (cats.size <= 1) continue; // konsisten, aman
+
+      // Hitung total freq per category untuk phrase ini
+      const catFreqs = {};
+      for (const [key, freq] of Object.entries(freqMap)) {
+        if (key.startsWith(phrase + "__")) {
+          const catId = key.split("__").pop();
+          catFreqs[catId] = freq;
+        }
+      }
+
+      const sorted = Object.entries(catFreqs).sort((a, b) => b[1] - a[1]);
+      const topFreq = sorted[0]?.[1] || 0;
+      const secondFreq = sorted[1]?.[1] || 0;
+
+      // Jika top tidak dominan (< 3x lebih sering dari runner-up) → hapus semua
+      if (topFreq < secondFreq * 3) {
+        for (const catId of cats) {
+          delete freqMap[phrase + "__" + catId];
+        }
+      } else {
+        // Top dominan → hapus yang non-top
+        for (let i = 1; i < sorted.length; i++) {
+          delete freqMap[phrase + "__" + sorted[i][0]];
+        }
+      }
+    }
+
+    const upserts = Object.entries(freqMap).map(([key, freq]) => {
+      const sep = key.lastIndexOf("__");
+      return { user_id: userId, phrase: key.slice(0, sep), category_id: key.slice(sep + 2), frequency: freq };
+    });
+
+    for (let i = 0; i < upserts.length; i += 50) {
+      await supabase.from("user_patterns")
+        .upsert(upserts.slice(i, i + 50), { onConflict: "user_id,phrase,category_id" });
+    }
+  } catch { }
+}
+
 export default function Home() {
 
   // ── Auth ──────────────────────────────────────────────────────────────────
@@ -132,13 +209,13 @@ export default function Home() {
   const { sessionWarning, extendSession } = auth;
 
   // ── UI State ──────────────────────────────────────────────────────────────
-  const [mounted, setMounted]       = useState(false);
+  const [mounted, setMounted] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(true);
-  const [activeTab, setActiveTab]   = useState(() => {
+  const [activeTab, setActiveTab] = useState(() => {
     if (typeof window === "undefined") return "home";
     const saved = sessionStorage.getItem("arta_last_tab");
     // Finance sub-page tidak boleh jadi landing saat refresh
-    return saved && ["home","stats","finance","more"].includes(saved) ? saved : "home";
+    return saved && ["home", "stats", "finance", "more"].includes(saved) ? saved : "home";
   });
 
   // Finance sub-page state — dikelola di sini agar tap nav Finance bisa reset
@@ -159,41 +236,41 @@ export default function Home() {
 
   // ── AI & Role ─────────────────────────────────────────────────────────────
   const [userCategories, setUserCategories] = useState([]);
-  const [aiKeywords,     setAiKeywords]     = useState([]);
-  const [userPatterns,  setUserPatterns]  = useState([]);
+  const [aiKeywords, setAiKeywords] = useState([]);
+  const [userPatterns, setUserPatterns] = useState([]);
   const [isSmartLoading, setIsSmartLoading] = useState(false);
-  const [isAdmin,        setIsAdmin]        = useState(false);
-  const [isRoleLoading,  setIsRoleLoading]  = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isRoleLoading, setIsRoleLoading] = useState(true);
 
   // ── Pagination display ───────────────────────────────────────────────────
   const [pageDisplayCount, setPageDisplayCount] = useState(15);
   const PAGE_SIZE_DISPLAY = 15;
 
   // ── Filter ────────────────────────────────────────────────────────────────
-  const [typeFilter,       setTypeFilter]       = useState("all");
-  const [categoryFilter,   setCategoryFilter]   = useState("Semua");
-  const [searchQuery,      setSearchQuery]      = useState("");
-  const [quickTimeFilter,  setQuickTimeFilter]  = useState("month");
-  const [dateRange,        setDateRange]        = useState({ from: "", to: "" });
+  const [typeFilter, setTypeFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("Semua");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [quickTimeFilter, setQuickTimeFilter] = useState("month");
+  const [dateRange, setDateRange] = useState({ from: "", to: "" });
   // selectedMonth dihapus — tampilkan semua transaksi
-  const [allBudgets,       setAllBudgets]       = useState([]);
+  const [allBudgets, setAllBudgets] = useState([]);
 
   // ── Goals ─────────────────────────────────────────────────────────────────
-  const [goals,               setGoals]               = useState([]);
-  const [isNewGoalOpen,       setIsNewGoalOpen]       = useState(false);
-  const [newGoalData,         setNewGoalData]         = useState({ name: "", target: "", current: "" });
-  const [isDirtyGoal,         setIsDirtyGoal]         = useState(false);
-  const [goalDeleteModal,     setGoalDeleteModal]     = useState({ isOpen: false, goalId: null, goalName: "" });
-  const [activeGoalInput,     setActiveGoalInput]     = useState(null);
-  const [flexibleSavingsAmt,  setFlexibleSavingsAmt]  = useState("");
+  const [goals, setGoals] = useState([]);
+  const [isNewGoalOpen, setIsNewGoalOpen] = useState(false);
+  const [newGoalData, setNewGoalData] = useState({ name: "", target: "", current: "" });
+  const [isDirtyGoal, setIsDirtyGoal] = useState(false);
+  const [goalDeleteModal, setGoalDeleteModal] = useState({ isOpen: false, goalId: null, goalName: "" });
+  const [activeGoalInput, setActiveGoalInput] = useState(null);
+  const [flexibleSavingsAmt, setFlexibleSavingsAmt] = useState("");
 
   // ── Modals ────────────────────────────────────────────────────────────────
-  const [editTrxModal,       setEditTrxModal]       = useState({ isOpen: false, data: null });
-  const [newWalletName,      setNewWalletName]      = useState("");
-  const [isDeleteModalOpen,  setIsDeleteModalOpen]  = useState(false);
-  const [itemToDelete,       setItemToDelete]       = useState(null);
-  const [goalDeleteOpen,     setGoalDeleteOpen]     = useState(false);
-  const [addUserModal,       setAddUserModal]       = useState({ isOpen: false, username: "", password: "", isLoading: false });
+  const [editTrxModal, setEditTrxModal] = useState({ isOpen: false, data: null });
+  const [newWalletName, setNewWalletName] = useState("");
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState(null);
+  const [goalDeleteOpen, setGoalDeleteOpen] = useState(false);
+  const [addUserModal, setAddUserModal] = useState({ isOpen: false, username: "", password: "", isLoading: false });
 
   // ── Notification ──────────────────────────────────────────────────────────
   const [notification, setNotification] = useState({ isOpen: false, message: "", type: "error" });
@@ -236,6 +313,28 @@ export default function Home() {
       ]);
       if (cats) setUserCategories(cats);
       if (keys) setAiKeywords(keys);
+
+      // Load + seed user_patterns v2
+      const { count: ptCount } = await supabase
+        .from("user_patterns").select("id", { count: "exact", head: true })
+        .eq("user_id", uid);
+      if ((ptCount || 0) === 0) {
+        // Seed dari transaksi lama — background
+        setTimeout(() => seedUserPatterns(supabase, uid), 1000);
+      }
+      const { data: ptData } = await supabase
+        .from("user_patterns")
+        .select("phrase, frequency, typical_amount, category_id, user_categories(id, name)")
+        .eq("user_id", uid)
+        .order("frequency", { ascending: false })
+        .limit(300);
+      if (ptData) setUserPatterns(ptData.map(p => ({
+        phrase: p.phrase,
+        category_id: p.category_id,
+        name: p.user_categories?.name,
+        frequency: p.frequency,
+        typical_amount: p.typical_amount || null,
+      })));
       if (profile?.role === "admin") setIsAdmin(true);
       setIsRoleLoading(false);
 
@@ -254,8 +353,8 @@ export default function Home() {
             .limit(500);
           if (!trxs?.length) return;
 
-          const stopWords = new Set(["beli","bayar","untuk","ke","di","dari","dan","atau","dengan","yang"]);
-          const catMap    = {};
+          const stopWords = new Set(["beli", "bayar", "untuk", "ke", "di", "dari", "dan", "atau", "dengan", "yang"]);
+          const catMap = {};
           (cats || []).forEach(c => { catMap[c.name.toLowerCase()] = c.id; });
 
           // Buat kategori yang belum ada
@@ -286,7 +385,7 @@ export default function Home() {
           if (toInsert.length) {
             // Batch upsert agar tidak duplikat
             const chunks = [];
-            for (let i = 0; i < toInsert.length; i += 50) chunks.push(toInsert.slice(i, i+50));
+            for (let i = 0; i < toInsert.length; i += 50) chunks.push(toInsert.slice(i, i + 50));
             for (const chunk of chunks) {
               await supabase.from("ai_keywords").upsert(chunk, { onConflict: "category_id,keyword", ignoreDuplicates: true });
             }
@@ -309,7 +408,7 @@ export default function Home() {
     if (typeof window === "undefined") return;
     const saved = localStorage.getItem("arta_active_wallet");
     if (saved) {
-      try { setActiveWallet(JSON.parse(saved)); } catch {}
+      try { setActiveWallet(JSON.parse(saved)); } catch { }
     }
   }, []);
 
@@ -333,7 +432,7 @@ export default function Home() {
   // Budgets
   useEffect(() => {
     const fetch = async () => {
-      const { data } = await supabase.from("budgets").select("*").eq("month_year", new Date().toISOString().slice(0,7));
+      const { data } = await supabase.from("budgets").select("*").eq("month_year", new Date().toISOString().slice(0, 7));
       if (data) setAllBudgets(data);
     };
     fetch();
@@ -372,8 +471,8 @@ export default function Home() {
     return transactionsThisMonth.filter(t => {
       // Tipe
       const matchType = typeFilter === "all" ? true
-        : typeFilter === "income"  ? t.type === "income"
-        : (t.type === "expense" || !t.type);
+        : typeFilter === "income" ? t.type === "income"
+          : (t.type === "expense" || !t.type);
 
       // Kategori
       const matchCat = categoryFilter === "Semua" ? true : t.category === categoryFilter;
@@ -388,8 +487,8 @@ export default function Home() {
       let matchTime = true;
       if (t.created_at && dateRange.from && dateRange.to) {
         const trxDate = new Date(t.created_at);
-        const from    = new Date(dateRange.from);
-        const to      = new Date(dateRange.to);
+        const from = new Date(dateRange.from);
+        const to = new Date(dateRange.to);
         to.setHours(23, 59, 59, 999);
         matchTime = trxDate >= from && trxDate <= to;
       }
@@ -404,7 +503,7 @@ export default function Home() {
     [allFilteredTransactions, pageDisplayCount]
   );
 
-  const pageHasMore  = pageDisplayCount < allFilteredTransactions.length;
+  const pageHasMore = pageDisplayCount < allFilteredTransactions.length;
   const pageLoadMore = useCallback(() => setPageDisplayCount(p => p + PAGE_SIZE_DISPLAY), []);
 
   const filteredIncome = useMemo(() =>
@@ -451,7 +550,7 @@ export default function Home() {
 
   // ── AI classify helper ────────────────────────────────────────────────────
   const classifyCategory = useCallback((note) => {
-    const stopWords = new Set(["beli","bayar","untuk","ke","di","dari","dan","atau","dengan","yang","nya","ini","itu"]);
+    const stopWords = new Set(["beli", "bayar", "untuk", "ke", "di", "dari", "dan", "atau", "dengan", "yang", "nya", "ini", "itu"]);
     // Semua lowercase, bersih
     const words = note.toLowerCase()
       .replace(/[^a-z0-9\s]/g, "")
@@ -466,8 +565,8 @@ export default function Home() {
         const kwLow = kw.keyword.toLowerCase(); // selalu lowercase
         const score = word === kwLow ? 3        // exact match
           : word.includes(kwLow) ? 2            // word contains keyword
-          : kwLow.includes(word) && word.length > 2 ? 1 // keyword contains word
-          : 0;
+            : kwLow.includes(word) && word.length > 2 ? 1 // keyword contains word
+              : 0;
         if (score > 0) {
           scoreMap[kw.category_id] = (scoreMap[kw.category_id] || 0) +
             score * (kw.frequency || 1); // bobot frekuensi
@@ -487,7 +586,7 @@ export default function Home() {
   // ── Simpan keyword ke DB background ───────────────────────────────────────
   const learnKeyword = useCallback(async (note, categoryName) => {
     try {
-      const stopWords = new Set(["beli","bayar","untuk","ke","di","dari","dan","atau","dengan","yang","nya","ini","itu"]);
+      const stopWords = new Set(["beli", "bayar", "untuk", "ke", "di", "dari", "dan", "atau", "dengan", "yang", "nya", "ini", "itu"]);
       // Semua lowercase tanpa terkecuali
       const normalNote = note.toLowerCase().replace(/[^a-z0-9\s]/g, "");
       const words = normalNote.split(/\s+/).filter(w => w.length > 2 && !stopWords.has(w));
@@ -537,50 +636,79 @@ export default function Home() {
   }, []);
 
   const handleSmartSubmit = useCallback(async (command, receiptFile = null, customDate = null) => {
-    if (!command.trim()) return;
+    if (!command?.trim()) return;
     setIsSmartLoading(true);
     try {
-      const clean = command.toLowerCase().trim();
-      let type    = "expense";
-      let text    = clean;
+      let raw = command.trim();
+      let type = "expense";
 
-      if (clean.startsWith("in "))  { type = "income";  text = clean.slice(3).trim(); }
-      else if (clean.startsWith("out ")) { text = clean.slice(4).trim(); }
+      if (/^in\s+/i.test(raw)) { type = "income"; raw = raw.replace(/^in\s+/i, ""); }
+      else if (/^out\s+/i.test(raw)) { raw = raw.replace(/^out\s+/i, ""); }
 
-      const match = text.match(/^([\d.,]+(?:k|rb|ribu|m|jt|juta)?)\s+(.+)$/i);
-      if (!match) { showNotification("Format salah! Cth: 50k makan siang", "error"); return; }
+      // Smart tokenize — bebas urutan (rokok 25k ATAU 25k rokok)
+      const { amount, note: parsedNote, date: parsedDate } = tokenizeInput(raw);
+      let finalNote = parsedNote || raw;
 
-      const amount   = parseFlexibleNumber(match[1]);
-      let rawNote    = match[2].trim();
-      let category   = "Lainnya";
-      let finalNote  = rawNote;
+      if (!amount || amount <= 0) {
+        showNotification("Nominal tidak ditemukan. Cth: rokok 25k", "error");
+        return;
+      }
 
-      // Manual pos — case insensitive
-      const posIdx = rawNote.toLowerCase().indexOf(" pos ");
+      let category = "Lainnya";
+      let categoryId = null;
+
+      // Manual pos override
+      const posIdx = finalNote.toLowerCase().indexOf(" pos ");
       if (posIdx !== -1) {
-        finalNote       = rawNote.slice(0, posIdx).trim();
-        const targetCat = rawNote.slice(posIdx + 5).trim();
-        // Normalize kategori: Title Case
-        category = targetCat.trim().toLowerCase()
-          .replace(/\w/g, c => c.toUpperCase());
-        // Belajar di background
-        // Learn keyword after save (300ms delay)
-    setTimeout(() => learnKeyword(finalNote, category), 300);
+        const catName = finalNote.slice(posIdx + 5).trim();
+        finalNote = finalNote.slice(0, posIdx).trim();
+        category = catName.replace(/\b\w/g, c => c.toUpperCase());
+        categoryId = userCategories.find(c => c.name.toLowerCase() === category.toLowerCase())?.id;
       } else {
-        // AI auto-classify — cari dari keywords
-        const found = classifyCategory(rawNote);
-        if (found) category = found;
+        // AI v2 — classifyFromPatterns (belajar dari habit user)
+        const result = classifyFromPatterns(finalNote, userPatterns, userCategories);
+        if (result.categoryName) {
+          category = result.categoryName;
+          categoryId = result.categoryId;
+        } else {
+          // Fallback legacy
+          const legacy = classifyCategory(finalNote);
+          if (legacy) {
+            category = legacy;
+            categoryId = userCategories.find(c => c.name.toLowerCase() === legacy.toLowerCase())?.id;
+          }
+        }
       }
 
       finalNote = finalNote.charAt(0).toUpperCase() + finalNote.slice(1);
-      await addTransaction(finalNote, amount, category, type, receiptFile, customDate);
+      const dateToUse = customDate || (parsedDate ? parsedDate.toISOString() : null);
+
+      await addTransaction(finalNote, amount, category, type, receiptFile, dateToUse);
       showNotification("Transaksi berhasil dicatat! ✨", "success");
+
+      // Learn dari transaksi ini
+      if (categoryId && activeWallet?.user_id) {
+        const uid = activeWallet.user_id;
+        setTimeout(async () => {
+          await learnFromTransaction(supabase, uid, finalNote.toLowerCase(), categoryId, 1, amount);
+          const { data } = await supabase
+            .from("user_patterns")
+            .select("phrase, frequency, typical_amount, category_id, user_categories(id, name)")
+            .eq("user_id", uid).order("frequency", { ascending: false }).limit(300);
+          if (data) setUserPatterns(data.map(p => ({
+            phrase: p.phrase, category_id: p.category_id,
+            name: p.user_categories?.name, frequency: p.frequency,
+            typical_amount: p.typical_amount || null,
+          })));
+        }, 300);
+      }
     } catch (err) {
       showNotification("Gagal: " + err.message, "error");
     } finally {
       setIsSmartLoading(false);
     }
-  }, [classifyCategory, learnKeyword, addTransaction, showNotification]);
+  }, [classifyCategory, classifyFromPatterns, learnFromTransaction, tokenizeInput,
+    addTransaction, showNotification, userPatterns, userCategories, activeWallet]);
 
   const handleAddGoal = useCallback(async e => {
     e.preventDefault();
@@ -588,8 +716,8 @@ export default function Home() {
     const { data, error } = await supabase
       .from("savings_goals")
       .insert([{
-        name:           newGoalData.name,
-        target_amount:  parseFlexibleNumber(newGoalData.target),
+        name: newGoalData.name,
+        target_amount: parseFlexibleNumber(newGoalData.target),
         current_amount: parseFlexibleNumber(newGoalData.current),
       }])
       .select();
@@ -619,7 +747,7 @@ export default function Home() {
     e.preventDefault();
     setAddUserModal(p => ({ ...p, isLoading: true }));
     try {
-      const res  = await fetch("/api/admin/add-user", {
+      const res = await fetch("/api/admin/add-user", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username: addUserModal.username, password: addUserModal.password }),
@@ -700,7 +828,7 @@ export default function Home() {
           <main className="w-full max-w-lg mx-auto min-h-screen flex flex-col items-center justify-center p-6">
             <div className="w-full bg-white dark:bg-[#121827] p-8 rounded-[32px] shadow-2xl border border-gray-100 dark:border-gray-800 text-center">
               <div className="w-16 h-16 bg-blue-500/10 rounded-2xl flex items-center justify-center mx-auto mb-5">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-500"><rect width="20" height="14" x="2" y="5" rx="2"/><path d="M2 10h20"/></svg>
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-500"><rect width="20" height="14" x="2" y="5" rx="2" /><path d="M2 10h20" /></svg>
               </div>
               <h2 className="text-xl font-black text-gray-900 dark:text-white tracking-tight mb-2">
                 Buat Rekening Pertama
@@ -783,11 +911,11 @@ export default function Home() {
               balance={balance}
               filteredIncome={filteredIncome}
               filteredExpense={filteredExpense}
-              typeFilter={typeFilter}         setTypeFilter={setTypeFilter}
-              searchQuery={searchQuery}       setSearchQuery={setSearchQuery}
+              typeFilter={typeFilter} setTypeFilter={setTypeFilter}
+              searchQuery={searchQuery} setSearchQuery={setSearchQuery}
               categoryFilter={categoryFilter} setCategoryFilter={setCategoryFilter}
               dynamicCategories={dynamicCategories}
-              dateRange={dateRange}           setDateRange={setDateRange}
+              dateRange={dateRange} setDateRange={setDateRange}
               filteredTransactions={filteredTransactions}
               transactions={transactions}
               mounted={mounted}
@@ -857,9 +985,11 @@ export default function Home() {
         {activeTab === "home" && (
           <QuickCommandBar
             onProcessTransaction={handleSmartSubmit}
+            userPatterns={userPatterns}
             isSmartLoading={isSmartLoading}
             aiKeywords={aiKeywords}
             userCategories={userCategories}
+            session={auth.session}
           />
         )}
 
@@ -945,13 +1075,11 @@ export default function Home() {
                   <Icon
                     size={22}
                     strokeWidth={isActive ? 2.5 : 1.7}
-                    className={`relative z-10 transition-colors duration-200 ${
-                      isActive ? "text-blue-500" : "text-gray-400 dark:text-gray-500"
-                    }`}
+                    className={`relative z-10 transition-colors duration-200 ${isActive ? "text-blue-500" : "text-gray-400 dark:text-gray-500"
+                      }`}
                   />
-                  <span className={`text-[9px] font-black uppercase tracking-widest transition-colors duration-200 ${
-                    isActive ? "text-blue-500" : "text-gray-400 dark:text-gray-500"
-                  }`}>
+                  <span className={`text-[9px] font-black uppercase tracking-widest transition-colors duration-200 ${isActive ? "text-blue-500" : "text-gray-400 dark:text-gray-500"
+                    }`}>
                     {label}
                   </span>
                 </motion.button>

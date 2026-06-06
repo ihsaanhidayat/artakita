@@ -160,50 +160,93 @@ export async function getSuggestions(supabase, userId, partial, limit = 3) {
 // ── CLASSIFY CATEGORY ────────────────────────────────────────────────────────
 /**
  * Classify note → category menggunakan user_patterns
- * Confidence: HIGH=auto, MED=suggest, LOW=null
+ * 
+ * FILOSOFI: jika kata ada di user_patterns = user sudah pernah konfirmasi
+ * → SELALU menang vs legacy classifier, tidak peduli frekuensi
+ * 
+ * Confidence:
+ *   HIGH = exact match atau multi-word phrase match
+ *   MED  = partial/word match
+ *   LOW  = tidak ada match di user_patterns
  */
 export function classifyFromPatterns(note, patterns, categories) {
   if (!note || !patterns?.length) return { categoryId: null, categoryName: null, confidence: "LOW" };
   
-  const noteLow = note.toLowerCase();
+  const noteLow = note.toLowerCase().trim();
   const words   = noteLow.split(/\s+/).filter(w => w.length > 1);
   
-  const scoreMap = {}; // { categoryId: score }
+  const scoreMap = {}; // { categoryId: { score, isExact } }
   
   for (const pattern of patterns) {
-    const phrase = pattern.phrase?.toLowerCase();
-    if (!phrase) continue;
+    const phrase = pattern.phrase?.toLowerCase().trim();
+    if (!phrase || phrase.length < 2) continue;
     
-    const freq = pattern.frequency || 1;
+    const freq    = Math.max(1, pattern.frequency || 1);
+    const isMulti = phrase.includes(" ");
     
-    // Exact phrase match (tertinggi)
-    if (noteLow.includes(phrase)) {
-      const phraseWords = phrase.split(/\s+/).length;
-      const score = (phraseWords > 1 ? 5 : 3) * freq; // frasa multi-kata lebih berharga
-      scoreMap[pattern.category_id] = (scoreMap[pattern.category_id] || 0) + score;
+    // === TIER 1: Exact full match (score tertinggi) ===
+    if (noteLow === phrase) {
+      const score = 1000 * freq; // Tidak bisa dikalahkan
+      if (!scoreMap[pattern.category_id] || scoreMap[pattern.category_id].score < score) {
+        scoreMap[pattern.category_id] = { score, isExact: true, phrase };
+      }
+      continue;
     }
     
-    // Partial word match
+    // === TIER 2: Note contains phrase ===
+    if (noteLow.includes(phrase)) {
+      const score = (isMulti ? 500 : 200) * freq;
+      if (!scoreMap[pattern.category_id] || scoreMap[pattern.category_id].score < score) {
+        scoreMap[pattern.category_id] = { score, isExact: isMulti, phrase };
+      }
+      continue;
+    }
+    
+    // === TIER 3: Word-level match ===
     for (const word of words) {
-      if (phrase.includes(word) && word.length > 2) {
-        scoreMap[pattern.category_id] = (scoreMap[pattern.category_id] || 0) + (1 * freq);
+      if (word === phrase) {
+        // Exact word match
+        const score = 100 * freq;
+        scoreMap[pattern.category_id] = {
+          score: (scoreMap[pattern.category_id]?.score || 0) + score,
+          isExact: false, phrase
+        };
+      } else if (phrase.startsWith(word) && word.length >= 3) {
+        // Prefix match
+        const score = 30 * freq;
+        scoreMap[pattern.category_id] = {
+          score: (scoreMap[pattern.category_id]?.score || 0) + score,
+          isExact: false, phrase
+        };
+      } else if (phrase.includes(word) && word.length >= 3) {
+        // Contains match
+        const score = 10 * freq;
+        scoreMap[pattern.category_id] = {
+          score: (scoreMap[pattern.category_id]?.score || 0) + score,
+          isExact: false, phrase
+        };
       }
     }
   }
   
-  const best = Object.entries(scoreMap).sort((a, b) => b[1] - a[1])[0];
-  if (!best) return { categoryId: null, categoryName: null, confidence: "LOW" };
+  if (!Object.keys(scoreMap).length) {
+    return { categoryId: null, categoryName: null, confidence: "LOW" };
+  }
   
-  const [catId, score] = best;
+  const best = Object.entries(scoreMap).sort((a, b) => b[1].score - a[1].score)[0];
+  const [catId, { score, isExact }] = best;
   const cat = categories?.find(c => c.id === catId);
   
-  const confidence = score >= 15 ? "HIGH" : score >= 5 ? "MED" : "LOW";
+  // Confidence: ANY match dari user_patterns = setidaknya MED
+  // User sudah pernah konfirmasi → lebih dipercaya dari legacy
+  const confidence = score >= 200 ? "HIGH" : "MED";
   
   return {
     categoryId:   catId,
     categoryName: cat?.name || null,
     confidence,
     score,
+    isExact,
   };
 }
 
@@ -213,7 +256,7 @@ export function classifyFromPatterns(note, patterns, categories) {
  * - Simpan/update user_patterns
  * - Pelajari single words DAN multi-word phrases
  */
-export async function learnFromTransaction(supabase, userId, note, categoryId, boost = 1) {
+export async function learnFromTransaction(supabase, userId, note, categoryId, boost = 1, amount = null) {
   if (!note || !categoryId || !userId) return;
   
   const stopWords = new Set([
@@ -237,10 +280,11 @@ export async function learnFromTransaction(supabase, userId, note, categoryId, b
   
   // Upsert semua ke user_patterns
   const upserts = Array.from(toLearn).map(phrase => ({
-    user_id:     userId,
+    user_id:        userId,
     phrase,
-    category_id: categoryId,
-    last_used:   new Date().toISOString(),
+    category_id:    categoryId,
+    last_used:      new Date().toISOString(),
+    typical_amount: amount && amount > 0 ? amount : null,
   }));
   
   for (const item of upserts) {
@@ -253,12 +297,35 @@ export async function learnFromTransaction(supabase, userId, note, categoryId, b
       .single();
     
     if (existing) {
+      // Update frequency + typical_amount (rolling average)
+      const newFreq = existing.frequency + boost;
+      const updates = { frequency: newFreq, last_used: item.last_used };
+      if (item.amount && item.amount > 0) {
+        const prevAmt = existing.typical_amount || item.amount;
+        // Weighted average: lebih berat ke yang lebih sering
+        updates.typical_amount = Math.round((prevAmt * existing.frequency + item.amount * boost) / newFreq);
+      }
       await supabase.from("user_patterns")
-        .update({ frequency: existing.frequency + boost, last_used: item.last_used })
+        .update(updates)
         .eq("id", existing.id);
     } else {
-      await supabase.from("user_patterns")
-        .insert([{ ...item, frequency: boost }]);
+      // Cek apakah ada kategori lain yang sudah lebih dominan untuk phrase ini
+      const { data: competing } = await supabase
+        .from("user_patterns")
+        .select("frequency")
+        .eq("user_id", userId)
+        .eq("phrase", item.phrase)
+        .neq("category_id", categoryId)
+        .order("frequency", { ascending: false })
+        .limit(1)
+        .single();
+      
+      // Hanya insert jika tidak ada kompetitor yang jauh lebih kuat
+      const topCompetitor = competing?.frequency || 0;
+      if (topCompetitor < 5 || boost >= topCompetitor) {
+        await supabase.from("user_patterns")
+          .insert([{ ...item, frequency: boost }]);
+      }
     }
   }
 }
