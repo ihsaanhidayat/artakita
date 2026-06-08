@@ -13,47 +13,47 @@ import AssetsTab from "@/components/tabs/AssetsTab";
 import SavingsTab from "@/components/tabs/SavingsTab";
 import ManageCategories from "@/components/ManageCategories";
 
-// ── Row config — tema konsisten: putih/dark, aksen warna di icon saja ─────────
+// ── Row config ────────────────────────────────────────────────────────────────
 const ROWS = [
  {
  key: "debts",
  label: FINANCE.DEBTS,
  sub: FINANCE.DEBTS_SUB,
  Icon: ArrowUpRight,
- iconColor:"text-red-500",
- iconBg: "bg-red-500/10",
+ iconStyle: { color: "var(--a3)" },
+ iconBgStyle: { background: "color-mix(in srgb, var(--a3) 12%, transparent)" },
  },
  {
  key: "recurring",
  label: FINANCE.RECURRING,
  sub: FINANCE.RECURRING_SUB,
  Icon: RefreshCw,
- iconColor:"text-blue-500",
- iconBg: "bg-blue-500/10",
+ iconStyle: { color: "var(--a1)" },
+ iconBgStyle: { background: "color-mix(in srgb, var(--a1) 12%, transparent)" },
  },
  {
  key: "assets",
  label: FINANCE.ASSETS,
  sub: FINANCE.ASSETS_SUB,
  Icon: Package,
- iconColor:"text-violet-500",
- iconBg: "bg-violet-500/10",
+ iconStyle: { color: "var(--a2)" },
+ iconBgStyle: { background: "color-mix(in srgb, var(--a2) 12%, transparent)" },
  },
  {
  key: "savings",
  label: "Celengan & Target",
  sub: "Tabungan & target impian",
  Icon: PiggyBank,
- iconColor:"text-emerald-500",
- iconBg: "bg-emerald-500/10",
+ iconStyle: { color: "var(--income)" },
+ iconBgStyle: { background: "color-mix(in srgb, var(--income) 12%, transparent)" },
  },
  {
  key: "categories",
  label: FINANCE.CATEGORIES,
  sub: FINANCE.CATEGORIES_SUB,
  Icon: Tag,
- iconColor:"text-amber-500",
- iconBg: "bg-amber-500/10",
+ iconStyle: { color: "var(--a2)" },
+ iconBgStyle: { background: "color-mix(in srgb, var(--a2) 10%, transparent)" },
  },
 ];
 
@@ -68,7 +68,7 @@ const Breadcrumb = memo(function Breadcrumb({ subLabel, onBack }) {
  </div>
  <button
  onClick={onBack}
- className="flex items-center gap-1.5 text-blue-500 hover:text-blue-400 active:scale-95 transition-all bg-blue-500/10 border border-blue-500/20 px-3 py-1.5 rounded-xl"
+ className="flex items-center gap-1.5 ds-aurora-text hover:opacity-80 active:scale-95 transition-all ds-aurora-bg border ds-aurora-border-c px-3 py-1.5 rounded-xl"
  >
  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
  <span className="text-[9px] font-black uppercase tracking-widest">{FINANCE.TITLE}</span>
@@ -138,8 +138,8 @@ const FinanceTab = memo(function FinanceTab({
  className="w-full ds-bg-1 border ds-border rounded-[24px] p-4 shadow-sm hover:ds-border transition-all flex items-center gap-4 text-left"
  >
  {/* Icon */}
- <div className={`w-12 h-12 rounded-2xl ${row.iconBg} flex items-center justify-center shrink-0`}>
- <row.Icon size={20} className={row.iconColor} />
+ <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0" style={row.iconBgStyle}>
+ <row.Icon size={20} style={row.iconStyle} />
  </div>
 
  {/* Label */}

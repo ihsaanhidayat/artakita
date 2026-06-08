@@ -78,11 +78,11 @@ export const CHART_COLORS = [
   "#3b82f6","#ef4444","#10b981","#f59e0b","#8b5cf6","#ec4899","#14b8a6"
 ];
 
-// Konstanta gradient kartu dompet
+// Gradient kartu dompet — aurora cycling (inline style strings)
 export const THEME_GRADIENTS = [
-  "from-blue-500 to-indigo-600",
-  "from-pink-500 to-rose-600",
-  "from-emerald-400 to-teal-600",
-  "from-amber-400 to-orange-500",
-  "from-purple-500 to-fuchsia-600",
+  "linear-gradient(135deg, var(--a1), var(--a2))",
+  "linear-gradient(135deg, var(--a2), var(--a3))",
+  "linear-gradient(135deg, var(--a3), var(--a1))",
+  "linear-gradient(135deg, var(--a1), var(--a3))",
+  "linear-gradient(135deg, var(--a2), var(--a1))",
 ];

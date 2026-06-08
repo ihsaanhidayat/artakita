@@ -108,33 +108,34 @@ const EditTrxModal = memo(function EditTrxModal({
       style={{ alignItems: "flex-start", paddingTop: "20vh" }}
      >
       <div
-       className="w-full max-w-sm ds-bg-1 rounded-[24px] shadow-2xl border ds-borderoverflow-hidden"
+       className="w-full max-w-sm ds-bg-1 rounded-[24px] shadow-2xl border ds-border overflow-hidden"
        onClick={e => e.stopPropagation()}
       >
        {/* Header */}
-       <div className={`px-5 py-3.5 flex items-center justify-between ${
-        isIncome ? "bg-green-500/10" : "bg-white/5 "
-       }`}>
+       <div className="px-5 py-3.5 flex items-center justify-between" style={{ background: isIncome ? "color-mix(in srgb, var(--income) 10%, transparent)" : "color-mix(in srgb, var(--a3) 6%, transparent)" }}>
         <div className="min-w-0 flex-1">
-         <p className={`text-[8px] font-black uppercase tracking-widest ${
-          isIncome ? "text-green-500/70" : "ds-t3"
-         }`}>
+         <p className="text-[8px] font-black uppercase tracking-widest" style={{ color: isIncome ? "color-mix(in srgb, var(--income) 70%, transparent)" : "color-mix(in srgb, var(--a3) 70%, transparent)" }}>
           {isIncome ? "Edit Pemasukan" : "Edit Pengeluaran"}
          </p>
-         <p className={`text-sm font-black truncate mt-0.5 ${
-          isIncome ? "text-green-400" : "ds-t2"
-         }`}>{data.note || "—"}</p>
+         <p className="text-sm font-black truncate mt-0.5" style={{ color: isIncome ? "var(--income)" : "var(--a3)" }}>{data.note || "—"}</p>
         </div>
-        <button
-         onClick={handleSubmit}
-         disabled={isSubmitting}
-         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-black text-[10px] uppercase tracking-widest ml-3 shrink-0 transition-all disabled:opacity-40 ${
-          isDirty ? "bg-blue-600 text-white" : "ds-bg-3 text-gray-400"
-         }`}
-        >
-         <Save size={11} />
-         {isSubmitting ? "..." : "Simpan"}
-        </button>
+        <div className="flex items-center gap-2 ml-3 shrink-0">
+         <button
+          onClick={handleSubmit}
+          disabled={isSubmitting}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all disabled:opacity-40"
+          style={isDirty ? { background: "linear-gradient(135deg, var(--a1), var(--a2))", color: "#fff" } : { background: "var(--bg-3)", color: "var(--text-3)" }}
+         >
+          <Save size={11} />
+          {isSubmitting ? "..." : "Simpan"}
+         </button>
+         <button
+          onClick={onClose}
+          className="w-7 h-7 flex items-center justify-center rounded-xl ds-bg-3 ds-t3 hover:ds-t1 transition-all"
+         >
+          <X size={13} />
+         </button>
+        </div>
        </div>
 
        {/* Fields */}
@@ -142,24 +143,21 @@ const EditTrxModal = memo(function EditTrxModal({
 
         {/* Nominal dengan format ribuan */}
         <div className="py-3 border-b ds-border">
-         <label className="text-[8px] font-black text-gray-400 uppercase tracking-widest block mb-1.5">Nominal</label>
+         <label className="text-[8px] font-black ds-t3 uppercase tracking-widest block mb-1.5">Nominal</label>
          <input
           type="text" inputMode="decimal"
           value={displayAmount}
           onChange={handleAmountChange}
           onFocus={handleAmountFocus}
           onBlur={handleAmountBlur}
-          className={`w-full bg-transparent outline-none font-black text-2xl tracking-tight pb-0.5 border-b-2 border-transparent transition-colors ${
-           isIncome
-            ? "text-green-500 focus:border-green-500/50"
-            : "ds-t2 focus:border-white/20"
-          }`}
+          className="w-full bg-transparent outline-none font-black text-2xl tracking-tight pb-0.5 border-b-2 border-transparent transition-colors"
+          style={{ color: isIncome ? "var(--income)" : "var(--a3)" }}
          />
         </div>
 
         {/* Catatan */}
         <div className="py-3 border-b ds-border">
-         <label className="text-[8px] font-black text-gray-400 uppercase tracking-widest block mb-1.5">Catatan</label>
+         <label className="text-[8px] font-black ds-t3 uppercase tracking-widest block mb-1.5">Catatan</label>
          <input
           type="text"
           value={localNote}
@@ -170,7 +168,7 @@ const EditTrxModal = memo(function EditTrxModal({
 
         {/* Kategori */}
         <div className="py-3 border-b ds-border">
-         <label className="text-[8px] font-black text-gray-400 uppercase tracking-widest block mb-1.5">Kategori</label>
+         <label className="text-[8px] font-black ds-t3 uppercase tracking-widest block mb-1.5">Kategori</label>
          <input
           list="edit-cat-list" type="text"
           value={localCategory}
@@ -184,7 +182,7 @@ const EditTrxModal = memo(function EditTrxModal({
 
         {/* Tanggal */}
         <div className="py-3 flex items-center justify-between">
-         <div className="flex items-center gap-2 text-gray-400">
+         <div className="flex items-center gap-2 ds-t3">
           <Calendar size={13} />
           <label className="text-[8px] font-black uppercase tracking-widest">Tanggal</label>
          </div>

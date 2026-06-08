@@ -100,7 +100,7 @@ const WalletModal = memo(function WalletModal({
       animate={{ opacity: 1, scale: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.94, y: 20 }}
       transition={{ type: "spring", stiffness: 400, damping: 30 }}
-      className="fixed inset-x-4 top-[50%] -translate-y-[50%] z-[101] max-w-sm mx-auto ds-bg-1 rounded-[32px] shadow-2xl border ds-borderoverflow-hidden"
+      className="fixed inset-x-4 top-[50%] -translate-y-[50%] z-[101] max-w-sm mx-auto ds-bg-1 rounded-[32px] shadow-2xl border ds-border overflow-hidden"
      >
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-4 border-b ds-border">
@@ -109,7 +109,7 @@ const WalletModal = memo(function WalletModal({
        </p>
        <button
         onClick={onClose}
-        className="p-2 text-gray-400 hover:text-red-500 ds-bg-3 rounded-full transition-colors"
+        className="p-2 ds-t3 hover:text-fuchsia-400 ds-bg-3 rounded-full transition-colors"
        >
         <X size={16} />
        </button>
@@ -154,11 +154,10 @@ const WalletModal = memo(function WalletModal({
         return (
          <div
           key={wallet.id}
-          className={`relative overflow-hidden rounded-[20px] transition-all ${
-           isActive ? "ring-2 ring-blue-500 shadow-lg shadow-blue-500/15" : "ring-1 ring-gray-100 "
-          }`}
+          className="relative overflow-hidden rounded-[20px] transition-all"
+          style={isActive ? { boxShadow: `0 0 0 2px var(--a1), 0 8px 24px color-mix(in srgb, var(--a1) 20%, transparent)` } : { boxShadow: "0 0 0 1px rgba(255,255,255,0.06)" }}
          >
-          <div className={`absolute inset-0 bg-gradient-to-br ${THEME_GRADIENTS[idx % THEME_GRADIENTS.length]}`} />
+          <div className="absolute inset-0" style={{ background: THEME_GRADIENTS[idx % THEME_GRADIENTS.length] }} />
           <div className="absolute -right-6 -top-6 w-24 h-24 rounded-full bg-white/10 blur-2xl" />
 
           <div className="relative z-10 p-4">
@@ -202,7 +201,7 @@ const WalletModal = memo(function WalletModal({
               <span className="text-white font-black text-lg tracking-tight">{wallet.name}</span>
               {isActive && (
                <span className="flex items-center gap-1 px-2 py-0.5 bg-white/20 rounded-lg text-white text-[8px] font-black uppercase tracking-widest">
-                <div className="w-1 h-1 bg-green-400 rounded-full animate-pulse" />
+                <div className="w-1 h-1 rounded-full animate-pulse" style={{ background: "var(--income)" }} />
                 Aktif
                </span>
               )}
@@ -242,7 +241,7 @@ const WalletModal = memo(function WalletModal({
       <div className="px-4 pt-2 pb-8">
        <button
         onClick={onAddWallet}
-        className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed ds-bordertext-gray-400 hover:ds-aurora-text hover:border-blue-500/50 hover:bg-blue-500/5 font-black text-[10px] uppercase tracking-widest rounded-2xl transition-all"
+        className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed ds-border ds-t3 hover:ds-aurora-text ds-aurora-border-c font-black text-[10px] uppercase tracking-widest rounded-2xl transition-all"
        >
         <Plus size={14} /> {WALLET.ADD_NEW}
        </button>

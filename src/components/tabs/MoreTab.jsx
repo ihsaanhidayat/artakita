@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
  Download, Info, LogOut,
  Heart, ChevronRight, Shield,
- Globe, BookOpen
+ Globe, BookOpen, Trash2
 } from "lucide-react";
 import { MORE, ABOUT, APP_AUTHOR } from "@/lib/constants";
 import { supabase } from "@/lib/supabaseClient";
@@ -41,13 +41,16 @@ const AboutPage = memo(function AboutPage({ onClose }) {
  </div>
 
  {/* App card */}
- <div className="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-[32px] p-8 mb-6 text-center relative overflow-hidden shadow-2xl shadow-blue-500/20">
- <div className="absolute -right-8 -top-8 w-32 h-32 rounded-full ds-bg-1/10 blur-2xl" />
- <h3 className="text-3xl font-black text-white tracking-tight mb-1">ArtaKita.</h3>
- <p className="text-white/70 text-xs font-bold uppercase tracking-widest mb-3">Artaku Artamu</p>
- <span className="px-3 py-1 ds-bg-1/20 rounded-full text-white text-[10px] font-black uppercase tracking-widest">
+ <div className="ds-aurora-card ds-aurora-glow-card rounded-[32px] p-8 mb-6 text-center relative overflow-hidden">
+ <div className="absolute inset-0 rounded-[32px]" style={{ background: "linear-gradient(135deg, color-mix(in srgb, var(--a1) 15%, transparent), color-mix(in srgb, var(--a2) 20%, transparent))" }} />
+ <div className="absolute -right-8 -top-8 w-32 h-32 rounded-full blur-2xl" style={{ background: "color-mix(in srgb, var(--a2) 20%, transparent)" }} />
+ <div className="relative z-10">
+ <h3 className="text-3xl font-black tracking-tight mb-1 ds-aurora-text">ArtaKita.</h3>
+ <p className="text-[10px] font-bold uppercase tracking-widest mb-3 ds-t3">Artaku Artamu</p>
+ <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ds-aurora-bg border ds-aurora-border-c ds-t2">
  {ABOUT.VERSION}
  </span>
+ </div>
  </div>
 
  {/* Description */}
@@ -61,7 +64,7 @@ const AboutPage = memo(function AboutPage({ onClose }) {
  <div className="space-y-2">
  {ABOUT.FEATURE_LIST.map((f, i) => (
  <div key={i} className="flex items-center gap-2.5">
- <div className="w-1.5 h-1.5 bg-blue-500 rounded-full shrink-0" />
+ <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: i % 2 === 0 ? "var(--a1)" : "var(--a2)" }} />
  <p className="text-sm ds-t1 font-bold">{f}</p>
  </div>
  ))}
@@ -127,7 +130,7 @@ const WalletsSavingsPage = memo(function WalletsSavingsPage({
  placeholder="Nama target (Cth: Laptop, Dana Darurat)"
  value={newGoalData.name}
  onChange={e => setNewGoalData(p => ({ ...p, name: e.target.value }))}
- className="w-full ds-bg-1 border ds-border rounded-xl py-2.5 px-4 text-xs font-bold ds-t1 outline-none focus:border-blue-500"
+ className="w-full ds-bg-1 border ds-border rounded-xl py-2.5 px-4 text-xs font-bold ds-t1 outline-none focus:border-[var(--a1)]"
  />
  <div className="grid grid-cols-2 gap-3">
  <input
@@ -135,17 +138,17 @@ const WalletsSavingsPage = memo(function WalletsSavingsPage({
  placeholder="Target (Cth: 5jt)"
  value={newGoalData.target}
  onChange={e => setNewGoalData(p => ({ ...p, target: e.target.value }))}
- className="w-full ds-bg-1 border ds-border rounded-xl py-2.5 px-4 text-xs font-bold ds-t1 outline-none focus:border-blue-500"
+ className="w-full ds-bg-1 border ds-border rounded-xl py-2.5 px-4 text-xs font-bold ds-t1 outline-none focus:border-[var(--a1)]"
  />
  <input
  type="text"
  placeholder="Isi awal (opsional)"
  value={newGoalData.current}
  onChange={e => setNewGoalData(p => ({ ...p, current: e.target.value }))}
- className="w-full ds-bg-1 border ds-border rounded-xl py-2.5 px-4 text-xs font-bold ds-t1 outline-none focus:border-blue-500"
+ className="w-full ds-bg-1 border ds-border rounded-xl py-2.5 px-4 text-xs font-bold ds-t1 outline-none focus:border-[var(--a1)]"
  />
  </div>
- <button type="submit" className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-all">
+ <button type="submit" className="w-full py-2.5 text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-all active:scale-[0.98]" style={{ background: "linear-gradient(135deg, var(--a1), var(--a2))" }}>
  Simpan Target
  </button>
  </motion.form>
@@ -168,7 +171,7 @@ const WalletsSavingsPage = memo(function WalletsSavingsPage({
  </div>
  <div className="flex items-center gap-2">
  <span className="text-xs font-black ds-aurora-text">{pct}%</span>
- <button onClick={() => triggerDeleteGoal(goal.id)} className="p-1.5 ds-t3 hover:text-red-500 transition-colors">
+ <button onClick={() => triggerDeleteGoal(goal.id)} className="p-1.5 ds-t3 hover:text-fuchsia-400 transition-colors">
  <Trash2 size={14} />
  </button>
  </div>
@@ -179,7 +182,7 @@ const WalletsSavingsPage = memo(function WalletsSavingsPage({
  initial={{ width: 0 }}
  animate={{ width: `${pct}%` }}
  transition={{ duration: 1, ease: "easeOut" }}
- className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full"
+ style={{ height: "100%", background: "linear-gradient(to right, var(--a1), var(--a2))", borderRadius: "9999px" }}
  />
  </div>
 
@@ -187,13 +190,13 @@ const WalletsSavingsPage = memo(function WalletsSavingsPage({
  <div className="flex justify-between items-center">
  <button
  onClick={() => setActiveGoalInput(goal.id)}
- className="text-[9px] font-black ds-aurora-text ds-aurora-bg border border-blue-500/10 px-3 py-1.5 rounded-lg hover:bg-blue-500 hover:text-white transition-all uppercase tracking-wider"
+ className="text-[9px] font-black ds-aurora-text ds-aurora-bg border ds-aurora-border-c px-3 py-1.5 rounded-lg transition-all uppercase tracking-wider"
  >
  Mutasi Saldo
  </button>
  <button
  onClick={() => handleModifySavings(goal.id, goal.current_amount, "reset")}
- className="text-[9px] font-black ds-t3 hover:text-red-500 px-3 py-1.5 rounded-lg transition-all uppercase tracking-wider"
+ className="text-[9px] font-black ds-t3 hover:text-fuchsia-400 px-3 py-1.5 rounded-lg transition-all uppercase tracking-wider"
  >
  Reset
  </button>
@@ -205,10 +208,10 @@ const WalletsSavingsPage = memo(function WalletsSavingsPage({
  placeholder="Nominal (Cth: 10k, 50k)"
  value={flexibleSavingsAmt}
  onChange={e => setFlexibleSavingsAmt(e.target.value)}
- className="flex-1 ds-bg-3 border ds-border rounded-xl py-2 px-3 text-xs font-bold ds-t1 outline-none focus:border-blue-500"
+ className="flex-1 ds-bg-3 border ds-border rounded-xl py-2 px-3 text-xs font-bold ds-t1 outline-none focus:border-[var(--a1)]"
  />
- <button onClick={() => handleModifySavings(goal.id, goal.current_amount, "add")} className="px-3 py-2 bg-green-600 text-white font-black text-[9px] uppercase tracking-wider rounded-xl shadow-md active:scale-95 transition-all">+ Tabung</button>
- <button onClick={() => handleModifySavings(goal.id, goal.current_amount, "subtract")} className="px-3 py-2 bg-red-600 text-white font-black text-[9px] uppercase tracking-wider rounded-xl shadow-md active:scale-95 transition-all">- Pakai</button>
+ <button onClick={() => handleModifySavings(goal.id, goal.current_amount, "add")} className="px-3 py-2 text-white font-black text-[9px] uppercase tracking-wider rounded-xl shadow-md active:scale-95 transition-all" style={{ background: "var(--income)", color: "#000" }}>+ Tabung</button>
+ <button onClick={() => handleModifySavings(goal.id, goal.current_amount, "subtract")} className="px-3 py-2 text-white font-black text-[9px] uppercase tracking-wider rounded-xl shadow-md active:scale-95 transition-all" style={{ background: "color-mix(in srgb, var(--a3) 80%, var(--a2))" }}>- Pakai</button>
  <button onClick={() => { setActiveGoalInput(null); setFlexibleSavingsAmt(""); }} className="p-2 ds-t3 hover:ds-t2 text-xs font-bold">Batal</button>
  </motion.div>
  )}
@@ -346,7 +349,7 @@ const MoreTab = memo(function MoreTab({
  {
  Icon: Globe, label: MORE.LANGUAGE,
  sub: MORE.LANGUAGE_SUB,
- color: "text-indigo-500", bg: "bg-indigo-500/10",
+ color: "ds-aurora-text", bg: "ds-aurora-bg",
  action: null, // custom render
  isLang: true,
  },
@@ -358,7 +361,7 @@ const MoreTab = memo(function MoreTab({
  {
  Icon: Shield, label: MORE.USER_MGMT,
  sub: MORE.USER_MGMT_SUB,
- color: "text-rose-500", bg: "bg-rose-500/10",
+ color: "ds-aurora-text", bg: "ds-aurora-bg",
  action: () => setSubPage("users"),
  },
  ],
@@ -482,7 +485,7 @@ const MoreTab = memo(function MoreTab({
  key="logout-btn"
  initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
  onClick={() => setConfirmLogout(true)}
- className="w-full flex items-center justify-center gap-2 py-3.5 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-500 font-black text-xs uppercase tracking-widest rounded-2xl transition-all"
+ className="w-full flex items-center justify-center gap-2 py-3.5 border font-black text-xs uppercase tracking-widest rounded-2xl transition-all" style={{ background: "color-mix(in srgb, var(--a3) 8%, transparent)", borderColor: "color-mix(in srgb, var(--a3) 20%, transparent)", color: "var(--a3)" }}
  >
  <LogOut size={16} /> {MORE.LOGOUT}
  </motion.button>
@@ -500,7 +503,7 @@ const MoreTab = memo(function MoreTab({
  </button>
  <button
  onClick={handleLogout}
- className="flex-1 py-3.5 bg-red-600 hover:bg-red-500 text-white font-black text-xs uppercase tracking-widest rounded-2xl transition-all shadow-lg shadow-red-500/30"
+ className="flex-1 py-3.5 text-white font-black text-xs uppercase tracking-widest rounded-2xl transition-all active:scale-[0.98]" style={{ background: "color-mix(in srgb, var(--a3) 80%, var(--a2))", boxShadow: "0 4px 20px color-mix(in srgb, var(--a3) 25%, transparent)" }}
  >
  {MORE.LOGOUT_YES}
  </button>
