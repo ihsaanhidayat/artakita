@@ -14,10 +14,14 @@ import {
 } from "lucide-react";
 
 const CONDITIONS = [
- { value: "baru", label: "Baru", color: "ds-aurora-text", bg: "ds-aurora-bg ds-aurora-border-c" },
- { value: "baik", label: "Baik", color: "text-green-500", bg: "bg-green-500/10 border-green-500/20" },
- { value: "perlu_servis",label: "Perlu Servis", color: "text-amber-500", bg: "bg-amber-500/10 border-amber-500/20" },
- { value: "rusak", label: "Rusak", color: "text-red-500", bg: "bg-red-500/10 border-red-500/20" },
+ { value: "baru", label: "Baru",
+   style: { color: "var(--a1)", background: "color-mix(in srgb, var(--a1) 12%, transparent)", borderColor: "color-mix(in srgb, var(--a1) 25%, transparent)" } },
+ { value: "baik", label: "Baik",
+   style: { color: "var(--income)", background: "color-mix(in srgb, var(--income) 12%, transparent)", borderColor: "color-mix(in srgb, var(--income) 25%, transparent)" } },
+ { value: "perlu_servis", label: "Perlu Servis",
+   style: { color: "rgb(245,158,11)", background: "rgba(245,158,11,0.10)", borderColor: "rgba(245,158,11,0.25)" } },
+ { value: "rusak", label: "Rusak",
+   style: { color: "var(--a3)", background: "color-mix(in srgb, var(--a3) 12%, transparent)", borderColor: "color-mix(in srgb, var(--a3) 25%, transparent)" } },
 ];
 
 const getCondition = (val) => CONDITIONS.find(c => c.value === val) || CONDITIONS[1];
@@ -184,7 +188,7 @@ const AssetsTabComponent = memo(function AssetsTab({ activeWallet }) {
  {/* Summary card */}
  <div className="grid grid-cols-2 gap-3 mb-6 flex-none">
  <div className="ds-bg-1 border ds-border rounded-[20px] p-4 shadow-sm">
- <div className="flex items-center gap-1.5 text-violet-500 mb-1.5">
+ <div className="flex items-center gap-1.5 mb-1.5" style={{ color: "var(--a2)" }}>
  <Package size={13} />
  <span className="text-[9px] font-black uppercase tracking-widest">Total Aset</span>
  </div>
@@ -196,7 +200,7 @@ const AssetsTabComponent = memo(function AssetsTab({ activeWallet }) {
  <Tag size={13} />
  <span className="text-[9px] font-black uppercase tracking-widest">Nilai Total</span>
  </div>
- <p className="font-black text-base ds-t1 leading-tight">Rp {fmt(totalValue)}</p>
+ <p className="font-black text-base ds-t1 ff-mono leading-tight">Rp {fmt(totalValue)}</p>
  <p className="text-[9px] ds-t3 mt-0.5">estimasi harga beli</p>
  </div>
  </div>
@@ -254,11 +258,12 @@ const AssetsTabComponent = memo(function AssetsTab({ activeWallet }) {
  <div className="flex-1 min-w-0">
  <p className="font-black text-sm ds-t1 truncate">{asset.name}</p>
  <div className="flex items-center gap-2 mt-0.5 flex-wrap">
- <span className={`text-[8px] font-black px-2 py-0.5 rounded-full border uppercase tracking-widest ${cond.bg} ${cond.color}`}>
- {cond.label}
- </span>
+ <span
+  className="text-[8px] font-black px-2 py-0.5 rounded-full border uppercase tracking-widest"
+  style={cond.style}
+ >{cond.label}</span>
  {asset.price > 0 && (
- <span className="text-[9px] ds-t3">Rp {fmt(asset.price)}</span>
+ <span className="text-[9px] ds-t3 ff-mono">Rp {fmt(asset.price)}</span>
  )}
  </div>
  </div>
@@ -324,20 +329,21 @@ const AssetsTabComponent = memo(function AssetsTab({ activeWallet }) {
  {asset.photo_url && (
  <button
  onClick={() => setViewer({ open: true, url: asset.photo_url, label: asset.name })}
- className="flex items-center gap-1.5 px-3 py-2 bg-violet-500/10 hover:bg-violet-500 border border-violet-500/20 text-violet-500 hover:text-white font-black text-[9px] uppercase tracking-widest rounded-xl transition-all"
+ className="flex items-center gap-1.5 px-3 py-2 border font-black text-[9px] uppercase tracking-widest rounded-xl transition-all"
+ style={{ color: "var(--a2)", background: "color-mix(in srgb, var(--a2) 12%, transparent)", borderColor: "color-mix(in srgb, var(--a2) 25%, transparent)" }}
  >
  <Eye size={12} /> Lihat Foto
  </button>
  )}
  <button
  onClick={() => openEdit(asset)}
- className="flex items-center gap-1.5 px-3 py-2 ds-aurora-bg hover:bg-blue-500 border ds-aurora-border-c ds-aurora-text hover:text-white font-black text-[9px] uppercase tracking-widest rounded-xl transition-all"
+ className="flex items-center gap-1.5 px-3 py-2 ds-aurora-bg border ds-aurora-border-c ds-aurora-text font-black text-[9px] uppercase tracking-widest rounded-xl transition-all"
  >
  <Edit3 size={12} /> Edit
  </button>
  <button
  onClick={() => setDeleteModal({ show: true, id: asset.id, name: asset.name })}
- className="p-2 ds-t3 hover:text-red-500 ds-bg-3 rounded-xl transition-colors ml-auto"
+ className="p-2 ds-t3 hover:text-fuchsia-400 ds-bg-3 rounded-xl transition-colors ml-auto"
  >
  <Trash2 size={14} />
  </button>
@@ -358,7 +364,8 @@ const AssetsTabComponent = memo(function AssetsTab({ activeWallet }) {
  initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}
  whileTap={{ scale: 0.9 }}
  onClick={openAdd}
- className="fixed bottom-24 right-6 w-14 h-14 bg-violet-600 hover:bg-violet-500 rounded-full shadow-2xl shadow-violet-600/40 flex items-center justify-center text-white z-40 transition-colors"
+ className="fixed bottom-24 right-6 w-14 h-14 rounded-full shadow-2xl flex items-center justify-center text-white z-40"
+ style={{ background: "linear-gradient(135deg, var(--a1), var(--a2))", boxShadow: "0 8px 32px color-mix(in srgb, var(--a1) 35%, transparent)" }}
  >
  <Plus size={24} />
  </motion.button>
@@ -391,7 +398,7 @@ const AssetsTabComponent = memo(function AssetsTab({ activeWallet }) {
  <button
  type="button"
  onClick={() => { if (!isSaving) { resetForm(); setIsFormOpen(false); } }}
- className="p-2 ds-t3 hover:text-red-500 ds-bg-3 rounded-full transition-colors"
+ className="p-2 ds-t3 hover:text-fuchsia-400 ds-bg-3 rounded-full transition-colors"
  >
  <X size={18} />
  </button>
@@ -415,7 +422,7 @@ const AssetsTabComponent = memo(function AssetsTab({ activeWallet }) {
  placeholder="Cth: Laptop Dell XPS, iPhone 15"
  value={form.name}
  onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
- className="w-full ds-bg-3 border ds-borderds-t1 font-bold text-sm p-4 rounded-2xl outline-none focus:border-violet-500 transition-all placeholder-gray-400"
+ className="w-full ds-bg-3 border ds-border ds-t1 font-bold text-sm p-4 rounded-2xl outline-none focus:border-[var(--a1)] transition-all placeholder-gray-400"
  />
  </div>
 
@@ -428,7 +435,7 @@ const AssetsTabComponent = memo(function AssetsTab({ activeWallet }) {
  placeholder="Tokopedia, iBox..."
  value={form.store_name}
  onChange={e => setForm(p => ({ ...p, store_name: e.target.value }))}
- className="w-full ds-bg-3 border ds-borderds-t1 font-bold text-sm p-3 rounded-2xl outline-none focus:border-violet-500 transition-all placeholder-gray-400"
+ className="w-full ds-bg-3 border ds-border ds-t1 font-bold text-sm p-3 rounded-2xl outline-none focus:border-[var(--a1)] transition-all placeholder-gray-400"
  />
  </div>
  <div>
@@ -437,7 +444,7 @@ const AssetsTabComponent = memo(function AssetsTab({ activeWallet }) {
  type="date"
  value={form.purchase_date}
  onChange={e => setForm(p => ({ ...p, purchase_date: e.target.value }))}
- className="w-full ds-bg-3 border ds-borderds-t1 font-bold text-sm p-3 rounded-2xl outline-none focus:border-violet-500 transition-all"
+ className="w-full ds-bg-3 border ds-border ds-t1 font-bold text-sm p-3 rounded-2xl outline-none focus:border-[var(--a1)] transition-all"
  />
  </div>
  </div>
@@ -450,7 +457,7 @@ const AssetsTabComponent = memo(function AssetsTab({ activeWallet }) {
  placeholder="Cth: 5jt, 1.5jt, 500k"
  value={form.price}
  onChange={e => setForm(p => ({ ...p, price: e.target.value }))}
- className="w-full ds-bg-3 border ds-borderds-t1 font-bold text-sm p-4 rounded-2xl outline-none focus:border-violet-500 transition-all placeholder-gray-400"
+ className="w-full ds-bg-3 border ds-border ds-t1 font-bold text-sm p-4 rounded-2xl outline-none focus:border-[var(--a1)] transition-all placeholder-gray-400"
  />
  </div>
 
@@ -464,10 +471,9 @@ const AssetsTabComponent = memo(function AssetsTab({ activeWallet }) {
  type="button"
  onClick={() => setForm(p => ({ ...p, condition: c.value }))}
  className={`py-2 rounded-xl font-black text-[9px] uppercase tracking-widest border transition-all ${
- form.condition === c.value
- ? `${c.bg} ${c.color}`
- : "ds-bg-3 ds-bordertext-gray-400"
+ form.condition !== c.value ? "ds-bg-3 ds-border ds-t3" : ""
  }`}
+ style={form.condition === c.value ? c.style : undefined}
  >
  {c.label}
  </button>
@@ -483,14 +489,15 @@ const AssetsTabComponent = memo(function AssetsTab({ activeWallet }) {
  placeholder="Serial number, garansi, keterangan lain..."
  value={form.notes}
  onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
- className="w-full ds-bg-3 border ds-borderds-t1 font-bold text-sm p-4 rounded-2xl outline-none focus:border-violet-500 transition-all placeholder-gray-400 resize-none"
+ className="w-full ds-bg-3 border ds-border ds-t1 font-bold text-sm p-4 rounded-2xl outline-none focus:border-[var(--a1)] transition-all placeholder-gray-400 resize-none"
  />
  </div>
 
  <button
  type="submit"
  disabled={isSaving || isUploading}
- className="w-full flex items-center justify-center gap-2 py-4 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white font-black text-xs uppercase tracking-widest rounded-2xl transition-all shadow-lg shadow-violet-500/30"
+ className="w-full flex items-center justify-center gap-2 py-4 disabled:opacity-50 text-white font-black text-xs uppercase tracking-widest rounded-2xl transition-all"
+ style={{ background: "linear-gradient(135deg, var(--a1), var(--a2))" }}
  >
  {(isSaving || isUploading)
  ? <><Loader2 size={16} className="animate-spin" /> Menyimpan...</>
@@ -522,18 +529,18 @@ const AssetsTabComponent = memo(function AssetsTab({ activeWallet }) {
  <motion.div
  initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
  transition={{ type: "spring", damping: 25, stiffness: 300 }}
- className="w-full max-w-sm ds-bg-1 rounded-[32px] p-6 shadow-2xl border border-red-100 text-center"
+ className="w-full max-w-sm ds-bg-1 rounded-[32px] p-6 shadow-2xl border ds-border text-center"
  >
- <div className="w-14 h-14 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
- <Trash2 className="text-red-500" size={24} />
+ <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: "color-mix(in srgb, var(--a3) 15%, transparent)", color: "var(--a3)" }}>
+ <Trash2 size={24} />
  </div>
  <h3 className="text-sm font-black ds-t1 uppercase tracking-widest mb-2">Hapus Aset?</h3>
  <p className="text-xs ds-t2 mb-6">
  <strong>{deleteModal.name}</strong> beserta fotonya akan dihapus permanen.
  </p>
  <div className="flex gap-3">
- <button onClick={() => setDeleteModal({ show: false, id: null, name: "" })} className="flex-1 ds-bg-3ds-t1 font-black text-xs uppercase tracking-widest py-3.5 rounded-2xl transition-all">Batal</button>
- <button onClick={confirmDelete} className="flex-1 bg-red-600 hover:bg-red-500 text-white font-black text-xs uppercase tracking-widest py-3.5 rounded-2xl transition-all shadow-lg shadow-red-500/30">Hapus</button>
+ <button onClick={() => setDeleteModal({ show: false, id: null, name: "" })} className="flex-1 ds-bg-3 ds-t1 font-black text-xs uppercase tracking-widest py-3.5 rounded-2xl transition-all">Batal</button>
+ <button onClick={confirmDelete} className="flex-1 text-white font-black text-xs uppercase tracking-widest py-3.5 rounded-2xl transition-all" style={{ background: "color-mix(in srgb, var(--a3) 85%, #000)" }}>Hapus</button>
  </div>
  </motion.div>
  </motion.div>
@@ -549,11 +556,13 @@ const AssetsTabComponent = memo(function AssetsTab({ activeWallet }) {
  exit={{ opacity: 0, y: -20, scale: 0.9 }}
  className="fixed top-6 left-0 right-0 z-[50] flex justify-center px-4 pointer-events-none"
  >
- <div className={`flex items-center gap-3 px-5 py-3.5 rounded-full shadow-2xl backdrop-blur-xl border ${
- toast.type === "error"
- ? "bg-red-500/10 border-red-500/20 text-red-500"
- : "bg-green-500/10 border-green-500/20 text-green-500"
- }`}>
+ <div
+  className="flex items-center gap-3 px-5 py-3.5 rounded-full shadow-2xl backdrop-blur-xl border"
+  style={toast.type === "error"
+   ? { background: "color-mix(in srgb, var(--a3) 12%, transparent)", borderColor: "color-mix(in srgb, var(--a3) 25%, transparent)", color: "var(--a3)" }
+   : { background: "color-mix(in srgb, var(--income) 12%, transparent)", borderColor: "color-mix(in srgb, var(--income) 25%, transparent)", color: "var(--income)" }
+  }
+ >
  <X size={15} />
  <span className="text-xs font-bold tracking-wide">{toast.msg}</span>
  </div>

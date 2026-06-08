@@ -31,7 +31,7 @@ export const metadata = {
 export default function RootLayout({ children }) {
  return (
   <html lang="id" className="dark" suppressHydrationWarning>
-   <body className={`${dmSans.variable} ${dmMono.variable}`} style={{ background: "#000", color: "rgba(255,255,255,0.95)", fontFamily: "var(--ff-sans)" }}>
+   <body className={`${dmSans.variable} ${dmMono.variable}`} style={{ background: "var(--bg-0)", color: "var(--text-1)", fontFamily: "var(--ff-sans)" }}>
     {children}
    </body>
   </html>

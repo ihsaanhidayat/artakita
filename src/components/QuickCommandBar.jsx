@@ -357,7 +357,7 @@ const QuickCommandBar = memo(function QuickCommandBar({
       </AnimatePresence>
 
       {/* Container */}
-      <div className="relative z-50 flex items-center justify-center">
+      <div className="relative flex items-center justify-center">
         <AnimatePresence mode="wait" initial={false}>
 
           {/* FAB */}
@@ -411,16 +411,20 @@ const QuickCommandBar = memo(function QuickCommandBar({
                   >
                     <div className="flex items-center gap-2 px-4 pt-3 pb-1 flex-wrap">
                       {/* Tipe */}
-                      <span className={`text-[9px] font-black px-2 py-1 rounded-lg uppercase tracking-widest ${preview.type === "income"
-                        ? "bg-green-500/15 text-green-400"
-                        : "bg-red-500/15 text-red-400"
-                        }`}>
+                      <span
+                        className="text-[9px] font-black px-2 py-1 rounded-lg uppercase tracking-widest"
+                        style={preview.type === "income"
+                          ? { background: "color-mix(in srgb, var(--income) 15%, transparent)", color: "var(--income)" }
+                          : { background: "color-mix(in srgb, var(--a3) 15%, transparent)", color: "var(--a3)" }}
+                      >
                         {preview.type === "income" ? "Masuk" : "Keluar"}
                       </span>
 
                       {/* Nominal */}
-                      <span className={`font-black text-sm ${preview.type === "income" ? "text-green-400" : "text-red-400"
-                        }`}>
+                      <span
+                        className="font-black text-sm ff-mono"
+                        style={{ color: preview.type === "income" ? "var(--income)" : "var(--a3)" }}
+                      >
                         {preview.hasAmount ? `Rp ${fmtRp(preview.amount)}` : "···"}
                       </span>
 
@@ -437,12 +441,14 @@ const QuickCommandBar = memo(function QuickCommandBar({
                           type="button"
                           disabled={!canClick}
                           onClick={() => canClick && setShowCandList(p => !p)}
-                          className={`flex items-center gap-1 text-[9px] font-black px-2.5 py-1 rounded-lg uppercase tracking-widest transition-all ${preview.isManual || isExact
-                            ? "bg-blue-500/20 text-blue-400 cursor-default"
-                            : canClick
-                              ? "bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 active:scale-95"
-                              : "bg-white/10 text-white/40 cursor-default"
-                            }`}
+                          className={`flex items-center gap-1 text-[9px] font-black px-2.5 py-1 rounded-lg uppercase tracking-widest transition-all ${
+                            (preview.isManual || isExact || canClick)
+                              ? "active:scale-95"
+                              : "cursor-default"
+                          }`}
+                          style={(preview.isManual || isExact || canClick)
+                            ? { background: "color-mix(in srgb, var(--a2) 15%, transparent)", color: "var(--a2)" }
+                            : { background: "color-mix(in srgb, var(--text-1) 8%, transparent)", color: "var(--text-3)" }}
                         >
                           {preview.isManual ? "📌" : candidates.length > 0 ? "🤖" : ""}
                           {shownCat}
@@ -471,13 +477,13 @@ const QuickCommandBar = memo(function QuickCommandBar({
                                     <button
                                       key={`cat-${ci}-${catName}`}
                                       onClick={() => { setSelCategory(catName); setShowCandList(false); }}
-                                      className={`w-full text-left px-4 py-2.5 text-xs font-bold transition-colors flex items-center justify-between gap-3 ${shownCat === catName
-                                        ? "text-blue-400 bg-blue-500/10"
-                                        : "text-white/70 hover:bg-white/5"
-                                        }`}
+                                      className="w-full text-left px-4 py-2.5 text-xs font-bold transition-colors flex items-center justify-between gap-3"
+                                      style={shownCat === catName
+                                        ? { color: "var(--a2)", background: "color-mix(in srgb, var(--a2) 10%, transparent)" }
+                                        : { color: "var(--text-2)" }}
                                     >
                                       {catName}
-                                      {shownCat === catName && <span className="text-blue-400 text-[10px]">✓</span>}
+                                      {shownCat === catName && <span style={{ color: "var(--a2)" }} className="text-[10px]">✓</span>}
                                     </button>
                                   );
                                 })}
@@ -515,7 +521,7 @@ const QuickCommandBar = memo(function QuickCommandBar({
                         value={selDate}
                         max={TODAY()}
                         onChange={e => { setSelDate(e.target.value || TODAY()); inputRef.current?.focus(); }}
-                        className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-white outline-none focus:border-blue-500 transition-colors"
+                        className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-white outline-none focus:border-[var(--a1)] transition-colors"
                       />
                       {selDate !== TODAY() && (
                         <button type="button" onClick={() => { setSelDate(TODAY()); inputRef.current?.focus(); }}
@@ -562,14 +568,16 @@ const QuickCommandBar = memo(function QuickCommandBar({
 
                 {/* Mic */}
                 <button type="button" onClick={toggleVoice}
-                  className={`p-2 rounded-xl transition-all shrink-0 ${isListening ? "text-red-400 bg-red-500/10 animate-pulse" : "text-white/30 hover:text-white/70 hover:bg-white/5"
-                    }`}>
+                  className={`p-2 rounded-xl transition-all shrink-0 ${isListening ? "animate-pulse" : "text-white/30 hover:text-white/70 hover:bg-white/5"}`}
+                  style={isListening ? { color: "var(--a3)", background: "color-mix(in srgb, var(--a3) 10%, transparent)" } : undefined}
+                  >
                   <Mic size={17} />
                 </button>
 
                 <button type="submit" disabled={isSmartLoading || !inputText.trim() || inputText === "Mendengarkan..."}
-                  className={`p-2 rounded-xl transition-all shrink-0 ${preview && !isSmartLoading ? "text-blue-400 bg-blue-500/15 hover:bg-blue-500/25" : "text-white/20"
-                    } disabled:opacity-30`}>
+                  className="p-2 rounded-xl transition-all shrink-0 disabled:opacity-30"
+                  style={(preview && !isSmartLoading) ? { background: "linear-gradient(135deg, var(--a1), var(--a2))", color: "#fff" } : { color: "var(--text-4)" }}
+                  >
                   {isSmartLoading
                     ? <div className="w-4 h-4 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" />
                     : <Send size={17} />
@@ -629,10 +637,11 @@ const QuickCommandBar = memo(function QuickCommandBar({
                             // User review dulu, baru Enter untuk submit
                             inputRef.current?.focus();
                           }}
-                          className="flex items-center gap-1.5 px-2.5 py-1.5 bg-blue-500/20 hover:bg-blue-500/35 active:scale-95 border border-blue-400/20 rounded-xl text-white text-[10px] font-black whitespace-nowrap transition-all shrink-0"
+                          className="flex items-center gap-1.5 px-2.5 py-1.5 active:scale-95 rounded-xl text-[10px] font-black whitespace-nowrap transition-all shrink-0 border"
+                          style={{ background: "color-mix(in srgb, var(--a2) 12%, transparent)", borderColor: "color-mix(in srgb, var(--a2) 20%, transparent)", color: "var(--a2)" }}
                         >
                           {s.isPosMode ? (
-                            <span className="text-violet-300 font-black">{s.displayLabel}</span>
+                            <span style={{ color: "var(--a2)" }} className="font-black">{s.displayLabel}</span>
                           ) : (
                             <span>{s.phrase}</span>
                           )}
@@ -640,7 +649,7 @@ const QuickCommandBar = memo(function QuickCommandBar({
                             <span className="text-amber-300/70">· {s.typicalAmount >= 1000000 ? `${(s.typicalAmount / 1000000).toFixed(1)}jt` : s.typicalAmount >= 1000 ? `${Math.round(s.typicalAmount / 1000)}k` : s.typicalAmount}</span>
                           )}
                           {!s.isPosMode && s.categoryName && (
-                            <span className="text-blue-300 opacity-70">· {s.categoryName}</span>
+                            <span style={{ color: "var(--a1)", opacity: 0.7 }}>· {s.categoryName}</span>
                           )}
                         </motion.button>
                       );
@@ -658,14 +667,14 @@ const QuickCommandBar = memo(function QuickCommandBar({
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0 }}
                       transition={{ duration: 0.15 }}
-                      className="text-[9px] font-black text-red-400 mb-1.5"
+                      className="text-[9px] font-black mb-1.5" style={{ color: "var(--a3)" }}
                     >
                       ⚠ Format: <span className="text-white/60">50k makan siang</span> atau <span className="text-white/60">in 5jt gaji</span>
                     </motion.p>
                   )}
                 </AnimatePresence>
                 <p className="text-[9px] text-white/20 font-bold">
-                  ketik bebas · <span className="text-green-400/50">in</span> = pemasukan
+                  ketik bebas · <span style={{ color: "color-mix(in srgb, var(--income) 50%, transparent)" }}>in</span> = pemasukan
                   {selDate !== TODAY() && <span className="text-amber-400/50"> · {dateLabel(selDate)}</span>}
                 </p>
               </div>

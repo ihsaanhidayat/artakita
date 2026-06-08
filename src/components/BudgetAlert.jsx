@@ -76,7 +76,7 @@ const BudgetAlert = function BudgetAlert({ budgets = [], transactions = [] }) {
                 <p className="text-[10px] font-black" style={{ color: accentColor }}>
                   {isOver ? "Anggaran Terlampaui" : "Anggaran Hampir Habis"}
                 </p>
-                <p className="text-[9px] mt-0.5 ds-t3">
+                <p className="text-[9px] mt-0.5 ds-t3 ff-mono">
                   <span className="ds-t2 font-bold">{alert.category_name}</span>
                   {" · "}{alert.pct.toFixed(0)}% terpakai
                   {" · "}Rp {Number(alert.spent).toLocaleString("id-ID")} / Rp {Number(alert.limit_amount).toLocaleString("id-ID")}

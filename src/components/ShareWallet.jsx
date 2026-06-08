@@ -63,10 +63,10 @@ export default function ShareWallet({ walletId, onClose, onSuccess, onError }) {
   return (
     <div>
       <div className="text-center mb-6">
-        <h3 className="text-base font-black text-gray-900 dark:text-white uppercase tracking-widest">
+        <h3 className="text-base font-black ds-t1 uppercase tracking-widest">
           Bagikan Akses
         </h3>
-        <p className="text-xs font-bold text-gray-500 mt-1">Kolaborasi pencatatan dompet</p>
+        <p className="text-xs font-bold ds-t3 mt-1">Kolaborasi pencatatan dompet</p>
       </div>
 
       {/* Warning box */}
@@ -82,7 +82,7 @@ export default function ShareWallet({ walletId, onClose, onSuccess, onError }) {
           <p className="text-[10px] font-black text-orange-600 dark:text-orange-500 uppercase tracking-widest mb-1">
             Peringatan Keamanan
           </p>
-          <p className="text-xs font-bold text-gray-700 dark:text-gray-300 leading-relaxed">
+          <p className="text-xs font-bold ds-t2 leading-relaxed">
             Pengguna yang Anda pilih akan memiliki hak akses penuh untuk{" "}
             <strong>melihat, menambah, dan mengedit</strong> transaksi di dalam dompet ini.
           </p>
@@ -91,12 +91,12 @@ export default function ShareWallet({ walletId, onClose, onSuccess, onError }) {
 
       <form onSubmit={handleShareWallet} className="space-y-4">
         <div>
-          <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 ml-1">
+          <label className="block text-[10px] font-black ds-t3 uppercase tracking-widest mb-2 ml-1">
             Pilih Rekan
           </label>
 
           {isFetching ? (
-            <div className="w-full bg-gray-50 dark:bg-[#0a0f1c] border border-gray-200 dark:border-gray-800 rounded-2xl py-4 px-5 text-sm text-gray-400 font-bold animate-pulse">
+            <div className="w-full bg-gray-50 dark:bg-[#0a0f1c] border border-gray-200 dark:border-gray-800 rounded-2xl py-4 px-5 text-sm ds-t3 font-bold animate-pulse">
               Memuat daftar kontak...
             </div>
           ) : (
@@ -105,7 +105,7 @@ export default function ShareWallet({ walletId, onClose, onSuccess, onError }) {
                 value={selectedUid}
                 onChange={(e) => setSelectedUid(e.target.value)}
                 required
-                className="appearance-none w-full bg-gray-50 dark:bg-[#0a0f1c] border border-gray-200 dark:border-gray-800 rounded-2xl py-4 pl-5 pr-10 text-sm text-gray-900 dark:text-white outline-none focus:border-blue-500 font-bold transition-all cursor-pointer"
+                className="appearance-none w-full bg-gray-50 dark:bg-[#0a0f1c] border border-gray-200 dark:border-gray-800 rounded-2xl py-4 pl-5 pr-10 text-sm ds-t1 outline-none focus:border-[var(--a1)] font-bold transition-all cursor-pointer"
               >
                 <option value="" disabled>-- Pilih Pengguna Terdaftar --</option>
                 {users.map((user) => (
@@ -114,7 +114,7 @@ export default function ShareWallet({ walletId, onClose, onSuccess, onError }) {
                   </option>
                 ))}
               </select>
-              <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-gray-400">
+              <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none ds-t3">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                   <path d="m6 9 6 6 6-6" />
                 </svg>
@@ -126,7 +126,8 @@ export default function ShareWallet({ walletId, onClose, onSuccess, onError }) {
         <button
           type="submit"
           disabled={isLoading || isFetching || !selectedUid}
-          className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-gray-400 dark:disabled:bg-gray-800 text-white font-black text-xs uppercase tracking-widest py-4 rounded-2xl transition-all shadow-lg shadow-blue-500/30 mt-2"
+          className="w-full disabled:opacity-40 text-white font-black text-xs uppercase tracking-widest py-4 rounded-2xl transition-all mt-2"
+          style={{ background: "linear-gradient(135deg, var(--a1), var(--a2))" }}
         >
           {isLoading ? "Memproses Akses..." : "Bagikan Akses Sekarang"}
         </button>

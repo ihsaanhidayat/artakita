@@ -166,9 +166,9 @@ const FotoInline = memo(function FotoInline({ trxId, userId, category, type, onP
       <button ref={btnRef} onClick={handleOpen} disabled={isUploading}
         className="w-11 h-11 rounded-2xl flex items-center justify-center font-black text-[11px] transition-all active:scale-90"
         style={{
-          background: type === "income" ? "color-mix(in srgb, var(--income) 10%, transparent)" : "rgba(251, 113, 133, 0.1)", // Latar merah super tipis
-          color: type === "income" ? "var(--income)" : "#fb7185", // Teks merah terang
-          border: `1px solid ${type === "income" ? "color-mix(in srgb, var(--income) 20%, transparent)" : "rgba(251, 113, 133, 0.2)"}`, // Border menyala
+          background: type === "income" ? "color-mix(in srgb, var(--income) 10%, transparent)" : "color-mix(in srgb, var(--a3) 10%, transparent)",
+          color: type === "income" ? "var(--income)" : "var(--a3)",
+          border: `1px solid ${type === "income" ? "color-mix(in srgb, var(--income) 20%, transparent)" : "color-mix(in srgb, var(--a3) 20%, transparent)"}`,
         }}>
         {isUploading ? <Loader2 size={14} className="animate-spin" /> : initials}
       </button>
@@ -209,7 +209,7 @@ const HomeTabComponent = memo(function HomeTab({
   mounted, allBudgets, transactionsThisMonth,
   hasMore, loadMore, isLoading, totalCount,
   isOnline, pendingCount, isSyncing,
-  onEditTransaction, onDeleteTransaction, session,
+  onEditTransaction, onSaveTransaction, onDeleteTransaction, session,
 }) {
   const [viewerUrl, setViewerUrl] = useState(null);
   const [viewerLabel, setViewerLabel] = useState("");
@@ -234,12 +234,12 @@ const HomeTabComponent = memo(function HomeTab({
     background: isActive
       ? key === "income"
         ? "color-mix(in srgb, var(--income) 7%, transparent)"
-        : "color-mix(in srgb, #fb7185 7%, transparent)" // Efek latar merah transparan
+        : "color-mix(in srgb, var(--a3) 7%, transparent)"
       : "var(--bg-3)",
     border: `1px solid ${isActive
       ? key === "income"
         ? "color-mix(in srgb, var(--income) 30%, transparent)"
-        : "color-mix(in srgb, #fb7185 30%, transparent)" // Border merah menyala
+        : "color-mix(in srgb, var(--a3) 30%, transparent)"
       : "var(--border)"}`,
     borderRadius: 18,
     transition: "all 0.2s",
@@ -278,7 +278,7 @@ const HomeTabComponent = memo(function HomeTab({
         </div>
 
         {/* ── Balance Card ────────────────────────────────────────────── */}
-        <div className="ds-card p-5 mb-4 ds-fade-1">
+        <div className="ds-aurora-card ds-aurora-glow-card p-5 mb-4">
           <p className="text-[9px] font-black uppercase tracking-[0.28em] mb-2 ds-t3">{HOME.TOTAL_BALANCE}</p>
           <div className="flex items-baseline gap-1 mb-4">
             <span className="text-[18px] font-light ds-t3">Rp</span>
@@ -287,9 +287,9 @@ const HomeTabComponent = memo(function HomeTab({
             </span>
           </div>
 
-          {/* Aurora accent line */}
+          {/* Aurora accent line — 3-warna */}
           <div className="h-px mb-4" style={{
-            background: "linear-gradient(90deg, color-mix(in srgb, var(--a1) 40%, transparent), color-mix(in srgb, var(--a2) 30%, transparent), transparent)"
+            background: "linear-gradient(90deg, color-mix(in srgb, var(--a1) 55%, transparent), color-mix(in srgb, var(--a3) 40%, transparent), color-mix(in srgb, var(--a2) 40%, transparent), transparent)"
           }} />
 
           <BudgetAlert budgets={allBudgets} transactions={transactionsThisMonth} />
@@ -312,7 +312,7 @@ const HomeTabComponent = memo(function HomeTab({
           <div className="grid grid-cols-2 gap-2.5">
             {[
               { key: "income", label: HOME.INCOME, val: filteredIncome, color: "var(--income)" },
-              { key: "expense", label: HOME.EXPENSE, val: filteredExpense, color: "#fb7185" }, // Warna teks nominal jadi merah ruby
+              { key: "expense", label: HOME.EXPENSE, val: filteredExpense, color: "var(--a3)" },
             ].map(({ key, label, val, color }) => (
               <button key={key} onClick={() => setTypeFilter(typeFilter === key ? "all" : key)}
                 style={btnStyle(typeFilter === key, key)}
@@ -350,16 +350,24 @@ const HomeTabComponent = memo(function HomeTab({
               <motion.div key={trx.id} layout
                 initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.97 }} transition={{ duration: 0.15 }}
-                // CATATAN: 'flex items-center justify-between' dipindah ke dalam agar mode edit bisa muat
-                className="relative overflow-hidden px-4 py-3.5 rounded-[20px] mb-2 transition-colors"
+                className="relative overflow-hidden px-4 py-3 rounded-[20px] mb-2 transition-colors"
                 style={{
-                  background: "rgba(255, 255, 255, 0.02)",
-                  border: `1px solid ${trx._pending ? "color-mix(in srgb,#f59e0b 25%,transparent)" : "rgba(255, 255, 255, 0.05)"}`,
-                  borderLeft: trx.type === "income"
-                    ? `2px solid color-mix(in srgb, var(--income) 60%, transparent)`
-                    : `2px solid color-mix(in srgb, #fb7185 60%, transparent)`,
+                  background: trx.type === "income"
+                    ? "color-mix(in srgb, var(--a1) 4%, rgba(255,255,255,0.02))"
+                    : "color-mix(in srgb, var(--a3) 4%, rgba(255,255,255,0.02))",
+                  border: `1px solid ${trx._pending ? "color-mix(in srgb,#f59e0b 25%,transparent)" : "rgba(255,255,255,0.05)"}`,
                 }}
               >
+
+                {/* Aurora left gradient bar */}
+                <div className="absolute left-0 top-0 bottom-0 w-[3px] rounded-l-[20px]" style={{
+                  background: trx.type === "income"
+                    ? "linear-gradient(to bottom, var(--a1), var(--a2))"
+                    : "linear-gradient(to bottom, var(--a3), var(--a2))",
+                  boxShadow: trx.type === "income"
+                    ? "4px 0 18px color-mix(in srgb, var(--a1) 40%, transparent)"
+                    : "4px 0 18px color-mix(in srgb, var(--a3) 40%, transparent)",
+                }} />
 
                 {/* ── BUNGKUS DENGAN ANIMATE PRESENCE UNTUK EFEK MORPHING (EDIT vs NORMAL) ── */}
                 <AnimatePresence mode="wait">
@@ -382,7 +390,7 @@ const HomeTabComponent = memo(function HomeTab({
                           type="text"
                           value={editData.note}
                           onChange={e => setEditData({ ...editData, note: e.target.value })}
-                          className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-[12px] font-bold text-white outline-none focus:border-blue-500/50 transition-all placeholder-white/30"
+                          className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-[12px] font-bold text-white outline-none focus:border-[var(--a1)] transition-all placeholder-white/30"
                           placeholder="Nama Item..."
                         />
                         <div className="relative w-[110px] shrink-0">
@@ -391,7 +399,7 @@ const HomeTabComponent = memo(function HomeTab({
                             type="text" // Menggunakan text agar bisa menampung huruf 'k' atau 'jt'
                             value={editData.amount}
                             onChange={e => setEditData({ ...editData, amount: e.target.value })}
-                            className="w-full bg-white/5 border border-white/10 rounded-xl pl-7 pr-3 py-2 text-[12px] font-bold text-white outline-none focus:border-blue-500/50 transition-all ff-mono"
+                            className="w-full bg-white/5 border border-white/10 rounded-xl pl-7 pr-3 py-2 text-[12px] font-bold text-white outline-none focus:border-[var(--a1)] transition-all ff-mono"
                             placeholder="30k / 3jt"
                           />
                         </div>
@@ -411,7 +419,7 @@ const HomeTabComponent = memo(function HomeTab({
                           />
                           {/* Titik indikator biru jika tanggalnya diganti dari aslinya */}
                           {editData.date !== (trx.created_at?.slice(0, 10) || "") && (
-                            <div className="absolute top-1.5 right-1.5 w-1 h-1 bg-blue-400 rounded-full shadow-[0_0_5px_#60a5fa]" />
+                            <div className="absolute top-1.5 right-1.5 w-1 h-1 rounded-full" style={{ background: "var(--a1)", boxShadow: "0 0 5px var(--a1)" }} />
                           )}
                         </div>
 
@@ -421,7 +429,8 @@ const HomeTabComponent = memo(function HomeTab({
                           type="text"
                           value={editData.category}
                           onChange={e => setEditData({ ...editData, category: e.target.value.toUpperCase() })}
-                          className="w-[65px] shrink-0 bg-blue-500/10 border border-blue-500/30 rounded-xl px-2 py-1.5 text-[9px] font-black uppercase tracking-widest text-blue-300 outline-none focus:border-blue-400 transition-all text-center"
+                          className="w-[65px] shrink-0 rounded-xl px-2 py-1.5 text-[9px] font-black uppercase tracking-widest outline-none focus:border-[var(--a2)] transition-all text-center border"
+                          style={{ background: "color-mix(in srgb, var(--a2) 12%, transparent)", borderColor: "color-mix(in srgb, var(--a2) 28%, transparent)", color: "var(--a2)" }}
                           placeholder="POS"
                         />
 
@@ -463,7 +472,6 @@ const HomeTabComponent = memo(function HomeTab({
                           </button>
                           <button
                             onClick={() => {
-                              // LOGIKA NOMINAL CERDAS (Ubah 'k' dan 'jt' jadi angka beneran)
                               let finalAmount = editData.amount;
                               if (typeof finalAmount === 'string') {
                                 let str = finalAmount.toLowerCase().trim();
@@ -471,16 +479,24 @@ const HomeTabComponent = memo(function HomeTab({
                                 else if (str.endsWith('jt') || str.endsWith('m')) finalAmount = parseFloat(str) * 1000000;
                                 else finalAmount = parseFloat(str.replace(/[^0-9.-]+/g, "")) || 0;
                               }
-
-                              // Tembak Data ke Fungsi Utama
-                              onEditTransaction({
+                              let newCreatedAt = trx.created_at;
+                              if (editData.date) {
+                                const orig = trx.created_at ? new Date(trx.created_at) : new Date();
+                                const [y, m, d] = editData.date.split("-").map(Number);
+                                orig.setFullYear(y, m - 1, d);
+                                newCreatedAt = orig.toISOString();
+                              }
+                              onSaveTransaction({
                                 ...trx,
-                                ...editData,
-                                amount: finalAmount
+                                note: editData.note,
+                                amount: finalAmount,
+                                category: editData.category,
+                                created_at: newCreatedAt,
                               });
                               setInlineEditId(null);
                             }}
-                            className="px-3 py-1.5 rounded-xl bg-blue-500/20 text-blue-400 border border-blue-500/30 hover:bg-blue-500/30 text-[9px] font-black uppercase tracking-widest transition-colors shadow-[0_0_12px_rgba(59,130,246,0.25)] active:scale-95"
+                            className="px-3 py-1.5 rounded-xl text-white text-[9px] font-black uppercase tracking-widest transition-all active:scale-95"
+                            style={{ background: "linear-gradient(135deg, var(--a1), var(--a2))" }}
                           >
                             Simpan
                           </button>
@@ -492,75 +508,77 @@ const HomeTabComponent = memo(function HomeTab({
                   ) : (
 
                     /* ==========================================
-                       2. MODE NORMAL: DESAIN ASLI KARTU TRANSAKSI
+                       2. MODE NORMAL: AURORA CARD LAYOUT
                        ========================================== */
                     <motion.div
                       key="normal-mode"
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
-                      className="flex items-center justify-between w-full"
+                      className="flex flex-col w-full gap-1.5 pl-1"
                     >
-                      <div className="flex items-center gap-3 min-w-0">
+                      {/* Baris 1: Icon | Note + Category | Amount */}
+                      <div className="flex items-center gap-3">
                         {hasPhoto ? (
                           <button onClick={() => openViewer(photoUrl, trx.note)}
-                            className="w-11 h-11 rounded-2xl shrink-0 flex items-center justify-center active:scale-90 transition-all"
-                            style={{ background: "color-mix(in srgb,#a855f7 10%,transparent)", border: "1px solid color-mix(in srgb,#a855f7 20%,transparent)", color: "#a855f7" }}>
-                            {viewerLoading && viewerLabel === trx.note ? <Loader2 size={15} className="animate-spin" /> : <Eye size={16} />}
+                            className="w-10 h-10 rounded-2xl shrink-0 flex items-center justify-center active:scale-90 transition-all"
+                            style={{ background: "color-mix(in srgb, var(--a2) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--a2) 20%, transparent)", color: "var(--a2)" }}>
+                            {viewerLoading && viewerLabel === trx.note ? <Loader2 size={14} className="animate-spin" /> : <Eye size={15} />}
                           </button>
                         ) : (
                           <FotoInline trxId={trx.id} userId={session?.user?.id} category={trx.category} type={trx.type} onPhotoAdded={handlePhotoAdded} />
                         )}
-                        <div className="min-w-0">
-                          <p className="text-[14px] font-light truncate leading-snug" style={{ color: "rgba(255,255,255,0.92)", fontFamily: "var(--ff-sans)" }}>
-                            {trx.note}
-                            {trx._pending && <span className="ml-1.5 text-[8px] font-black rounded-full px-1.5 py-0.5 uppercase" style={{ color: "#f59e0b", background: "color-mix(in srgb,#f59e0b 10%,transparent)" }}>Menunggu</span>}
-                          </p>
-                          <div className="flex items-center gap-1.5 mt-1">
-                            {(() => {
-                              const colors = [
-                                { c: "#38bdf8", bg: "rgba(56, 189, 248, 0.1)" },
-                                { c: "#a78bfa", bg: "rgba(167, 139, 250, 0.1)" },
-                                { c: "#fbbf24", bg: "rgba(251, 191, 36, 0.1)" },
-                                { c: "#34d399", bg: "rgba(52, 211, 153, 0.1)" },
-                                { c: "#f472b6", bg: "rgba(244, 114, 182, 0.1)" }
-                              ];
-                              const charCode = trx.category ? trx.category.charCodeAt(0) : 0;
-                              const theme = colors[charCode % colors.length];
 
-                              return (
-                                <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full"
-                                  style={{
-                                    background: theme.bg,
-                                    border: `1px solid color-mix(in srgb, ${theme.c} 25%, transparent)`,
-                                    color: theme.c,
-                                    textShadow: `0 0 8px color-mix(in srgb, ${theme.c} 40%, transparent)`
-                                  }}>
-                                  {trx.category}
-                                </span>
-                              );
-                            })()}
-                            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)' }}>{formatDateTime(trx.created_at)}</span>
+                        {/* Note + Category */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <p className="text-[13px] font-medium truncate leading-snug ds-t1" style={{ fontFamily: "var(--ff-sans)" }}>
+                              {trx.note}
+                            </p>
+                            {trx._pending && (
+                              <span className="text-[8px] font-black rounded-full px-1.5 py-0.5 uppercase shrink-0" style={{ color: "#f59e0b", background: "color-mix(in srgb,#f59e0b 10%,transparent)" }}>Menunggu</span>
+                            )}
                           </div>
+                          {(() => {
+                            const colors = [
+                              { c: "#38bdf8", bg: "rgba(56,189,248,0.08)" },
+                              { c: "#a78bfa", bg: "rgba(167,139,250,0.08)" },
+                              { c: "#fbbf24", bg: "rgba(251,191,36,0.08)" },
+                              { c: "#34d399", bg: "rgba(52,211,153,0.08)" },
+                              { c: "#f0abfc", bg: "rgba(240,171,252,0.08)" },
+                            ];
+                            const theme = colors[(trx.category?.charCodeAt(0) || 0) % colors.length];
+                            return (
+                              <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full mt-0.5 inline-block"
+                                style={{
+                                  background: theme.bg,
+                                  border: `1px solid color-mix(in srgb, ${theme.c} 22%, transparent)`,
+                                  color: theme.c,
+                                  textShadow: `0 0 8px color-mix(in srgb, ${theme.c} 35%, transparent)`,
+                                }}>
+                                {trx.category}
+                              </span>
+                            );
+                          })()}
                         </div>
-                      </div>
 
-                      <div className="flex flex-col items-end gap-2 shrink-0 ml-2">
-                        <p className="text-[14px] font-bold tracking-tight ff-mono"
-                          style={{
-                            color: trx.type === "income" ? "var(--income)" : "#fb7185",
-                            textShadow: trx.type === "income"
-                              ? "0 0 12px color-mix(in srgb, var(--income) 40%, transparent)"
-                              : "0 0 12px rgba(251, 113, 133, 0.4)"
-                          }}>
+                        {/* Amount — prominent + glow */}
+                        <p className={`ff-mono ${trx.type === "income" ? "ds-income-glow" : "ds-expense-glow"}`}
+                          style={{ fontSize: 15, fontWeight: 700, fontFamily: "var(--ff-mono)", letterSpacing: "-0.5px", flexShrink: 0 }}>
                           {trx.type === "income" ? "+" : "−"} Rp {Number(trx.amount).toLocaleString("id-ID")}
                         </p>
+                      </div>
+
+                      {/* Baris 2: Timestamp kiri | Action buttons kanan */}
+                      <div className="flex items-center justify-between pl-[52px]">
+                        <span style={{ fontSize: 10, color: "var(--text-3)" }}>
+                          {formatDateTime(trx.created_at)}
+                        </span>
                         {!trx._pending && (
                           <div className="flex gap-1.5">
                             {[
                               [() => {
                                 setInlineEditId(trx.id);
-                                // Tambahkan date dari created_at, ambil 10 digit pertama (YYYY-MM-DD)
                                 setEditData({
                                   note: trx.note,
                                   amount: trx.amount,
@@ -568,15 +586,15 @@ const HomeTabComponent = memo(function HomeTab({
                                   date: trx.created_at ? trx.created_at.slice(0, 10) : ""
                                 });
                                 setInlineDeleteId(null);
-                                setCustomCatMode(false); // Reset mode kategori
-                              }, <Edit3 size={12} />, "hover:text-blue-400"],
+                                setCustomCatMode(false);
+                              }, <Edit3 size={11} />, "hover:text-[var(--a1)]"],
                               [() => {
                                 setInlineDeleteId(trx.id);
                                 setInlineEditId(null);
-                              }, <Trash2 size={12} />, "hover:text-rose-400"],
+                              }, <Trash2 size={11} />, "hover:text-fuchsia-400"],
                             ].map(([onClick, icon, hoverCls], i) => (
                               <button key={i} onClick={onClick}
-                                className={`w-7 h-7 rounded-xl flex items-center justify-center ds-t3 ${hoverCls} active:scale-90 transition-all`}
+                                className={`w-6 h-6 rounded-lg flex items-center justify-center ds-t3 ${hoverCls} active:scale-90 transition-all`}
                                 style={{ background: "var(--bg-3)", border: "1px solid var(--border)" }}>
                                 {icon}
                               </button>
@@ -596,7 +614,11 @@ const HomeTabComponent = memo(function HomeTab({
                   {inlineDeleteId === trx.id && (
                     <motion.div initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} transition={{ type: "spring", damping: 25, stiffness: 280 }}
                       className="absolute inset-0 z-20 flex items-center justify-between px-5 backdrop-blur-md"
-                      style={{ background: "rgba(225, 29, 72, 0.85)", borderLeft: "2px solid #fb7185" }}>
+                      style={{
+                        background: "color-mix(in srgb, var(--a3) 85%, var(--a2))",
+                        borderLeft: "3px solid var(--a3)",
+                        boxShadow: "inset 4px 0 20px color-mix(in srgb, var(--a3) 30%, transparent)",
+                      }}>
                       <div className="flex items-center gap-2">
                         <Trash2 size={15} className="text-white" />
                         <span className="text-[11px] font-black text-white uppercase tracking-widest">Hapus Permanen?</span>
@@ -605,7 +627,9 @@ const HomeTabComponent = memo(function HomeTab({
                         <button onClick={() => setInlineDeleteId(null)} className="px-3 py-1.5 rounded-[10px] bg-white/20 text-white text-[9px] font-black uppercase tracking-widest hover:bg-white/30 transition-colors">
                           Batal
                         </button>
-                        <button onClick={() => { onDeleteTransaction(trx); setInlineDeleteId(null); }} className="px-3 py-1.5 rounded-[10px] bg-white text-rose-600 text-[9px] font-black uppercase tracking-widest shadow-[0_0_15px_rgba(255,255,255,0.4)] active:scale-95 transition-all">
+                        <button onClick={() => { onDeleteTransaction(trx); setInlineDeleteId(null); }}
+                          className="px-3 py-1.5 rounded-[10px] text-[9px] font-black uppercase tracking-widest active:scale-95 transition-all"
+                          style={{ background: "rgba(255,255,255,0.9)", color: "var(--a2)", boxShadow: "0 0 15px color-mix(in srgb, var(--a3) 40%, transparent)" }}>
                           Hapus
                         </button>
                       </div>

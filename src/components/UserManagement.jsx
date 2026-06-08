@@ -30,7 +30,7 @@ const RoleBadge = ({ role }) => (
   <span className={`flex items-center gap-2 text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${
     role === "admin"
       ? "bg-amber-500/10 border border-amber-500/20 text-amber-500"
-      : "bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-500"
+      : "bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 ds-t3"
   }`}>
     {role === "admin" ? <Crown size={9} /> : <User size={9} />}
     {role}
@@ -40,7 +40,7 @@ const RoleBadge = ({ role }) => (
 // ── Komponen Status Badge ─────────────────────────────────────────────────────
 const StatusBadge = ({ banned, mustChange }) => {
   if (banned) return (
-    <span className="flex items-center gap-2 text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-red-500/10 border border-red-500/20 text-red-500">
+    <span className="flex items-center gap-2 text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border" style={{ color: "var(--a3)", background: "color-mix(in srgb, var(--a3) 12%, transparent)", borderColor: "color-mix(in srgb, var(--a3) 25%, transparent)" }}>
       <ShieldOff size={9} /> Nonaktif
     </span>
   );
@@ -50,7 +50,7 @@ const StatusBadge = ({ banned, mustChange }) => {
     </span>
   );
   return (
-    <span className="flex items-center gap-2 text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-green-500/10 border border-green-500/20 text-green-500">
+    <span className="flex items-center gap-2 text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border" style={{ color: "var(--income)", background: "color-mix(in srgb, var(--income) 12%, transparent)", borderColor: "color-mix(in srgb, var(--income) 25%, transparent)" }}>
       <ShieldCheck size={9} /> Aktif
     </span>
   );
@@ -229,14 +229,14 @@ export default function UserManagement({ onNotify }) {
         className="w-full flex justify-between items-center outline-none group"
       >
         <div className="flex items-center gap-4">
-          <div className="p-3 bg-gradient-to-br from-violet-500 to-purple-600 text-white rounded-2xl shadow-lg shadow-violet-500/30 group-hover:scale-105 transition-transform">
+          <div className="p-3 text-white rounded-2xl shadow-lg group-hover:scale-105 transition-transform" style={{ background: "linear-gradient(135deg, var(--a2), var(--a3))", boxShadow: "0 8px 24px color-mix(in srgb, var(--a2) 30%, transparent)" }}>
             <Users size={20} />
           </div>
           <div className="text-left">
-            <h3 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-widest">
+            <h3 className="text-sm font-black ds-t1 uppercase tracking-widest">
               Manajemen Pengguna
             </h3>
-            <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 mt-0.5">
+            <p className="text-[10px] font-bold ds-t3 mt-0.5">
               {isExpanded ? `${totalUsers} user terdaftar` : "Admin only"}
             </p>
           </div>
@@ -246,7 +246,7 @@ export default function UserManagement({ onNotify }) {
           transition={{ duration: 0.3 }}
           className="bg-gray-50 dark:bg-gray-800 p-2 rounded-full"
         >
-          <ChevronDown size={20} className="text-gray-400 group-hover:text-violet-500 transition-colors" />
+          <ChevronDown size={20} className="ds-t3 group-hover:text-[var(--a2)] transition-colors" />
         </motion.div>
       </button>
 
@@ -264,13 +264,13 @@ export default function UserManagement({ onNotify }) {
               {/* ── Stats pills ── */}
               <div className="grid grid-cols-3 gap-2">
                 {[
-                  { label: "Total",   value: totalUsers,  color: "text-blue-500",   bg: "bg-blue-500/10" },
-                  { label: "Aktif",   value: activeUsers, color: "text-green-500",  bg: "bg-green-500/10" },
-                  { label: "Admin",   value: adminUsers,  color: "text-amber-500",  bg: "bg-amber-500/10" },
+                  { label: "Total",  value: totalUsers,  colorVar: "var(--a1)",      bgStyle: { background: "color-mix(in srgb, var(--a1) 12%, transparent)" } },
+                  { label: "Aktif",  value: activeUsers, colorVar: "var(--income)",  bgStyle: { background: "color-mix(in srgb, var(--income) 12%, transparent)" } },
+                  { label: "Admin",  value: adminUsers,  colorVar: "rgb(245,158,11)", bgStyle: { background: "rgba(245,158,11,0.12)" } },
                 ].map(s => (
-                  <div key={s.label} className={`${s.bg} rounded-2xl p-3 text-center`}>
-                    <p className={`text-xl font-black ${s.color}`}>{s.value}</p>
-                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">{s.label}</p>
+                  <div key={s.label} className="rounded-2xl p-3 text-center" style={s.bgStyle}>
+                    <p className="text-xl font-black" style={{ color: s.colorVar }}>{s.value}</p>
+                    <p className="text-[9px] font-black ds-t3 uppercase tracking-widest">{s.label}</p>
                   </div>
                 ))}
               </div>
@@ -279,14 +279,15 @@ export default function UserManagement({ onNotify }) {
               <div className="flex gap-2">
                 <button
                   onClick={() => setAddModal({ open: true, username: "", password: "", loading: false })}
-                  className="flex-1 flex items-center justify-center gap-2 py-3 bg-violet-600 hover:bg-violet-500 text-white font-black text-[10px] uppercase tracking-widest rounded-2xl transition-all shadow-lg shadow-violet-500/30 active:scale-95"
+                  className="flex-1 flex items-center justify-center gap-2 py-3 text-white font-black text-[10px] uppercase tracking-widest rounded-2xl transition-all active:scale-95"
+                  style={{ background: "linear-gradient(135deg, var(--a1), var(--a2))" }}
                 >
                   <Plus size={14} /> Tambah User
                 </button>
                 <button
                   onClick={fetchUsers}
                   disabled={isLoading}
-                  className="p-3 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 rounded-2xl transition-all disabled:opacity-50"
+                  className="p-3 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 ds-t3 rounded-2xl transition-all disabled:opacity-50"
                   title="Refresh"
                 >
                   <RefreshCw size={16} className={isLoading ? "animate-spin" : ""} />
@@ -312,28 +313,28 @@ export default function UserManagement({ onNotify }) {
                         layout
                         initial={{ opacity: 0, y: 8 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className={`bg-gray-50 dark:bg-gray-900/40 border rounded-[20px] p-4 transition-all ${
-                          user.banned
-                            ? "border-red-200 dark:border-red-900/30 opacity-60"
-                            : "border-gray-100 dark:border-gray-800/50"
-                        }`}
+                        className="bg-gray-50 dark:bg-gray-900/40 border rounded-[20px] p-4 transition-all"
+                        style={user.banned
+                          ? { borderColor: "color-mix(in srgb, var(--a3) 28%, transparent)", opacity: 0.6 }
+                          : { borderColor: "rgba(107,114,128,0.15)" }
+                        }
                       >
                         {/* Row atas */}
                         <div className="flex justify-between items-start mb-3">
                           <div>
                             <div className="flex items-center gap-2 flex-wrap mb-1">
-                              <p className="font-black text-sm text-gray-900 dark:text-white">
+                              <p className="font-black text-sm ds-t1">
                                 @{user.username}
-                                {isSelf && <span className="text-blue-400 font-normal text-xs ml-1">(Anda)</span>}
+                                {isSelf && <span className="font-normal text-xs ml-1" style={{ color: "var(--a1)" }}>(Anda)</span>}
                               </p>
                               <RoleBadge role={user.role} />
                               <StatusBadge banned={user.banned} mustChange={user.must_change_password} />
                             </div>
-                            <div className="flex items-center gap-2 text-[9px] text-gray-400">
+                            <div className="flex items-center gap-2 text-[9px] ds-t3">
                               <Clock size={9} />
                               <span>Login: {timeAgo(user.last_sign_in_at)}</span>
                             </div>
-                            <div className="text-[9px] text-gray-400 mt-0.5">
+                            <div className="text-[9px] ds-t3 mt-0.5">
                               Dibuat: {new Date(user.created_at).toLocaleDateString("id-ID")}
                             </div>
                           </div>
@@ -345,7 +346,7 @@ export default function UserManagement({ onNotify }) {
                               <button
                                 onClick={() => setResetModal({ open: true, userId: user.id, username: user.username, password: "", loading: false })}
                                 disabled={isWorking}
-                                className="p-2 text-gray-400 hover:text-blue-500 bg-white dark:bg-gray-800 rounded-xl transition-colors disabled:opacity-40"
+                                className="p-2 ds-t3 hover:text-[var(--a1)] bg-white dark:bg-gray-800 rounded-xl transition-colors disabled:opacity-40"
                                 title="Reset Password"
                               >
                                 <KeyRound size={14} />
@@ -357,8 +358,8 @@ export default function UserManagement({ onNotify }) {
                                 disabled={isWorking}
                                 className={`p-2 bg-white dark:bg-gray-800 rounded-xl transition-colors disabled:opacity-40 ${
                                   user.banned
-                                    ? "text-gray-400 hover:text-green-500"
-                                    : "text-gray-400 hover:text-orange-500"
+                                    ? "ds-t3 hover:text-[var(--income)]"
+                                    : "ds-t3 hover:text-amber-500"
                                 }`}
                                 title={user.banned ? "Aktifkan User" : "Nonaktifkan User"}
                               >
@@ -374,7 +375,7 @@ export default function UserManagement({ onNotify }) {
                               <button
                                 onClick={() => setDeleteModal({ open: true, userId: user.id, username: user.username })}
                                 disabled={isWorking}
-                                className="p-2 text-gray-400 hover:text-red-500 bg-white dark:bg-gray-800 rounded-xl transition-colors disabled:opacity-40"
+                                className="p-2 ds-t3 hover:text-fuchsia-400 bg-white dark:bg-gray-800 rounded-xl transition-colors disabled:opacity-40"
                                 title="Hapus User"
                               >
                                 <Trash2 size={14} />
@@ -387,7 +388,7 @@ export default function UserManagement({ onNotify }) {
                   })}
 
                   {users.length === 0 && !isLoading && (
-                    <div className="text-center py-8 text-[10px] font-black text-gray-300 dark:text-gray-700 uppercase tracking-widest">
+                    <div className="text-center py-8 text-[10px] font-black ds-t4 uppercase tracking-widest">
                       Belum ada user
                     </div>
                   )}
@@ -415,38 +416,39 @@ export default function UserManagement({ onNotify }) {
               className="w-full max-w-sm bg-white dark:bg-[#121827] rounded-[32px] p-6 shadow-2xl border border-gray-100 dark:border-gray-800"
             >
               <div className="flex justify-between items-center mb-6">
-                <h3 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-widest">Tambah User</h3>
-                <button onClick={() => setAddModal(p => ({ ...p, open: false }))} className="p-2 text-gray-400 hover:text-red-500 bg-gray-50 dark:bg-gray-800 rounded-full transition-colors">
+                <h3 className="text-sm font-black ds-t1 uppercase tracking-widest">Tambah User</h3>
+                <button onClick={() => setAddModal(p => ({ ...p, open: false }))} className="p-2 ds-t3 hover:text-fuchsia-400 bg-gray-50 dark:bg-gray-800 rounded-full transition-colors">
                   <X size={16} />
                 </button>
               </div>
               <form onSubmit={handleAddUser} className="space-y-4">
                 <div>
-                  <label className="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Username</label>
+                  <label className="block text-[9px] font-black ds-t3 uppercase tracking-widest mb-1.5">Username</label>
                   <input
                     type="text" required autoFocus
                     value={addModal.username}
                     onChange={e => setAddModal(p => ({ ...p, username: e.target.value.replace(/\s+/g, "").toLowerCase() }))}
                     placeholder="cth: budi, ani"
-                    className="w-full bg-gray-50 dark:bg-[#0a0f1c] border border-gray-200 dark:border-gray-800 rounded-2xl py-3 px-4 text-sm font-bold text-gray-900 dark:text-white outline-none focus:border-violet-500 transition-all"
+                    className="w-full bg-gray-50 dark:bg-[#0a0f1c] border border-gray-200 dark:border-gray-800 rounded-2xl py-3 px-4 text-sm font-bold ds-t1 outline-none focus:border-[var(--a1)] transition-all"
                   />
                 </div>
                 <div>
-                  <label className="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Password Sementara</label>
+                  <label className="block text-[9px] font-black ds-t3 uppercase tracking-widest mb-1.5">Password Sementara</label>
                   <input
                     type="text" required
                     value={addModal.password}
                     onChange={e => setAddModal(p => ({ ...p, password: e.target.value }))}
                     placeholder="Min. 6 karakter"
-                    className="w-full bg-gray-50 dark:bg-[#0a0f1c] border border-gray-200 dark:border-gray-800 rounded-2xl py-3 px-4 text-sm font-bold text-gray-900 dark:text-white outline-none focus:border-violet-500 transition-all"
+                    className="w-full bg-gray-50 dark:bg-[#0a0f1c] border border-gray-200 dark:border-gray-800 rounded-2xl py-3 px-4 text-sm font-bold ds-t1 outline-none focus:border-[var(--a1)] transition-all"
                   />
                 </div>
-                <p className="text-[10px] text-gray-400 bg-gray-50 dark:bg-gray-900/40 p-3 rounded-xl">
+                <p className="text-[10px] ds-t3 bg-gray-50 dark:bg-gray-900/40 p-3 rounded-xl">
                   User akan diminta ganti password saat pertama login.
                 </p>
                 <button
                   type="submit" disabled={addModal.loading}
-                  className="w-full bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white font-black text-xs uppercase tracking-widest py-3.5 rounded-2xl transition-all shadow-lg shadow-violet-500/30"
+                  className="w-full disabled:opacity-50 text-white font-black text-xs uppercase tracking-widest py-3.5 rounded-2xl transition-all"
+                  style={{ background: "linear-gradient(135deg, var(--a1), var(--a2))" }}
                 >
                   {addModal.loading ? "Memproses..." : "Buat Akun"}
                 </button>
@@ -470,31 +472,32 @@ export default function UserManagement({ onNotify }) {
             >
               <div className="flex justify-between items-center mb-6">
                 <div>
-                  <h3 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-widest">Reset Password</h3>
-                  <p className="text-[10px] text-gray-400 mt-0.5">@{resetModal.username}</p>
+                  <h3 className="text-sm font-black ds-t1 uppercase tracking-widest">Reset Password</h3>
+                  <p className="text-[10px] ds-t3 mt-0.5">@{resetModal.username}</p>
                 </div>
-                <button onClick={() => setResetModal(p => ({ ...p, open: false }))} className="p-2 text-gray-400 hover:text-red-500 bg-gray-50 dark:bg-gray-800 rounded-full transition-colors">
+                <button onClick={() => setResetModal(p => ({ ...p, open: false }))} className="p-2 ds-t3 hover:text-fuchsia-400 bg-gray-50 dark:bg-gray-800 rounded-full transition-colors">
                   <X size={16} />
                 </button>
               </div>
               <form onSubmit={handleResetPassword} className="space-y-4">
                 <div>
-                  <label className="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Password Baru</label>
+                  <label className="block text-[9px] font-black ds-t3 uppercase tracking-widest mb-1.5">Password Baru</label>
                   <input
                     type="text" required autoFocus
                     value={resetModal.password}
                     onChange={e => setResetModal(p => ({ ...p, password: e.target.value }))}
                     placeholder="Min. 6 karakter"
-                    className="w-full bg-gray-50 dark:bg-[#0a0f1c] border border-gray-200 dark:border-gray-800 rounded-2xl py-3 px-4 text-sm font-bold text-gray-900 dark:text-white outline-none focus:border-blue-500 transition-all"
+                    className="w-full bg-gray-50 dark:bg-[#0a0f1c] border border-gray-200 dark:border-gray-800 rounded-2xl py-3 px-4 text-sm font-bold ds-t1 outline-none focus:border-[var(--a1)] transition-all"
                   />
                 </div>
-                <p className="text-[10px] text-gray-400 bg-orange-500/5 border border-orange-500/20 p-3 rounded-xl flex gap-2">
+                <p className="text-[10px] ds-t3 bg-orange-500/5 border border-orange-500/20 p-3 rounded-xl flex gap-2">
                   <AlertTriangle size={12} className="text-orange-500 shrink-0 mt-0.5" />
                   User akan diminta ganti password saat login berikutnya.
                 </p>
                 <button
                   type="submit" disabled={resetModal.loading}
-                  className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-black text-xs uppercase tracking-widest py-3.5 rounded-2xl transition-all shadow-lg shadow-blue-500/30"
+                  className="w-full disabled:opacity-50 text-white font-black text-xs uppercase tracking-widest py-3.5 rounded-2xl transition-all"
+                  style={{ background: "linear-gradient(135deg, var(--a1), var(--a2))" }}
                 >
                   {resetModal.loading ? "Memproses..." : "Reset Password"}
                 </button>
@@ -514,28 +517,29 @@ export default function UserManagement({ onNotify }) {
             <motion.div
               initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="w-full max-w-sm bg-white dark:bg-[#121827] rounded-[32px] p-6 shadow-2xl border border-red-100 dark:border-red-900/30 text-center"
+              className="w-full max-w-sm bg-white dark:bg-[#121827] rounded-[32px] p-6 shadow-2xl border ds-border text-center"
             >
-              <div className="w-14 h-14 bg-red-100 dark:bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Trash2 className="text-red-500" size={24} />
+              <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: "color-mix(in srgb, var(--a3) 15%, transparent)", color: "var(--a3)" }}>
+                <Trash2 size={24} />
               </div>
-              <h3 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-widest mb-2">
+              <h3 className="text-sm font-black ds-t1 uppercase tracking-widest mb-2">
                 Hapus User?
               </h3>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-6">
+              <p className="text-xs ds-t3 mb-6">
                 Akun <strong>@{deleteModal.username}</strong> akan dihapus permanen beserta semua data terkait. Tindakan ini tidak dapat dibatalkan.
               </p>
               <div className="flex gap-3">
                 <button
                   onClick={() => setDeleteModal({ open: false, userId: null, username: "" })}
-                  className="flex-1 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-black text-xs uppercase tracking-widest py-3.5 rounded-2xl transition-all hover:bg-gray-200 dark:hover:bg-gray-700"
+                  className="flex-1 bg-gray-100 dark:bg-gray-800 ds-t2 font-black text-xs uppercase tracking-widest py-3.5 rounded-2xl transition-all hover:bg-gray-200 dark:hover:bg-gray-700"
                 >
                   Batal
                 </button>
                 <button
                   onClick={handleDeleteUser}
                   disabled={actionLoading === deleteModal.userId}
-                  className="flex-1 bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white font-black text-xs uppercase tracking-widest py-3.5 rounded-2xl transition-all shadow-lg shadow-red-500/30"
+                  className="flex-1 disabled:opacity-50 text-white font-black text-xs uppercase tracking-widest py-3.5 rounded-2xl transition-all"
+                  style={{ background: "color-mix(in srgb, var(--a3) 85%, #000)" }}
                 >
                   {actionLoading === deleteModal.userId ? "Menghapus..." : "Hapus Permanen"}
                 </button>

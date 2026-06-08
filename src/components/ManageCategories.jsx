@@ -125,16 +125,16 @@ export default function ManageCategories() {
     <div className="bg-white dark:bg-[#121827] rounded-[32px] p-6 sm:p-8 shadow-2xl shadow-blue-500/5 border border-gray-100 dark:border-gray-800/60 w-full transition-all">
       <button onClick={() => setIsExpanded(!isExpanded)} className="w-full flex justify-between items-center outline-none group">
         <div className="flex items-center gap-4">
-          <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-2xl shadow-lg shadow-blue-500/30 group-hover:scale-105 transition-transform">
+          <div className="p-3 text-white rounded-2xl shadow-lg group-hover:scale-105 transition-transform" style={{ background: "linear-gradient(135deg, var(--a1), var(--a2))", boxShadow: "0 8px 24px color-mix(in srgb, var(--a1) 30%, transparent)" }}>
             <BrainCircuit size={20} />
           </div>
           <div className="text-left">
-            <h3 className="text-sm sm:text-base font-black text-gray-900 dark:text-white uppercase tracking-widest">Memori Otak AI</h3>
-            <p className="text-[10px] sm:text-xs font-bold text-gray-400 dark:text-gray-500 mt-0.5">Automasi & Intervensi Data</p>
+            <h3 className="text-sm sm:text-base font-black ds-t1 uppercase tracking-widest">Memori Otak AI</h3>
+            <p className="text-[10px] sm:text-xs font-bold ds-t3 mt-0.5">Automasi & Intervensi Data</p>
           </div>
         </div>
         <motion.div animate={{ rotate: isExpanded ? 180 : 0 }} transition={{ duration: 0.3 }} className="bg-gray-50 dark:bg-gray-800 p-2 rounded-full">
-          <ChevronDown size={20} className="text-gray-400 group-hover:text-blue-500 transition-colors" />
+          <ChevronDown size={20} className="ds-t3 group-hover:text-[var(--a1)] transition-colors" />
         </motion.div>
       </button>
 
@@ -149,19 +149,19 @@ export default function ManageCategories() {
                 </div>
                 
                 <div className="relative z-20">
-                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1.5 ml-1">Kategori (Dari AI)</label>
+                  <label className="block text-[10px] font-black ds-t3 uppercase tracking-[0.2em] mb-1.5 ml-1">Kategori (Dari AI)</label>
                   <div className="relative">
                     <button
                       type="button"
                       onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                      className="w-full bg-white dark:bg-[#0a0f1c] border border-gray-200 dark:border-gray-800 rounded-2xl py-3.5 px-4 text-left text-sm font-bold text-gray-900 dark:text-white shadow-sm flex justify-between items-center outline-none focus:border-blue-500 hover:border-blue-500/50 transition-all"
+                      className="w-full bg-white dark:bg-[#0a0f1c] border border-gray-200 dark:border-gray-800 rounded-2xl py-3.5 px-4 text-left text-sm font-bold ds-t1 shadow-sm flex justify-between items-center outline-none focus:border-[var(--a1)] hover:border-[var(--a1)] transition-all"
                     >
                       {selectedCat ? (
-                        <span className="text-gray-900 dark:text-white">{selectedCat.name}</span>
+                        <span className="ds-t1">{selectedCat.name}</span>
                       ) : (
-                        <span className="text-gray-400 font-normal">-- Pilih kategori --</span>
+                        <span className="ds-t3 font-normal">-- Pilih kategori --</span>
                       )}
-                      <ChevronDown size={18} className={`text-gray-400 transition-transform duration-300 ${isDropdownOpen ? 'rotate-180 text-blue-500' : ''}`} />
+                      <ChevronDown size={18} className={`ds-t3 transition-transform duration-300 ${isDropdownOpen ? 'rotate-180' : ''}`} style={isDropdownOpen ? { color: "var(--a1)" } : undefined} />
                     </button>
 
                     <AnimatePresence>
@@ -175,18 +175,18 @@ export default function ManageCategories() {
                         >
                           <div className="max-h-56 overflow-y-auto no-scrollbar py-2">
                             {categories.length === 0 ? (
-                              <div className="px-5 py-4 text-xs font-bold text-gray-400 text-center">AI belum mempelajari data.</div>
+                              <div className="px-5 py-4 text-xs font-bold ds-t3 text-center">AI belum mempelajari data.</div>
                             ) : (
                               categories.map((cat) => (
                                 <button
                                   key={cat.id}
                                   type="button"
                                   onClick={() => handleSelectCategory(cat)}
-                                  className={`w-full text-left px-5 py-3.5 text-sm font-bold transition-all ${
-                                    selectedCat?.id === cat.id 
-                                      ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10 border-l-4 border-blue-500' 
-                                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 border-l-4 border-transparent'
-                                  }`}
+                                  className="w-full text-left px-5 py-3.5 text-sm font-bold transition-all border-l-4"
+                                  style={selectedCat?.id === cat.id
+                                    ? { color: "var(--a1)", background: "color-mix(in srgb, var(--a1) 10%, transparent)", borderLeftColor: "var(--a1)" }
+                                    : { color: undefined, borderLeftColor: "transparent" }
+                                  }
                                 >
                                   {cat.name}
                                 </button>
@@ -200,18 +200,18 @@ export default function ManageCategories() {
                 </div>
                 
                 <div className="relative z-10 border-t border-gray-200/50 dark:border-gray-800/50 pt-4 mt-2">
-                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1.5 ml-1">Kosakata Tersimpan (Koma)</label>
-                  <input 
-                    type="text" 
-                    placeholder="Pilih kategori di atas untuk memuat kosakata..." 
-                    value={keywordsInput} 
-                    onChange={(e) => setKeywordsInput(e.target.value)} 
+                  <label className="block text-[10px] font-black ds-t3 uppercase tracking-[0.2em] mb-1.5 ml-1">Kosakata Tersimpan (Koma)</label>
+                  <input
+                    type="text"
+                    placeholder="Pilih kategori di atas untuk memuat kosakata..."
+                    value={keywordsInput}
+                    onChange={(e) => setKeywordsInput(e.target.value)}
                     disabled={!selectedCat}
-                    className="w-full bg-white dark:bg-[#0a0f1c] border border-gray-200 dark:border-gray-800 rounded-2xl py-3.5 px-4 text-gray-900 dark:text-white outline-none focus:border-blue-500 text-sm font-bold shadow-sm transition-all disabled:opacity-50" 
+                    className="w-full bg-white dark:bg-[#0a0f1c] border border-gray-200 dark:border-gray-800 rounded-2xl py-3.5 px-4 ds-t1 outline-none focus:border-[var(--a1)] text-sm font-bold shadow-sm transition-all disabled:opacity-50"
                   />
                 </div>
                 
-                <button type="submit" disabled={loading || !selectedCat} className="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white font-black text-[10px] sm:text-xs uppercase tracking-widest rounded-2xl transition-all shadow-lg shadow-blue-500/30 flex items-center justify-center gap-2 disabled:opacity-50 relative z-10">
+                <button type="submit" disabled={loading || !selectedCat} className="w-full py-4 text-white font-black text-[10px] sm:text-xs uppercase tracking-widest rounded-2xl transition-all flex items-center justify-center gap-2 disabled:opacity-50 relative z-10" style={{ background: "linear-gradient(135deg, var(--a1), var(--a2))" }}>
                   <Check size={16} /> Simpan Perubahan
                 </button>
               </form>

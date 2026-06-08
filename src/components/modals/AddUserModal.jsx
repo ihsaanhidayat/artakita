@@ -25,15 +25,16 @@ const AddUserModal = memo(function AddUserModal({ isOpen, data, setData, onSubmi
       style={{ paddingTop: "20vh" }}
       onClick={e => e.stopPropagation()}
      >
-      <div className="w-full max-w-sm ds-bg-1 rounded-[24px] shadow-2xl border ds-borderoverflow-hidden">
-       <div className="px-5 py-3.5 flex items-center justify-between bg-violet-500/10 border-b border-violet-500/20">
-        <p className="text-sm font-black text-violet-500">Tambah User</p>
+      <div className="w-full max-w-sm ds-bg-1 rounded-[24px] shadow-2xl border ds-border overflow-hidden">
+       <div className="px-5 py-3.5 flex items-center justify-between border-b ds-border" style={{ background: "color-mix(in srgb, var(--a2) 10%, transparent)" }}>
+        <p className="text-sm font-black" style={{ color: "var(--a2)" }}>Tambah User</p>
         <button
          onClick={isDirty ? onSubmit : onClose}
          disabled={data?.isLoading}
          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-black text-[10px] uppercase tracking-widest ml-3 shrink-0 transition-all disabled:opacity-40 ${
-          isDirty ? "bg-violet-600 text-white" : "ds-bg-3 text-gray-400"
+          isDirty ? "text-white" : "ds-bg-3 ds-t3"
          }`}
+         style={isDirty ? { background: "linear-gradient(135deg, var(--a1), var(--a2))" } : undefined}
         >
          {data?.isLoading ? <Loader2 size={11} className="animate-spin" /> : <Save size={11} />}
          {data?.isLoading ? "..." : isDirty ? "Buat" : "Tutup"}
@@ -41,7 +42,7 @@ const AddUserModal = memo(function AddUserModal({ isOpen, data, setData, onSubmi
        </div>
        <div className="px-5 py-4 space-y-0">
         <div className="border-b ds-border py-3">
-         <label className="text-[8px] font-black text-gray-400 uppercase tracking-widest block mb-1.5">Username</label>
+         <label className="text-[8px] font-black ds-t3 uppercase tracking-widest block mb-1.5">Username</label>
          <input
           autoFocus type="text"
           placeholder="username"
@@ -51,7 +52,7 @@ const AddUserModal = memo(function AddUserModal({ isOpen, data, setData, onSubmi
          />
         </div>
         <div className="py-3">
-         <label className="text-[8px] font-black text-gray-400 uppercase tracking-widest block mb-1.5">Password</label>
+         <label className="text-[8px] font-black ds-t3 uppercase tracking-widest block mb-1.5">Password</label>
          <input
           type="password"
           placeholder="Min 6 karakter"

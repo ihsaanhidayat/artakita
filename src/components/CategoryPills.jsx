@@ -34,10 +34,10 @@ const CategoryPills = memo(function CategoryPills({
           placeholder={placeholder}
           onChange={e => { setInputVal(e.target.value); onChange(e.target.value); setIsOpen(true); }}
           onFocus={() => setIsOpen(true)}
-          className="flex-1 bg-transparent outline-none font-bold text-sm text-gray-900 dark:text-white placeholder-gray-300 dark:placeholder-gray-700"
+          className="flex-1 bg-transparent outline-none font-bold text-sm ds-t1 placeholder:opacity-30"
         />
         <button type="button" onClick={() => setIsOpen(p => !p)}
-          className="text-gray-400 hover:text-gray-600 transition-colors shrink-0">
+          className="ds-t3 hover:opacity-70 transition-opacity shrink-0">
           <ChevronDown size={14} />
         </button>
       </div>
@@ -64,11 +64,11 @@ const CategoryPills = memo(function CategoryPills({
                     key={cat}
                     type="button"
                     onClick={() => select(cat)}
-                    className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                      value === cat
-                        ? "bg-blue-500 text-white"
-                        : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-blue-500/10 hover:text-blue-500"
-                    }`}
+                    className="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
+                    style={value === cat
+                      ? { background: "var(--a2)", color: "#fff" }
+                      : { background: "color-mix(in srgb, var(--a2) 8%, transparent)", color: "var(--text-2)" }
+                    }
                   >
                     {cat}
                   </button>

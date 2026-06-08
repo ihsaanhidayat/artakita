@@ -39,7 +39,7 @@ const ForcePasswordModal = memo(function ForcePasswordModal({
       style={{ paddingTop: "20vh" }}
       onClick={e => e.stopPropagation()}
      >
-      <div className="w-full max-w-sm ds-bg-1 rounded-[24px] shadow-2xl border ds-borderoverflow-hidden">
+      <div className="w-full max-w-sm ds-bg-1 rounded-[24px] shadow-2xl border ds-border overflow-hidden">
        <div className="px-5 py-3.5 flex items-center justify-between bg-amber-500/10 border-b border-amber-500/20">
         <div className="flex items-center gap-2">
          <ShieldAlert size={16} className="text-amber-500" />
@@ -49,7 +49,7 @@ const ForcePasswordModal = memo(function ForcePasswordModal({
          onClick={handleSubmit}
          disabled={isLoading || !canSubmit}
          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-black text-[10px] uppercase tracking-widest ml-3 shrink-0 transition-all disabled:opacity-40 ${
-          canSubmit ? "bg-amber-600 text-white" : "ds-bg-3 text-gray-400"
+          canSubmit ? "bg-amber-600 text-white" : "ds-bg-3 ds-t3"
          }`}
         >
          {isLoading ? <Loader2 size={11} className="animate-spin" /> : <Save size={11} />}
@@ -57,12 +57,12 @@ const ForcePasswordModal = memo(function ForcePasswordModal({
         </button>
        </div>
        <div className="px-5 py-4 space-y-0">
-        <p className="text-xs text-gray-500 mb-3">Password harus diganti untuk melanjutkan.</p>
-        {error && <p className="text-xs text-red-500 mb-3 font-bold">{error}</p>}
-        {mismatch && <p className="text-xs text-red-500 mb-3 font-bold">Password tidak cocok!</p>}
+        <p className="text-xs ds-t3 mb-3">Password harus diganti untuk melanjutkan.</p>
+        {error && <p className="text-xs mb-3 font-bold" style={{ color: "var(--a3)" }}>{error}</p>}
+        {mismatch && <p className="text-xs mb-3 font-bold" style={{ color: "var(--a3)" }}>Password tidak cocok!</p>}
 
         <div className="border-b ds-border py-3">
-         <label className="text-[8px] font-black text-gray-400 uppercase tracking-widest block mb-1.5">Password Baru</label>
+         <label className="text-[8px] font-black ds-t3 uppercase tracking-widest block mb-1.5">Password Baru</label>
          <input
           autoFocus type="password"
           placeholder="Min 6 karakter"
@@ -73,7 +73,7 @@ const ForcePasswordModal = memo(function ForcePasswordModal({
         </div>
 
         <div className="py-3">
-         <label className="text-[8px] font-black text-gray-400 uppercase tracking-widest block mb-1.5">Konfirmasi Password</label>
+         <label className="text-[8px] font-black ds-t3 uppercase tracking-widest block mb-1.5">Konfirmasi Password</label>
          <input
           type="password"
           placeholder="Ketik ulang password"

@@ -45,7 +45,7 @@ const SavingsTab = memo(function SavingsTab({
  placeholder="Nama target (Cth: Laptop, Dana Darurat)"
  value={newGoalData.name ?? ""}
  onChange={e => setNewGoalData(p => ({ ...p, name: e.target.value }))}
- className="w-full ds-bg-1 border ds-border rounded-xl py-2.5 px-4 text-sm font-bold ds-t1 outline-none focus:border-blue-500 transition-all placeholder-gray-400"
+ className="w-full ds-bg-1 border ds-border rounded-xl py-2.5 px-4 text-sm font-bold ds-t1 outline-none focus:border-[var(--a1)] transition-all placeholder-gray-400"
  />
  <div className="grid grid-cols-2 gap-3">
  <input
@@ -53,19 +53,20 @@ const SavingsTab = memo(function SavingsTab({
  placeholder="Target (Cth: 5jt)"
  value={newGoalData.target ?? ""}
  onChange={e => setNewGoalData(p => ({ ...p, target: e.target.value }))}
- className="w-full ds-bg-1 border ds-border rounded-xl py-2.5 px-4 text-sm font-bold ds-t1 outline-none focus:border-blue-500 transition-all placeholder-gray-400"
+ className="w-full ds-bg-1 border ds-border rounded-xl py-2.5 px-4 text-sm font-bold ds-t1 outline-none focus:border-[var(--a1)] transition-all placeholder-gray-400"
  />
  <input
  type="text"
  placeholder="Isi awal (opsional)"
  value={newGoalData.current ?? ""}
  onChange={e => setNewGoalData(p => ({ ...p, current: e.target.value }))}
- className="w-full ds-bg-1 border ds-border rounded-xl py-2.5 px-4 text-sm font-bold ds-t1 outline-none focus:border-blue-500 transition-all placeholder-gray-400"
+ className="w-full ds-bg-1 border ds-border rounded-xl py-2.5 px-4 text-sm font-bold ds-t1 outline-none focus:border-[var(--a1)] transition-all placeholder-gray-400"
  />
  </div>
  <button
  type="submit"
- className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-black uppercase tracking-widest rounded-xl shadow-md transition-all"
+ className="w-full py-2.5 text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-all"
+ style={{ background: "linear-gradient(135deg, var(--a1), var(--a2))" }}
  >
  Simpan Target
  </button>
@@ -78,10 +79,13 @@ const SavingsTab = memo(function SavingsTab({
  {goals.map(goal => {
  const pct = Math.min(100, ((goal.current_amount / goal.target_amount) * 100)).toFixed(0);
  const isOpen = activeGoalInput === goal.id;
- const barColor = Number(pct) >= 100 ? "from-emerald-500 to-emerald-600"
- : Number(pct) >= 70 ? "from-blue-500 to-indigo-500"
- : Number(pct) >= 40 ? "from-amber-400 to-orange-500"
- : "from-blue-500 to-indigo-500";
+ const barStyle = Number(pct) >= 100
+  ? { background: "var(--income)" }
+  : Number(pct) >= 70
+  ? { background: "linear-gradient(90deg, var(--a1), var(--a2))" }
+  : Number(pct) >= 40
+  ? { background: "linear-gradient(90deg, rgb(251,191,36), rgb(249,115,22))" }
+  : { background: "linear-gradient(90deg, var(--a1), var(--a2))" };
 
  return (
  <div
@@ -91,7 +95,7 @@ const SavingsTab = memo(function SavingsTab({
  <div className="flex justify-between items-start mb-3">
  <div className="min-w-0 flex-1">
  <p className="font-black text-sm ds-t1 truncate">{goal.name}</p>
- <p className="text-[9px] ds-t3 mt-0.5">
+ <p className="text-[9px] ds-t3 ff-mono mt-0.5">
  Rp {fmt(goal.current_amount)}
  <span className="ds-t3 mx-1">/</span>
  <span className="font-bold ds-t2">Rp {fmt(goal.target_amount)}</span>
@@ -101,7 +105,7 @@ const SavingsTab = memo(function SavingsTab({
  <span className="text-xs font-black ds-aurora-text">{pct}%</span>
  <button
  onClick={() => triggerDeleteGoal(goal.id)}
- className="p-1.5 ds-t3 hover:text-red-500 transition-colors"
+ className="p-1.5 ds-t3 hover:text-fuchsia-400 transition-colors"
  >
  <Trash2 size={13} />
  </button>
@@ -114,7 +118,8 @@ const SavingsTab = memo(function SavingsTab({
  initial={{ width: 0 }}
  animate={{ width: `${pct}%` }}
  transition={{ duration: 1, ease: "easeOut" }}
- className={`h-full rounded-full bg-gradient-to-r ${barColor}`}
+ className="h-full rounded-full"
+ style={barStyle}
  />
  </div>
 
@@ -123,13 +128,13 @@ const SavingsTab = memo(function SavingsTab({
  <div className="flex justify-between items-center">
  <button
  onClick={() => setActiveGoalInput(goal.id)}
- className="text-[9px] font-black ds-aurora-text ds-aurora-bg border border-blue-500/10 px-3 py-1.5 rounded-lg hover:bg-blue-500 hover:text-white transition-all uppercase tracking-wider"
+ className="text-[9px] font-black ds-aurora-text ds-aurora-bg border ds-aurora-border-c px-3 py-1.5 rounded-lg transition-all uppercase tracking-wider"
  >
  Mutasi Saldo
  </button>
  <button
  onClick={() => handleModifySavings(goal.id, goal.current_amount, "reset")}
- className="text-[9px] font-black ds-t3 hover:text-red-500 px-3 py-1.5 rounded-lg transition-all uppercase tracking-wider"
+ className="text-[9px] font-black ds-t3 hover:text-fuchsia-400 px-3 py-1.5 rounded-lg transition-all uppercase tracking-wider"
  >
  Reset
  </button>
@@ -146,17 +151,19 @@ const SavingsTab = memo(function SavingsTab({
  placeholder="Nominal (Cth: 10k, 50k)"
  value={flexibleSavingsAmt ?? ""}
  onChange={e => setFlexibleSavingsAmt(e.target.value)}
- className="flex-1 ds-bg-3 border ds-border rounded-xl py-2 px-3 text-xs font-bold ds-t1 outline-none focus:border-blue-500 transition-all"
+ className="flex-1 ds-bg-3 border ds-border rounded-xl py-2 px-3 text-xs font-bold ds-t1 outline-none focus:border-[var(--a1)] transition-all"
  />
  <button
  onClick={() => handleModifySavings(goal.id, goal.current_amount, "add")}
- className="px-3 py-2 bg-green-600 text-white font-black text-[9px] uppercase tracking-wider rounded-xl active:scale-95 transition-all"
+ className="px-3 py-2 font-black text-[9px] uppercase tracking-wider rounded-xl active:scale-95 transition-all"
+ style={{ background: "var(--income)", color: "#0f172a" }}
  >
  + Tabung
  </button>
  <button
  onClick={() => handleModifySavings(goal.id, goal.current_amount, "subtract")}
- className="px-3 py-2 bg-red-600 text-white font-black text-[9px] uppercase tracking-wider rounded-xl active:scale-95 transition-all"
+ className="px-3 py-2 text-white font-black text-[9px] uppercase tracking-wider rounded-xl active:scale-95 transition-all"
+ style={{ background: "color-mix(in srgb, var(--a3) 80%, #000)" }}
  >
  - Pakai
  </button>
