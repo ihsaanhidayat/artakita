@@ -1,78 +1,26 @@
 "use client";
 import { memo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { Trash2 } from "lucide-react";
 import { fmt } from "@/lib/utils";
 import CategoryPills from "@/components/CategoryPills";
 
 const SavingsTab = memo(function SavingsTab({
  goals, setGoals,
- isNewGoalOpen, setIsNewGoalOpen,
- newGoalData, setNewGoalData,
- handleAddGoal,
  activeGoalInput, setActiveGoalInput,
  flexibleSavingsAmt, setFlexibleSavingsAmt,
  handleModifySavings, triggerDeleteGoal,
+ refreshKey,
 }) {
  return (
  <div className="px-3 pb-32 pt-2">
 
- {/* Header + tombol tambah */}
+ {/* Header */}
  <div className="flex justify-between items-center mb-5">
  <p className="text-[9px] font-black ds-t3 uppercase tracking-[0.3em]">
  Target Impian
  </p>
- <button
- onClick={() => setIsNewGoalOpen(!isNewGoalOpen)}
- className="px-3 py-1.5 ds-aurora-bg border ds-aurora-border-c ds-aurora-text font-black text-[9px] uppercase tracking-widest rounded-xl transition-all active:scale-95"
- >
- {isNewGoalOpen ? "Batal" : "+ Target"}
- </button>
  </div>
-
- {/* Form tambah target */}
- <AnimatePresence>
- {isNewGoalOpen && (
- <motion.form
- initial={{ opacity: 0, height: 0 }}
- animate={{ opacity: 1, height: "auto" }}
- exit={{ opacity: 0, height: 0 }}
- onSubmit={handleAddGoal}
- className="ds-bg-3 p-5 rounded-[24px] border ds-border space-y-3 mb-5 overflow-hidden"
- >
- <input
- type="text" required
- placeholder="Nama target (Cth: Laptop, Dana Darurat)"
- value={newGoalData.name ?? ""}
- onChange={e => setNewGoalData(p => ({ ...p, name: e.target.value }))}
- className="w-full ds-bg-1 border ds-border rounded-xl py-2.5 px-4 text-sm font-bold ds-t1 outline-none focus:border-[var(--a1)] transition-all placeholder-gray-400"
- />
- <div className="grid grid-cols-2 gap-3">
- <input
- type="text" required
- placeholder="Target (Cth: 5jt)"
- value={newGoalData.target ?? ""}
- onChange={e => setNewGoalData(p => ({ ...p, target: e.target.value }))}
- className="w-full ds-bg-1 border ds-border rounded-xl py-2.5 px-4 text-sm font-bold ds-t1 outline-none focus:border-[var(--a1)] transition-all placeholder-gray-400"
- />
- <input
- type="text"
- placeholder="Isi awal (opsional)"
- value={newGoalData.current ?? ""}
- onChange={e => setNewGoalData(p => ({ ...p, current: e.target.value }))}
- className="w-full ds-bg-1 border ds-border rounded-xl py-2.5 px-4 text-sm font-bold ds-t1 outline-none focus:border-[var(--a1)] transition-all placeholder-gray-400"
- />
- </div>
- <button
- type="submit"
- className="w-full py-2.5 text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-all"
- style={{ background: "linear-gradient(135deg, var(--a1), var(--a2))" }}
- >
- Simpan Target
- </button>
- </motion.form>
- )}
- </AnimatePresence>
 
  {/* Goal list */}
  <div className="space-y-3">
@@ -179,7 +127,7 @@ const SavingsTab = memo(function SavingsTab({
  );
  })}
 
- {goals.length === 0 && !isNewGoalOpen && (
+ {goals.length === 0 && (
  <div className="text-center py-14 ds-bg-1/10 rounded-[28px] border border-dashed ds-border">
  <p className="text-[9px] font-black ds-t3 uppercase tracking-[0.4em]">
  Belum Ada Target

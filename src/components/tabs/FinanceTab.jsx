@@ -99,6 +99,7 @@ const FinanceTab = memo(function FinanceTab({
  activeWallet, balance,
  subPage, setSubPage,
  onNotify,
+ financeRefreshKey,
  // Savings props
  goals, setGoals,
  isNewGoalOpen, setIsNewGoalOpen,
@@ -160,7 +161,7 @@ const FinanceTab = memo(function FinanceTab({
  <SubPage key="debts">
  <Breadcrumb subLabel={FINANCE.DEBTS} onBack={() => setSubPage(null)} />
  <div className="flex-1 overflow-hidden min-h-0">
- <DebtsTab activeWallet={activeWallet} balance={balance} />
+ <DebtsTab activeWallet={activeWallet} balance={balance} refreshKey={financeRefreshKey} />
  </div>
  </SubPage>
  )}
@@ -169,7 +170,7 @@ const FinanceTab = memo(function FinanceTab({
  <SubPage key="recurring">
  <Breadcrumb subLabel={FINANCE.RECURRING} onBack={() => setSubPage(null)} />
  <div className="flex-1 overflow-hidden min-h-0">
- <RecurringTab activeWallet={activeWallet} onNotify={onNotify} />
+ <RecurringTab activeWallet={activeWallet} onNotify={onNotify} refreshKey={financeRefreshKey} />
  </div>
  </SubPage>
  )}
@@ -178,7 +179,7 @@ const FinanceTab = memo(function FinanceTab({
  <SubPage key="assets">
  <Breadcrumb subLabel={FINANCE.ASSETS} onBack={() => setSubPage(null)} />
  <div className="flex-1 overflow-hidden min-h-0">
- <AssetsTab activeWallet={activeWallet} />
+ <AssetsTab activeWallet={activeWallet} refreshKey={financeRefreshKey} />
  </div>
  </SubPage>
  )}
@@ -190,17 +191,13 @@ const FinanceTab = memo(function FinanceTab({
  <SavingsTab
  goals={goals}
  setGoals={setGoals}
- isNewGoalOpen={isNewGoalOpen}
- setIsNewGoalOpen={setIsNewGoalOpen}
- newGoalData={newGoalData}
- setNewGoalData={setNewGoalData}
- handleAddGoal={handleAddGoal}
  activeGoalInput={activeGoalInput}
  setActiveGoalInput={setActiveGoalInput}
  flexibleSavingsAmt={flexibleSavingsAmt}
  setFlexibleSavingsAmt={setFlexibleSavingsAmt}
  handleModifySavings={handleModifySavings}
  triggerDeleteGoal={triggerDeleteGoal}
+ refreshKey={financeRefreshKey}
  />
  </div>
  </SubPage>

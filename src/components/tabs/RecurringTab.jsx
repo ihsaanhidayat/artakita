@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabaseClient";
 import { parseFlexibleNumber, fmt } from "@/lib/utils";
 import {
- Plus, Trash2, Edit3, X, Save, RefreshCw,
+ Trash2, Edit3, X, Save, RefreshCw,
  ArrowDownCircle, ArrowUpCircle,
  Play, Pause, ChevronDown, Loader2, Wallet, Clock
 } from "lucide-react";
@@ -42,9 +42,8 @@ const getNextStyle = (dateStr) => {
  return {};
 };
 
-const RecurringTabComponent = memo(function RecurringTab({ activeWallet, onNotify }) {
+const RecurringTabComponent = memo(function RecurringTab({ activeWallet, onNotify, refreshKey }) {
  const [items, setItems] = useState([]);
- const [isDirty, setIsDirty] = useState(false);
  const [isLoading, setIsLoading] = useState(false);
  const [isFormOpen, setIsFormOpen] = useState(false);
  const [editingId, setEditingId] = useState(null);
@@ -74,7 +73,7 @@ const RecurringTabComponent = memo(function RecurringTab({ activeWallet, onNotif
  setIsLoading(false);
  }, [activeWallet?.id]);
 
- useEffect(() => { fetchItems(); }, [fetchItems]);
+ useEffect(() => { fetchItems(); }, [fetchItems, refreshKey]);
 
  const resetForm = () => {
  setForm({
@@ -415,22 +414,7 @@ const RecurringTabComponent = memo(function RecurringTab({ activeWallet, onNotif
  })}
  </div>
 
- {/* FAB */}
- <AnimatePresence>
- {!isFormOpen && (
- <motion.button
- initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}
- whileTap={{ scale: 0.9 }}
- onClick={() => { resetForm(); setIsFormOpen(true); }}
- className="fixed bottom-24 right-6 w-14 h-14 rounded-full shadow-2xl flex items-center justify-center text-white z-40 transition-all active:scale-95"
- style={{ background: "linear-gradient(135deg, var(--a1), var(--a2))", boxShadow: "0 8px 24px color-mix(in srgb, var(--a1) 35%, transparent)" }}
- >
- <Plus size={24} />
- </motion.button>
- )}
- </AnimatePresence>
-
- {/* Bottom Sheet Form */}
+ {/* Bottom Sheet Form (edit only) */}
  <AnimatePresence>
  {isFormOpen && (
  <>
@@ -451,7 +435,7 @@ const RecurringTabComponent = memo(function RecurringTab({ activeWallet, onNotif
  <div className="w-10 h-1 ds-bg-3 rounded-full mx-auto mb-1" />
  <div className="flex justify-between items-center">
  <h3 className="text-sm font-black ds-t1 uppercase tracking-widest">
- {editingId ? "Edit Transaksi Rutin" : "Tambah Transaksi Rutin"}
+ {"Edit Transaksi Rutin"}
  </h3>
  <button type="button" onClick={() => { if (!isSaving) { resetForm(); setIsFormOpen(false); } }} className="p-2 ds-t3 hover:text-fuchsia-400 ds-bg-3 rounded-full transition-colors">
  <X size={18} />
@@ -532,7 +516,7 @@ const RecurringTabComponent = memo(function RecurringTab({ activeWallet, onNotif
  className="w-full flex items-center justify-center gap-2 py-4 disabled:opacity-50 text-white font-black text-xs uppercase tracking-widest rounded-2xl transition-all"
  style={{ background: "linear-gradient(135deg, var(--a1), var(--a2))" }}
  >
- {isSaving ? <><Loader2 size={16} className="animate-spin" /> Menyimpan...</> : <><Save size={14} /> {editingId ? "Simpan Perubahan" : "Tambah Jadwal"}</>}
+ {isSaving ? <><Loader2 size={16} className="animate-spin" /> Menyimpan...</> : <><Save size={14} /> {"Simpan Perubahan"}</>}
  </button>
  </div>
  </motion.form>

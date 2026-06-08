@@ -6,9 +6,9 @@ import { supabase } from "@/lib/supabaseClient";
 import { parseFlexibleNumber, fmt, fmtShort } from "@/lib/utils";
 import { DEBT } from "@/lib/constants";
 import {
- Plus, Trash2, ChevronDown, ArrowDownLeft, ArrowUpRight,
+ Trash2, ChevronDown, ArrowDownLeft, ArrowUpRight,
  CheckCircle2, Wallet, TrendingDown, TrendingUp,
- X, Edit3, Save, ArrowUpDown, Calendar,
+ Edit3, Save, ArrowUpDown, Calendar,
  SortAsc, Clock
 } from "lucide-react";
 
@@ -284,11 +284,7 @@ const DebtCard = memo(function DebtCard({
  value={editData.initial_amount ?? ""}
  onChange={e => setEditData(p => ({ ...p, initial_amount: e.target.value }))}
  placeholder="Cth: 500k, 1jt, 500rb"
- onBlur={e => {
- const p = parseFlexibleNumber(e.target.value);
- if (p > 0) setFormData(prev => ({ ...prev, amount: String(p) }));
- }}
- className="w-full ds-bg-3 border ds-border rounded-xl py-2.5 px-3 text-sm font-bold ds-t1 outline-none focus:border-blue-500 transition-all placeholder-gray-400"
+ className="w-full ds-bg-3 border ds-border rounded-xl py-2.5 px-3 text-sm font-bold ds-t1 outline-none focus:border-[var(--a1)] transition-all placeholder-gray-400"
  />
  </div>
  <div>
@@ -424,10 +420,6 @@ const DebtCard = memo(function DebtCard({
  autoFocus
  type="text"
  placeholder="Cth: 500k, 1jt, 500rb"
- onBlur={e => {
- const p = parseFlexibleNumber(e.target.value);
- if (p > 0) setFormData(prev => ({ ...prev, amount: String(p) }));
- }}
  value={payAmount ?? ""}
  onChange={e => { setPayAmount(e.target.value); setPayError(""); }}
  onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handlePay(); } }}
@@ -554,17 +546,13 @@ const PaidCard = memo(function PaidCard({ d, payments, isExpanded, onToggle, onD
 });
 
 // ── Main ──────────────────────────────────────────────────────────────────────
-const DebtsTabComponent = memo(function DebtsTab({ activeWallet, balance }) {
+const DebtsTabComponent = memo(function DebtsTab({ activeWallet, balance, refreshKey }) {
  const [debts, setDebts] = useState([]);
  const [payments, setPayments] = useState({}); // { debt_id: [trx] }
  const [activeTab, setActiveTab] = useState("debt"); // "debt"|"receivable"|"paid"
  const [sortKey, setSortKey] = useState("nominal");
  const [isSortOpen, setIsSortOpen] = useState(false);
  const [expandedId, setExpandedId] = useState(null);
- const [isFormOpen, setIsFormOpen] = useState(false);
- const [isDirty, setIsDirty] = useState(false);
- const [formData, setFormData] = useState({ person: "", amount: "", type: "debt", due_date: "" });
- const [isAdding, setIsAdding] = useState(false);
  const [deleteModal, setDeleteModal] = useState({ show: false, id: null });
  const [toast, setToast] = useState({ show: false, msg: "", type: "error" });
 
@@ -602,7 +590,7 @@ const DebtsTabComponent = memo(function DebtsTab({ activeWallet, balance }) {
  }
  }, []);
 
- useEffect(() => { fetchDebts(); }, [fetchDebts]);
+ useEffect(() => { fetchDebts(); }, [fetchDebts, refreshKey]);
 
  // Fetch payments saat tab LUNAS aktif
  useEffect(() => {
@@ -642,35 +630,6 @@ const DebtsTabComponent = memo(function DebtsTab({ activeWallet, balance }) {
  const emptyMsg = activeTab === "debt" ? DEBT.EMPTY_DEBT
  : activeTab === "receivable" ? DEBT.EMPTY_REC
  : DEBT.EMPTY_PAID;
-
- // ── Add ────────────────────────────────────────────────────────────────────
- const handleAdd = useCallback(async e => {
- e.preventDefault();
- if (!formData.person.trim() || !formData.amount) return;
- const parsed = Math.abs(parseFlexibleNumber(formData.amount));
- if (parsed <= 0) { showToast("Nominal harus lebih dari 0"); return; }
- setIsAdding(true);
- const { data: { user } } = await supabase.auth.getUser();
- const { error } = await supabase.from("debts").insert([{
- person_name: formData.person.trim(),
- amount: parsed,
- initial_amount: parsed,
- type: formData.type,
- wallet_id: activeWallet.id,
- user_id: user.id,
- due_date: formData.due_date || null,
- status: "unpaid",
- }]);
- setIsAdding(false);
- if (!error) {
- setIsFormOpen(false);
- setFormData({ person: "", amount: "", type: "debt", due_date: "" });
- fetchDebts();
- showToast(DEBT.DEBT_ADDED || "Berhasil disimpan!", "success");
- } else {
- showToast("Gagal: " + error.message);
- }
- }, [formData, activeWallet, fetchDebts, showToast]);
 
  const confirmDelete = useCallback(async () => {
  if (deleteModal.id) {
@@ -828,120 +787,6 @@ const DebtsTabComponent = memo(function DebtsTab({ activeWallet, balance }) {
  />
  ))}
  </div>
-
- {/* FAB */}
- {activeTab !== "paid" && (
- <AnimatePresence>
- {!isFormOpen && (
- <motion.button
- initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}
- whileTap={{ scale: 0.9 }}
- onClick={() => { setIsFormOpen(true); setFormData(p => ({ ...p, type: activeTab === "receivable" ? "receivable" : "debt" })); }}
- className="fixed bottom-24 right-6 w-14 h-14 rounded-full shadow-2xl flex items-center justify-center text-white z-40 transition-all active:scale-95"
- style={{ background: "linear-gradient(135deg, var(--a1), var(--a2))", boxShadow: "0 8px 24px color-mix(in srgb, var(--a1) 35%, transparent)" }}
- >
- <Plus size={24} />
- </motion.button>
- )}
- </AnimatePresence>
- )}
-
- {/* Bottom Sheet Form */}
- <AnimatePresence>
- {isFormOpen && (
- <>
- {/* Backdrop */}
- <motion.div
- initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
- transition={{ duration: 0.12 }}
- onClick={() => { if (!isDirty) { setIsFormOpen(false); setFormData({ person: "", amount: "", due_date: "", type: "debt" }); setIsDirty(false); } }}
- className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100]"
- />
- {/* Center dialog */}
- <motion.div
- initial={{ opacity: 0, scale: 0.95 }}
- animate={{ opacity: 1, scale: 1 }}
- exit={{ opacity: 0, scale: 0.95 }}
- transition={{ duration: 0.15, ease: "easeOut" }}
- className="fixed inset-0 z-[101] flex items-start justify-center px-4"
- style={{ paddingTop: "10vh", paddingBottom: "env(keyboard-inset-height, 0px)" }}
- onClick={e => e.stopPropagation()}
- >
- <div className="w-full max-w-sm ds-bg-1 rounded-[24px] shadow-2xl border ds-border overflow-hidden"
- style={{ maxHeight: "85dvh", overflowY: "auto" }}>
-
- {/* Header */}
- <div className="px-5 py-3.5 flex items-center justify-between border-b ds-border"
- style={{ background: formData.type === "debt" ? "color-mix(in srgb, var(--a3) 8%, transparent)" : "color-mix(in srgb, var(--income) 8%, transparent)" }}>
- <div className="min-w-0 flex-1">
- <p className="text-[8px] font-black uppercase tracking-widest mb-0.5"
- style={{ color: formData.type === "debt" ? "color-mix(in srgb, var(--a3) 70%, transparent)" : "color-mix(in srgb, var(--income) 70%, transparent)" }}>
- {formData.type === "debt" ? "Catat Hutang" : "Catat Piutang"}
- </p>
- {/* Type toggle pills */}
- <div className="flex gap-1.5 mt-1">
- {[
- { val: "debt", label: DEBT.TAB_DEBT, activeStyle: { background: "var(--a3)", color: "#fff" } },
- { val: "receivable", label: DEBT.TAB_RECEIVE, activeStyle: { background: "var(--income)", color: "#000" } },
- ].map(({ val, label, activeStyle }) => (
- <button key={val} type="button"
- onClick={() => setFormData(p => ({ ...p, type: val }))}
- className="px-2.5 py-1 rounded-lg font-black text-[9px] uppercase tracking-widest transition-all"
- style={formData.type === val ? activeStyle : undefined}>
- {label}
- </button>
- ))}
- </div>
- </div>
- <button
- onClick={() => { if (isDirty) { handleAdd(new Event("submit")); } else { setIsFormOpen(false); setFormData({ person: "", amount: "", due_date: "", type: "debt" }); setIsDirty(false); } }}
- disabled={isAdding}
- className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-black text-[10px] uppercase tracking-widest ml-3 shrink-0 transition-all disabled:opacity-40"
- style={isDirty ? { background: "linear-gradient(135deg, var(--a1), var(--a2))", color: "#fff" } : undefined}
- >
- <Save size={11} />
- {isAdding ? "..." : isDirty ? "Simpan" : "Tutup"}
- </button>
- </div>
-
- {/* Fields */}
- <form onSubmit={handleAdd} className="px-5 py-4 space-y-0">
- {/* Nama */}
- <div className="border-b ds-border py-3">
- <label className="text-[8px] font-black ds-t3 uppercase tracking-widest block mb-1.5">{DEBT.PERSON_NAME}</label>
- <input type="text" required autoFocus
- placeholder={DEBT.PERSON_HINT}
- value={formData.person ?? ""}
- onChange={e => { setFormData(p => ({ ...p, person: e.target.value })); setIsDirty(true); }}
- className="w-full bg-transparent outline-none font-bold text-sm ds-t1 placeholder-gray-300 "
- />
- </div>
- {/* Nominal */}
- <div className="border-b ds-border py-3">
- <label className="text-[8px] font-black ds-t3 uppercase tracking-widest block mb-1.5">{DEBT.NOMINAL}</label>
- <input type="text" required
- placeholder="50k · 1jt · 500rb"
- value={formData.amount ?? ""}
- onChange={e => { setFormData(p => ({ ...p, amount: e.target.value })); setIsDirty(true); }}
- onBlur={e => { const p = parseFlexibleNumber(e.target.value); if (p > 0) setFormData(prev => ({ ...prev, amount: p.toLocaleString("id-ID") })); }}
- className="w-full bg-transparent outline-none font-black text-2xl ds-t1 placeholder-gray-300 border-b-2 border-transparent focus:border-[var(--a1)] transition-colors pb-0.5"
- />
- </div>
- {/* Tanggal */}
- <div className="py-3 flex items-center justify-between">
- <label className="text-[8px] font-black ds-t3 uppercase tracking-widest">Jatuh Tempo</label>
- <input type="date"
- value={formData.due_date ?? ""}
- onChange={e => { setFormData(p => ({ ...p, due_date: e.target.value })); setIsDirty(true); }}
- className="bg-transparent outline-none text-sm font-bold ds-t1 text-right"
- />
- </div>
- </form>
- </div>
- </motion.div>
- </>
- )}
- </AnimatePresence>
 
  {/* Delete Modal */}
  <AnimatePresence>

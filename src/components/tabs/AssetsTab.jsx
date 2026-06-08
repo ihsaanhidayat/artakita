@@ -8,7 +8,7 @@ import { parseFlexibleNumber, fmt, formatDateTime } from "@/lib/utils";
 import PhotoViewer from "@/components/PhotoViewer";
 import PhotoUploadButton from "@/components/PhotoUploadButton";
 import {
- Plus, Trash2, Edit3, X, Save, Eye,
+ Trash2, Edit3, X, Save, Eye,
  Package, Store, Calendar, Tag,
  ChevronDown, Loader2, Wallet
 } from "lucide-react";
@@ -26,7 +26,7 @@ const CONDITIONS = [
 
 const getCondition = (val) => CONDITIONS.find(c => c.value === val) || CONDITIONS[1];
 
-const AssetsTabComponent = memo(function AssetsTab({ activeWallet }) {
+const AssetsTabComponent = memo(function AssetsTab({ activeWallet, refreshKey }) {
  const [assets, setAssets] = useState([]);
  const [isDirty, setIsDirty] = useState(false);
  const [isLoading, setIsLoading] = useState(false);
@@ -64,7 +64,7 @@ const AssetsTabComponent = memo(function AssetsTab({ activeWallet }) {
  setIsLoading(false);
  }, [activeWallet?.id]);
 
- useEffect(() => { fetchAssets(); }, [fetchAssets]);
+ useEffect(() => { fetchAssets(); }, [fetchAssets, refreshKey]);
 
  // ── Reset form ──────────────────────────────────────────────────────────
  const resetForm = () => {
@@ -72,8 +72,6 @@ const AssetsTabComponent = memo(function AssetsTab({ activeWallet }) {
  setPhotoFile(null);
  setEditingId(null);
  };
-
- const openAdd = () => { resetForm(); setIsFormOpen(true); };
 
  const openEdit = (asset) => {
  setForm({
@@ -357,22 +355,7 @@ const AssetsTabComponent = memo(function AssetsTab({ activeWallet }) {
  })}
  </div>
 
- {/* FAB */}
- <AnimatePresence>
- {!isFormOpen && (
- <motion.button
- initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}
- whileTap={{ scale: 0.9 }}
- onClick={openAdd}
- className="fixed bottom-24 right-6 w-14 h-14 rounded-full shadow-2xl flex items-center justify-center text-white z-40"
- style={{ background: "linear-gradient(135deg, var(--a1), var(--a2))", boxShadow: "0 8px 32px color-mix(in srgb, var(--a1) 35%, transparent)" }}
- >
- <Plus size={24} />
- </motion.button>
- )}
- </AnimatePresence>
-
- {/* Bottom Sheet Form */}
+ {/* Bottom Sheet Form (edit only) */}
  <AnimatePresence>
  {isFormOpen && (
  <>
@@ -393,7 +376,7 @@ const AssetsTabComponent = memo(function AssetsTab({ activeWallet }) {
  <div className="w-10 h-1 ds-bg-3 rounded-full mx-auto mb-5" />
  <div className="flex justify-between items-center mb-5">
  <h3 className="text-sm font-black ds-t1 uppercase tracking-widest">
- {editingId ? "Edit Aset" : "Tambah Aset"}
+ {"Edit Aset"}
  </h3>
  <button
  type="button"
@@ -501,7 +484,7 @@ const AssetsTabComponent = memo(function AssetsTab({ activeWallet }) {
  >
  {(isSaving || isUploading)
  ? <><Loader2 size={16} className="animate-spin" /> Menyimpan...</>
- : <><Save size={14} /> {editingId ? "Simpan Perubahan" : "Tambah Aset"}</>
+ : <><Save size={14} /> {"Simpan Perubahan"}</>
  }
  </button>
  </div>

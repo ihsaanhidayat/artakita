@@ -274,6 +274,7 @@ export default function Home() {
  const [goalDeleteModal,   setGoalDeleteModal]   = useState({ isOpen: false, goalId: null, goalName: "" });
  const [activeGoalInput,   setActiveGoalInput]   = useState(null);
  const [flexibleSavingsAmt, setFlexibleSavingsAmt] = useState("");
+ const [financeRefreshKey, setFinanceRefreshKey] = useState(0);
 
  // ── Modals ────────────────────────────────────────────────────────────────
  const [editTrxModal,    setEditTrxModal]    = useState({ isOpen: false, data: null });
@@ -458,13 +459,13 @@ export default function Home() {
 
  // Goals
  useEffect(() => {
-  if (activeTab !== "more") return;
+  if (activeTab !== "finance" && activeTab !== "more") return;
   const fetch = async () => {
    const { data } = await supabase.from("savings_goals").select("*").order("created_at", { ascending: true });
    if (data) setGoals(data);
   };
   fetch();
- }, [activeTab]);
+ }, [activeTab, financeRefreshKey]);
 
  // ── Derived Data ──────────────────────────────────────────────────────────
  // transactionsThisMonth = semua transaksi (filter bulan dihapus)
@@ -746,6 +747,49 @@ export default function Home() {
   }
  }, [newGoalData]);
 
+ const handleContextSubmit = useCallback(async (context, data) => {
+  const walletId = activeWallet?.id;
+  const userId = auth.session?.user?.id;
+  if (!walletId || !userId) return;
+  let error;
+  switch (context) {
+   case "debts":
+    ({ error } = await supabase.from("debts").insert([{
+     person_name: data.person, amount: data.amount, initial_amount: data.amount,
+     type: data.type, wallet_id: walletId, user_id: userId, status: "unpaid", due_date: null,
+    }]));
+    break;
+   case "recurring":
+    ({ error } = await supabase.from("recurring_transactions").insert([{
+     note: data.note, amount: data.amount, category: data.category,
+     type: data.type, frequency: data.frequency,
+     next_run_date: new Date().toISOString().slice(0, 10),
+     wallet_id: walletId, user_id: userId, is_active: true,
+    }]));
+    break;
+   case "savings": {
+    const { data: newGoal, error: savErr } = await supabase.from("savings_goals").insert([{
+     name: data.name, target_amount: data.target_amount, current_amount: 0,
+    }]).select().single();
+    error = savErr;
+    if (!savErr && newGoal) setGoals(p => [...p, newGoal]);
+    break;
+   }
+   case "assets":
+    ({ error } = await supabase.from("assets").insert([{
+     name: data.name, price: data.price || 0, condition: data.condition,
+     store_name: null, purchase_date: null, notes: null, photo_url: null,
+     wallet_id: walletId, user_id: userId,
+    }]));
+    break;
+   default:
+    return;
+  }
+  if (error) { showNotification("Gagal menyimpan: " + error.message, "error"); return; }
+  showNotification("Berhasil ditambah!", "success");
+  setFinanceRefreshKey(k => k + 1);
+ }, [activeWallet, auth.session, showNotification]);
+
  const handleModifySavings = useCallback(async (id, currentAmt, mode) => {
   let nextAmt = 0;
   if (mode !== "reset") {
@@ -974,6 +1018,7 @@ export default function Home() {
        subPage={financeSubPage}
        setSubPage={setFinanceSubPage}
        onNotify={showNotification}
+       financeRefreshKey={financeRefreshKey}
        goals={goals}
        setGoals={setGoals}
        isNewGoalOpen={isNewGoalOpen}
@@ -1100,6 +1145,8 @@ export default function Home() {
                 aiKeywords={aiKeywords}
                 userCategories={userCategories}
                 session={auth.session}
+                currentContext={activeTab === "finance" && financeSubPage ? financeSubPage : activeTab === "home" ? "home" : null}
+                onContextSubmit={handleContextSubmit}
               />}
             </div>
 

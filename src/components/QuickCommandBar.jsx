@@ -123,6 +123,94 @@ const dateLabel = (d) => {
   return d;
 };
 
+// ── Context config ─────────────────────────────────────────────────────────────
+const CONTEXT_CONFIG = {
+  debts:     { placeholder: "Hutang ke Budi 500rb...",  label: "HUTANG/PIUTANG" },
+  recurring: { placeholder: "Netflix 59rb bulanan...",  label: "RUTIN" },
+  savings:   { placeholder: "Nabung laptop 5jt...",     label: "TABUNGAN" },
+  assets:    { placeholder: "Laptop Dell 8jt baru...",  label: "ASET" },
+};
+
+// ── Context-aware parse functions ────────────────────────────────────────────
+const parseDebt = (text) => {
+  const { amount, note: parsedNote } = tokenizeInput(text);
+  const raw = (parsedNote || text).toLowerCase();
+  const type = ["piutang", "tagih", "pinjemin", "nyarain"].some(w => raw.includes(w))
+    ? "receivable" : "debt";
+  let person = parsedNote || text;
+  ["hutang", "piutang", "pinjam", "tagih", "pinjemin", "kasih", "nyarain", "ngutang", "minjam"]
+    .forEach(w => { person = person.replace(new RegExp("\\b" + w + "\\b", "gi"), ""); });
+  [" ke ", " dari ", " sama ", " buat "].forEach(w => { person = person.replace(new RegExp(w, "gi"), " "); });
+  person = person.trim().replace(/\s+/g, " ");
+  if (person) person = person.charAt(0).toUpperCase() + person.slice(1);
+  return { person: person || "?", amount: amount || 0, type };
+};
+
+const parseRecurring = (text) => {
+  const { amount, note: parsedNote } = tokenizeInput(text);
+  const raw = text.toLowerCase();
+  const frequency = /harian|daily/.test(raw) ? "daily"
+    : /mingguan|weekly/.test(raw) ? "weekly" : "monthly";
+  const type = /^in\s|gaji|terima|pemasukan/.test(raw) ? "income" : "expense";
+  let note = parsedNote || text;
+  ["harian", "daily", "mingguan", "weekly", "bulanan", "monthly"]
+    .forEach(w => { note = note.replace(new RegExp("\\b" + w + "\\b", "gi"), ""); });
+  if (/^in\s/i.test(note)) note = note.replace(/^in\s/i, "");
+  note = note.trim().replace(/\s+/g, " ");
+  if (note) note = note.charAt(0).toUpperCase() + note.slice(1);
+  const lower = (note || "").toLowerCase();
+  const category = /netflix|spotify|streaming|subscribe|langganan/.test(lower) ? "Hiburan"
+    : /gaji|salary/.test(lower) ? "Gaji"
+    : /listrik|pln|air|pdam|internet/.test(lower) ? "Tagihan"
+    : /cicilan|kredit|angsuran/.test(lower) ? "Cicilan"
+    : type === "income" ? "Pendapatan" : "Tagihan";
+  return { note: note || "?", amount: amount || 0, type, frequency, category };
+};
+
+const parseSavings = (text) => {
+  const { amount, note: parsedNote } = tokenizeInput(text);
+  let name = parsedNote || text;
+  ["nabung", "target", "tabung", "goal", "saving", "tujuan", "untuk", "buat"]
+    .forEach(w => { name = name.replace(new RegExp("\\b" + w + "\\b", "gi"), ""); });
+  name = name.trim().replace(/\s+/g, " ");
+  if (name) name = name.charAt(0).toUpperCase() + name.slice(1);
+  return { name: name || "?", target_amount: amount || 0 };
+};
+
+const parseAsset = (text) => {
+  const { amount, note: parsedNote } = tokenizeInput(text);
+  const raw = text.toLowerCase();
+  const condition = /rusak/.test(raw) ? "rusak"
+    : /servis|service/.test(raw) ? "perlu_servis"
+    : /baru|new/.test(raw) ? "baru"
+    : "baik";
+  let name = parsedNote || text;
+  ["baru", "rusak", "servis", "service", "new"]
+    .forEach(w => { name = name.replace(new RegExp("\\b" + w + "\\b", "gi"), ""); });
+  name = name.trim().replace(/\s+/g, " ");
+  if (name) name = name.charAt(0).toUpperCase() + name.slice(1);
+  return { name: name || "?", price: amount || 0, condition };
+};
+
+const parseByContext = (context, text) => {
+  switch (context) {
+    case "debts": return parseDebt(text);
+    case "recurring": return parseRecurring(text);
+    case "savings": return parseSavings(text);
+    case "assets": return parseAsset(text);
+    default: return null;
+  }
+};
+
+const FREQ_LABELS = { daily: "HARIAN", weekly: "MINGGUAN", monthly: "BULANAN" };
+const COND_LABELS = { baru: "Baru", baik: "Baik", perlu_servis: "Perlu Servis", rusak: "Rusak" };
+const COND_COLORS = {
+  baru:         "var(--a1)",
+  baik:         "var(--income)",
+  perlu_servis: "rgb(245,158,11)",
+  rusak:        "var(--a3)",
+};
+
 // ── Main ──────────────────────────────────────────────────────────────────────
 const QuickCommandBar = memo(function QuickCommandBar({
   onProcessTransaction,
@@ -131,6 +219,8 @@ const QuickCommandBar = memo(function QuickCommandBar({
   userCategories = [],
   userPatterns = [],
   session,
+  currentContext = null,
+  onContextSubmit,
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [inputText, setInputText] = useState("");
@@ -147,10 +237,18 @@ const QuickCommandBar = memo(function QuickCommandBar({
   const camRef = useRef(null);
   const galRef = useRef(null);
 
+  const ctxConfig = CONTEXT_CONFIG[currentContext];
+  const isContextMode = !!ctxConfig;
+
   const preview = useMemo(() =>
-    parsePreview(inputText, aiKeywords, userCategories, userPatterns),
-    [inputText, aiKeywords, userCategories, userPatterns]
+    !isContextMode ? parsePreview(inputText, aiKeywords, userCategories, userPatterns) : null,
+    [isContextMode, inputText, aiKeywords, userCategories, userPatterns]
   );
+
+  const contextPreview = useMemo(() => {
+    if (!isContextMode || !inputText.trim()) return null;
+    return parseByContext(currentContext, inputText);
+  }, [isContextMode, currentContext, inputText]);
 
   // Category yang dipakai: user pilih > manual pos > AI > Lainnya
   const activeCategory = (typeof selCategory === "string" ? selCategory : selCategory?.name)
@@ -259,10 +357,24 @@ const QuickCommandBar = memo(function QuickCommandBar({
   const [inputError, setInputError] = useState(false);
   const [hasTriedOnce, setHasTriedOnce] = useState(false);
 
-  const handleSubmit = useCallback((e) => {
+  const handleSubmit = useCallback(async (e) => {
     e?.preventDefault();
     const text = inputText.trim();
     if (!text || isSmartLoading) return;
+
+    // Context mode — route ke onContextSubmit
+    if (isContextMode) {
+      if (!onContextSubmit || !contextPreview) return;
+      await onContextSubmit(currentContext, contextPreview);
+      setInputText("");
+      setSelDate(TODAY());
+      setShowCal(false);
+      setSelCategory(null);
+      setSuggestions([]);
+      setIsOpen(false);
+      return;
+    }
+
     if (typeof onProcessTransaction !== "function") return;
 
     // Smart tokenize — tidak perlu format kaku
@@ -308,7 +420,8 @@ const QuickCommandBar = memo(function QuickCommandBar({
     setSelCategory(null);
     setSuggestions([]);
     setIsOpen(false);
-  }, [inputText, selCategory, selDate, isSmartLoading, onProcessTransaction]);
+  }, [inputText, selCategory, selDate, isSmartLoading, onProcessTransaction,
+      isContextMode, onContextSubmit, contextPreview, currentContext]);
 
   const toggleVoice = useCallback(() => {
     if (isListening) { recognitionRef.current?.stop(); setIsListening(false); return; }
@@ -399,9 +512,102 @@ const QuickCommandBar = memo(function QuickCommandBar({
               }}
             >
 
-              {/* ── Preview bar ── */}
+              {/* ── Context badge ── */}
+              {ctxConfig && (
+                <div className="px-4 pt-3 pb-0">
+                  <span className="text-[8px] font-black uppercase tracking-widest ff-mono px-2.5 py-1 rounded-lg"
+                    style={{ color: "var(--a2)", background: "color-mix(in srgb, var(--a2) 12%, transparent)" }}>
+                    {ctxConfig.label}
+                  </span>
+                </div>
+              )}
+
+              {/* ── Context preview ── */}
               <AnimatePresence>
-                {preview && (
+                {isContextMode && contextPreview && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.12 }}
+                    className="overflow-visible"
+                  >
+                    <div className="flex items-center gap-2 px-4 pt-2 pb-1 flex-wrap">
+                      {currentContext === "debts" && (
+                        <>
+                          <span className="font-black text-sm" style={{ color: "var(--text-1)" }}>
+                            {contextPreview.person}
+                          </span>
+                          <span className="text-[9px] font-black px-2 py-0.5 rounded-lg uppercase tracking-widest"
+                            style={contextPreview.type === "debt"
+                              ? { background: "color-mix(in srgb, var(--a3) 15%, transparent)", color: "var(--a3)" }
+                              : { background: "color-mix(in srgb, var(--income) 15%, transparent)", color: "var(--income)" }}>
+                            {contextPreview.type === "debt" ? "Hutang" : "Piutang"}
+                          </span>
+                          <span className="font-black text-sm ff-mono" style={{ color: contextPreview.type === "debt" ? "var(--a3)" : "var(--income)" }}>
+                            {contextPreview.amount > 0 ? `Rp ${fmtRp(contextPreview.amount)}` : "···"}
+                          </span>
+                        </>
+                      )}
+                      {currentContext === "recurring" && (
+                        <>
+                          <span className="font-black text-sm" style={{ color: "var(--text-1)" }}>
+                            {contextPreview.note}
+                          </span>
+                          <span className="text-[9px] font-black px-2 py-0.5 rounded-lg uppercase tracking-widest"
+                            style={contextPreview.type === "income"
+                              ? { background: "color-mix(in srgb, var(--income) 15%, transparent)", color: "var(--income)" }
+                              : { background: "color-mix(in srgb, var(--a3) 15%, transparent)", color: "var(--a3)" }}>
+                            {contextPreview.type === "income" ? "Masuk" : "Keluar"}
+                          </span>
+                          <span className="text-[9px] font-black px-2 py-0.5 rounded-lg uppercase tracking-widest"
+                            style={{ background: "color-mix(in srgb, var(--a1) 15%, transparent)", color: "var(--a1)" }}>
+                            {FREQ_LABELS[contextPreview.frequency] || contextPreview.frequency}
+                          </span>
+                          <span className="font-black text-sm ff-mono" style={{ color: "var(--text-2)" }}>
+                            {contextPreview.amount > 0 ? `Rp ${fmtRp(contextPreview.amount)}` : "···"}
+                          </span>
+                        </>
+                      )}
+                      {currentContext === "savings" && (
+                        <>
+                          <span className="text-[10px]">🎯</span>
+                          <span className="font-black text-sm" style={{ color: "var(--text-1)" }}>
+                            {contextPreview.name}
+                          </span>
+                          <span className="text-[9px] font-black px-2 py-0.5 rounded-lg uppercase tracking-widest"
+                            style={{ background: "color-mix(in srgb, var(--income) 15%, transparent)", color: "var(--income)" }}>
+                            Target
+                          </span>
+                          <span className="font-black text-sm ff-mono" style={{ color: "var(--income)" }}>
+                            {contextPreview.target_amount > 0 ? `Rp ${fmtRp(contextPreview.target_amount)}` : "···"}
+                          </span>
+                        </>
+                      )}
+                      {currentContext === "assets" && (
+                        <>
+                          <span className="font-black text-sm" style={{ color: "var(--text-1)" }}>
+                            {contextPreview.name}
+                          </span>
+                          <span className="text-[9px] font-black px-2 py-0.5 rounded-lg uppercase tracking-widest border"
+                            style={{ color: COND_COLORS[contextPreview.condition], background: `color-mix(in srgb, ${COND_COLORS[contextPreview.condition]} 12%, transparent)`, borderColor: `color-mix(in srgb, ${COND_COLORS[contextPreview.condition]} 25%, transparent)` }}>
+                            {COND_LABELS[contextPreview.condition]}
+                          </span>
+                          {contextPreview.price > 0 && (
+                            <span className="font-black text-sm ff-mono" style={{ color: "var(--a2)" }}>
+                              Rp {fmtRp(contextPreview.price)}
+                            </span>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* ── Transaction preview bar ── */}
+              <AnimatePresence>
+                {!isContextMode && preview && (
                   <motion.div
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: "auto", opacity: 1 }}
@@ -504,9 +710,9 @@ const QuickCommandBar = memo(function QuickCommandBar({
                 )}
               </AnimatePresence>
 
-              {/* Date picker */}
+              {/* Date picker (transaction mode only) */}
               <AnimatePresence>
-                {showCal && (
+                {!isContextMode && showCal && (
                   <motion.div
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: "auto", opacity: 1 }}
@@ -547,24 +753,20 @@ const QuickCommandBar = memo(function QuickCommandBar({
                   value={inputText}
                   onChange={e => setInputText(e.target.value)}
                   onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleSubmit(); } }}
-                  placeholder="50k makan siang"
+                  placeholder={ctxConfig?.placeholder ?? "50k makan siang"}
                   autoComplete="off"
                   autoCorrect="off"
                   autoFocus
                   className="flex-1 bg-transparent outline-none text-sm font-bold text-white placeholder-white/25 h-10 min-w-0"
                 />
 
-                <button type="button" onClick={() => { setShowCal(p => !p); inputRef.current?.focus(); }}
-                  className={`p-2 rounded-xl transition-all shrink-0 ${selDate !== TODAY() || showCal ? "text-amber-400 bg-amber-500/10" : "text-white/30 hover:text-white/70 hover:bg-white/5"
-                    }`}>
-                  <Calendar size={17} />
-                </button>
-
-                {/* Kamera */}
-                <button type="button" onClick={() => camRef.current?.click()}
-                  className="p-2 rounded-xl text-white/30 hover:text-white/70 hover:bg-white/5 transition-all shrink-0">
-                  <Camera size={17} />
-                </button>
+                {!isContextMode && (
+                  <button type="button" onClick={() => { setShowCal(p => !p); inputRef.current?.focus(); }}
+                    className={`p-2 rounded-xl transition-all shrink-0 ${selDate !== TODAY() || showCal ? "text-amber-400 bg-amber-500/10" : "text-white/30 hover:text-white/70 hover:bg-white/5"
+                      }`}>
+                    <Calendar size={17} />
+                  </button>
+                )}
 
                 {/* Mic */}
                 <button type="button" onClick={toggleVoice}
@@ -576,7 +778,7 @@ const QuickCommandBar = memo(function QuickCommandBar({
 
                 <button type="submit" disabled={isSmartLoading || !inputText.trim() || inputText === "Mendengarkan..."}
                   className="p-2 rounded-xl transition-all shrink-0 disabled:opacity-30"
-                  style={(preview && !isSmartLoading) ? { background: "linear-gradient(135deg, var(--a1), var(--a2))", color: "#fff" } : { color: "var(--text-4)" }}
+                  style={((preview || contextPreview) && !isSmartLoading) ? { background: "linear-gradient(135deg, var(--a1), var(--a2))", color: "#fff" } : { color: "var(--text-4)" }}
                   >
                   {isSmartLoading
                     ? <div className="w-4 h-4 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" />
@@ -593,9 +795,9 @@ const QuickCommandBar = memo(function QuickCommandBar({
                 onChange={e => { if (e.target.files?.[0]) { /* handle foto dari QCB jika perlu */ } e.target.value = ""; }}
                 className="hidden" />
 
-              {/* Autocomplete Chips */}
+              {/* Autocomplete Chips (transaction mode only) */}
               <AnimatePresence>
-                {suggestions.length > 0 && (
+                {!isContextMode && suggestions.length > 0 && (
                   <motion.div
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: "auto" }}
@@ -673,10 +875,19 @@ const QuickCommandBar = memo(function QuickCommandBar({
                     </motion.p>
                   )}
                 </AnimatePresence>
-                <p className="text-[9px] text-white/20 font-bold">
-                  ketik bebas · <span style={{ color: "color-mix(in srgb, var(--income) 50%, transparent)" }}>in</span> = pemasukan
-                  {selDate !== TODAY() && <span className="text-amber-400/50"> · {dateLabel(selDate)}</span>}
-                </p>
+                {isContextMode ? (
+                  <p className="text-[9px] text-white/20 font-bold">
+                    {currentContext === "debts" && "cth: hutang ke Budi 500rb · piutang dari Ani 1jt"}
+                    {currentContext === "recurring" && "cth: Netflix 59rb bulanan · gaji 5jt bulanan"}
+                    {currentContext === "savings" && "cth: nabung laptop 5jt · target HP baru 2jt"}
+                    {currentContext === "assets" && "cth: Laptop Dell 8jt baru · iPhone 15jt"}
+                  </p>
+                ) : (
+                  <p className="text-[9px] text-white/20 font-bold">
+                    ketik bebas · <span style={{ color: "color-mix(in srgb, var(--income) 50%, transparent)" }}>in</span> = pemasukan
+                    {selDate !== TODAY() && <span className="text-amber-400/50"> · {dateLabel(selDate)}</span>}
+                  </p>
+                )}
               </div>
             </motion.div>
           )}
