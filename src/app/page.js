@@ -221,7 +221,11 @@ export default function Home() {
 
  // ── UI State ──────────────────────────────────────────────────────────────
  const [mounted, setMounted]    = useState(false);
- const [isDarkMode, setIsDarkMode] = useState(true);
+ const [isDarkMode, setIsDarkMode] = useState(() => {
+  if (typeof window === "undefined") return true;
+  const saved = localStorage.getItem("arta_theme");
+  return saved !== null ? saved === "dark" : true;
+ });
  const [activeTab, setActiveTab]  = useState(() => {
   if (typeof window === "undefined") return "home";
   const saved = sessionStorage.getItem("arta_last_tab");
@@ -317,6 +321,7 @@ export default function Home() {
    html.classList.remove("dark");
    html.classList.add("light-mode");
   }
+  localStorage.setItem("arta_theme", isDarkMode ? "dark" : "light");
  }, [isDarkMode]);
 
  // AI brain + role
