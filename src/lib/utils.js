@@ -56,6 +56,24 @@ export const fmtShort = (n) => {
 export const fmt = (n) => Number(n || 0).toLocaleString("id-ID");
 
 /**
+ * Waktu relatif singkat (Indonesia): "Baru saja", "5 menit lalu", dst.
+ * @param {string} isoString - ISO timestamp
+ * @param {string} emptyLabel - label saat null/kosong
+ */
+export const timeAgo = (isoString, emptyLabel = "Belum pernah") => {
+  if (!isoString) return emptyLabel;
+  const diff  = Date.now() - new Date(isoString).getTime();
+  const mins  = Math.floor(diff / 60000);
+  const hours = Math.floor(diff / 3600000);
+  const days  = Math.floor(diff / 86400000);
+  if (mins  < 1)  return "Baru saja";
+  if (mins  < 60) return `${mins} menit lalu`;
+  if (hours < 24) return `${hours} jam lalu`;
+  if (days  < 30) return `${days} hari lalu`;
+  return new Date(isoString).toLocaleDateString("id-ID");
+};
+
+/**
  * Generate daftar 6 bulan terdekat untuk dropdown filter
  * 3 bulan ke belakang, bulan ini, 2 bulan ke depan
  */

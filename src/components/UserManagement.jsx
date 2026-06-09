@@ -5,25 +5,12 @@ import { useState, useEffect, useCallback } from "react";
 const getBase = () => typeof window !== "undefined" ? window.location.origin : "";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabaseClient";
+import { timeAgo } from "@/lib/utils";
 import {
   Users, Plus, RefreshCw, Trash2, ShieldOff, ShieldCheck,
   KeyRound, Clock, Crown, User, ChevronDown, X,
   AlertTriangle
 } from "lucide-react";
-
-// ── Helper ────────────────────────────────────────────────────────────────────
-const timeAgo = (isoString) => {
-  if (!isoString) return "Belum pernah login";
-  const diff = Date.now() - new Date(isoString).getTime();
-  const mins  = Math.floor(diff / 60000);
-  const hours = Math.floor(diff / 3600000);
-  const days  = Math.floor(diff / 86400000);
-  if (mins  < 1)   return "Baru saja";
-  if (mins  < 60)  return `${mins} menit lalu`;
-  if (hours < 24)  return `${hours} jam lalu`;
-  if (days  < 30)  return `${days} hari lalu`;
-  return new Date(isoString).toLocaleDateString("id-ID");
-};
 
 // ── Komponen Badge Role ───────────────────────────────────────────────────────
 const RoleBadge = ({ role }) => (
@@ -57,8 +44,8 @@ const StatusBadge = ({ banned, mustChange }) => {
 };
 
 // ── Main Component ────────────────────────────────────────────────────────────
-export default function UserManagement({ onNotify }) {
-  const [isExpanded, setIsExpanded]       = useState(false);
+export default function UserManagement({ onNotify, defaultExpanded = false }) {
+  const [isExpanded, setIsExpanded]       = useState(defaultExpanded);
   const [users, setUsers]                 = useState([]);
   const [isLoading, setIsLoading]         = useState(false);
   const [currentUserId, setCurrentUserId] = useState(null);
@@ -118,7 +105,7 @@ export default function UserManagement({ onNotify }) {
     setAddModal(p => ({ ...p, loading: true }));
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token || tokenRef.current;
+      const token = session?.access_token;
       const res = await fetch(`${getBase()}/api/admin/add-user`, {
         method: "POST",
         headers: { 
@@ -148,7 +135,7 @@ export default function UserManagement({ onNotify }) {
     setResetModal(p => ({ ...p, loading: true }));
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token || tokenRef.current;
+      const token = session?.access_token;
       const res = await fetch(`${getBase()}/api/admin/reset-password`, {
         method: "POST",
         headers: { 
@@ -196,7 +183,7 @@ export default function UserManagement({ onNotify }) {
     const action = user.banned ? "unban" : "ban";
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token || tokenRef.current;
+      const token = session?.access_token;
       const res = await fetch(`${getBase()}/api/admin/toggle-user`, {
         method: "POST",
         headers: { 

@@ -32,7 +32,7 @@ import WalletModal    from "@/components/modals/WalletModal";
 // Shared components
 import Toast    from "@/components/Toast";
 import QuickCommandBar  from "@/components/QuickCommandBar";
-import UserManagement  from "@/components/UserManagement";
+import AdminDashboard  from "@/components/AdminDashboard";
 
 // ── Nav items — 4 tab statis ──────────────────────────────────────────────────
 const NAV_ITEMS = [
@@ -811,21 +811,25 @@ export default function Home() {
    <div className={appClass}>
     <main className="w-full max-w-lg mx-auto relative min-h-screen ds-bg-0">
      <Toast isOpen={notification.isOpen} message={notification.message} type={notification.type} />
-     <div className="pt-8 px-3 pb-8">
+     <div className="pt-8 px-3 pb-24">
       {/* Header + Logout kanan atas */}
-      <div className="flex items-center justify-between mb-6">
-       <h2 className="text-xl font-black ds-t1 tracking-tight">
-        {MORE.USER_MGMT}
-       </h2>
+      <div className="flex items-start justify-between mb-6">
+       <div>
+        <h2 className="text-[26px] font-light tracking-[-1.5px] leading-none ds-t1">Pusat Kendali</h2>
+        <div className="flex items-center gap-2 mt-1.5">
+         <span className="ds-live-dot" />
+         <p className="text-caption font-black tracking-[0.14em] uppercase ds-aurora-text">Superadmin</p>
+        </div>
+       </div>
        <button
         onClick={auth.handleLogout}
-        className="px-3 py-1.5 font-black text-label uppercase tracking-widest rounded-xl border active:scale-95 transition-all"
+        className="px-3 py-1.5 font-black text-label uppercase tracking-widest rounded-xl border active:scale-95 transition-all shrink-0"
         style={{ background: "color-mix(in srgb, var(--a3) 10%, transparent)", borderColor: "color-mix(in srgb, var(--a3) 25%, transparent)", color: "var(--a3)" }}
        >
         {MORE.LOGOUT_SHORT}
        </button>
       </div>
-      <UserManagement onNotify={showNotification} />
+      <AdminDashboard onNotify={showNotification} />
      </div>
     </main>
    </div>

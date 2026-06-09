@@ -50,17 +50,52 @@ export async function GET(request) {
 
     const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
 
-    const users = internalUsers.map(u => ({
-      id:                   u.id,
-      username:             u.email.split('@')[0],
-      email:                u.email,
-      role:                 profileMap.get(u.id)?.role || 'user',
-      must_change_password: profileMap.get(u.id)?.must_change_password || false,
-      created_at:           u.created_at,
-      last_sign_in_at:      u.last_sign_in_at,
-      banned:               u.banned_until ? new Date(u.banned_until) > new Date() : false,
-      banned_until:         u.banned_until || null,
-    }));
+    // ── Agregasi aktivitas dari transaksi (jendela 30 hari terakhir) ──
+    // Service-role bypass RLS → bisa baca transaksi semua user.
+    const now       = Date.now();
+    const since30d  = new Date(now - 30 * 24 * 60 * 60 * 1000).toISOString();
+    const startToday = new Date(); startToday.setHours(0, 0, 0, 0);
+    const start7d    = now - 7 * 24 * 60 * 60 * 1000;
+
+    const { data: trx } = await supabaseAdmin
+      .from('transactions')
+      .select('user_id, created_at')
+      .gte('created_at', since30d)
+      .order('created_at', { ascending: false })
+      .limit(10000);
+
+    // user_id → { last, today, week, month }
+    const activity = new Map();
+    for (const t of (trx || [])) {
+      if (!t.user_id) continue;
+      let a = activity.get(t.user_id);
+      if (!a) { a = { last: t.created_at, today: 0, week: 0, month: 0 }; activity.set(t.user_id, a); }
+      // Data sudah descending → entri pertama = aktivitas terakhir
+      const ts = new Date(t.created_at).getTime();
+      a.month++;
+      if (ts >= start7d)              a.week++;
+      if (ts >= startToday.getTime()) a.today++;
+    }
+
+    const users = internalUsers.map(u => {
+      const a = activity.get(u.id) || { last: null, today: 0, week: 0, month: 0 };
+      return {
+        id:                   u.id,
+        username:             u.email.split('@')[0],
+        email:                u.email,
+        role:                 profileMap.get(u.id)?.role || 'user',
+        must_change_password: profileMap.get(u.id)?.must_change_password || false,
+        created_at:           u.created_at,
+        last_sign_in_at:      u.last_sign_in_at,
+        banned:               u.banned_until ? new Date(u.banned_until) > new Date() : false,
+        banned_until:         u.banned_until || null,
+        // ── Aktivitas ──
+        last_activity_at:     a.last,
+        activity_today:       a.today,
+        activity_week:        a.week,
+        activity_month:       a.month,
+      };
+    });
 
     return NextResponse.json({ success: true, users });
   } catch (error) {
