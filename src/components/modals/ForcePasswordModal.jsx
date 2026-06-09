@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { memo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Save, Loader2, ShieldAlert } from "lucide-react";
@@ -48,7 +48,7 @@ const ForcePasswordModal = memo(function ForcePasswordModal({
         <button
          onClick={handleSubmit}
          disabled={isLoading || !canSubmit}
-         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-black text-[10px] uppercase tracking-widest ml-3 shrink-0 transition-all disabled:opacity-40 ${
+         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-black text-caption uppercase tracking-widest ml-3 shrink-0 transition-all disabled:opacity-40 ${
           canSubmit ? "bg-amber-600 text-white" : "ds-bg-3 ds-t3"
          }`}
         >
@@ -62,7 +62,7 @@ const ForcePasswordModal = memo(function ForcePasswordModal({
         {mismatch && <p className="text-xs mb-3 font-bold" style={{ color: "var(--a3)" }}>Password tidak cocok!</p>}
 
         <div className="border-b ds-border py-3">
-         <label className="text-[8px] font-black ds-t3 uppercase tracking-widest block mb-1.5">Password Baru</label>
+         <label className="text-2xs font-black ds-t3 uppercase tracking-widest block mb-1.5">Password Baru</label>
          <input
           autoFocus type="password"
           placeholder="Min 6 karakter"
@@ -73,7 +73,7 @@ const ForcePasswordModal = memo(function ForcePasswordModal({
         </div>
 
         <div className="py-3">
-         <label className="text-[8px] font-black ds-t3 uppercase tracking-widest block mb-1.5">Konfirmasi Password</label>
+         <label className="text-2xs font-black ds-t3 uppercase tracking-widest block mb-1.5">Konfirmasi Password</label>
          <input
           type="password"
           placeholder="Ketik ulang password"

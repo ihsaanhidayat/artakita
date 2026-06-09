@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -62,7 +62,7 @@ const Breadcrumb = memo(function Breadcrumb({ subLabel, onBack }) {
  return (
  <div className="flex items-center justify-between pt-8 px-3 pb-3 flex-none">
  <div className="flex items-center gap-2">
- <span className="text-[10px] font-black ds-t3 uppercase tracking-widest">
+ <span className="text-caption font-black ds-t3 uppercase tracking-widest">
  {subLabel}
  </span>
  </div>
@@ -71,7 +71,7 @@ const Breadcrumb = memo(function Breadcrumb({ subLabel, onBack }) {
  className="flex items-center gap-1.5 ds-aurora-text hover:opacity-80 active:scale-95 transition-all ds-aurora-bg border ds-aurora-border-c px-3 py-1.5 rounded-xl"
  >
  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
- <span className="text-[9px] font-black uppercase tracking-widest">{FINANCE.TITLE}</span>
+ <span className="text-label font-black uppercase tracking-widest">{FINANCE.TITLE}</span>
  </button>
  </div>
  );
@@ -122,9 +122,13 @@ const FinanceTab = memo(function FinanceTab({
  className="pt-8 px-3 pb-32 h-[100dvh] overflow-y-auto no-scrollbar w-full flex flex-col"
  style={{ pointerEvents: subPage ? "none" : "auto" }}
  >
- <h2 className="text-xl font-black ds-t1 tracking-tight mb-6 flex-none">
- {FINANCE.TITLE}
- </h2>
+ <div className="mb-6 flex-none">
+ <h2 className="text-[26px] font-light tracking-[-1.5px] leading-none ds-t1">{FINANCE.TITLE}</h2>
+ <div className="flex items-center gap-2 mt-1">
+  <span className="ds-live-dot" />
+  <p className="text-caption font-black tracking-[0.14em] uppercase ds-aurora-text">{activeWallet?.name}</p>
+ </div>
+ </div>
 
  {/* Rows — tema konsisten dengan halaman lain */}
  <div className="space-y-2.5 flex-1">
@@ -146,7 +150,7 @@ const FinanceTab = memo(function FinanceTab({
  {/* Label */}
  <div className="flex-1 min-w-0">
  <p className="font-black text-sm ds-t1">{row.label}</p>
- <p className="text-[10px] ds-t3 mt-0.5">{row.sub}</p>
+ <p className="text-caption ds-t3 mt-0.5">{row.sub}</p>
  </div>
 
  <ChevronRight size={16} className="ds-t3 shrink-0" />
@@ -198,6 +202,7 @@ const FinanceTab = memo(function FinanceTab({
  handleModifySavings={handleModifySavings}
  triggerDeleteGoal={triggerDeleteGoal}
  refreshKey={financeRefreshKey}
+ activeWallet={activeWallet}
  />
  </div>
  </SubPage>

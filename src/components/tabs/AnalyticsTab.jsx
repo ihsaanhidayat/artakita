@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabaseClient";
@@ -53,23 +53,23 @@ const BudgetRow = ({ category, spent, limit, balance, onEdit, index }) => {
           <div className="flex items-center gap-2 flex-wrap">
             <p className="font-black text-sm ds-t1 truncate">{category}</p>
             {isOver && (
-              <span className="flex items-center gap-1 text-[8px] font-black px-2 py-0.5 rounded-full border uppercase tracking-widest shrink-0" style={{ color: "var(--a3)", background: "color-mix(in srgb, var(--a3) 12%, transparent)", borderColor: "color-mix(in srgb, var(--a3) 25%, transparent)" }}>
+              <span className="flex items-center gap-1 text-2xs font-black px-2 py-0.5 rounded-full border uppercase tracking-widest shrink-0" style={{ color: "var(--a3)", background: "color-mix(in srgb, var(--a3) 12%, transparent)", borderColor: "color-mix(in srgb, var(--a3) 25%, transparent)" }}>
                 <AlertTriangle size={8} /> Melebihi!
               </span>
             )}
             {hasNoLimit && (
-              <span className="text-[8px] font-black ds-t3 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-full uppercase tracking-widest shrink-0">
+              <span className="text-2xs font-black ds-t3 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-full uppercase tracking-widest shrink-0">
                 Belum diset
               </span>
             )}
           </div>
           {!hasNoLimit && (
-            <p className="text-[9px] ds-t3 ff-mono mt-0.5">
+            <p className="text-label ds-t3 ff-mono mt-0.5">
               Rp {fmt(spent)} / <span className="font-bold">Rp {fmt(limit)}</span>
             </p>
           )}
           {hasNoLimit && (
-            <p className="text-[9px] ds-t3 ff-mono mt-0.5">Terpakai: Rp {fmt(spent)}</p>
+            <p className="text-label ds-t3 ff-mono mt-0.5">Terpakai: Rp {fmt(spent)}</p>
           )}
         </div>
 
@@ -77,7 +77,7 @@ const BudgetRow = ({ category, spent, limit, balance, onEdit, index }) => {
           {!hasNoLimit && (
             <div className="text-right mr-1">
               <p className="text-xs font-black" style={{ color: textColorVar }}>{pct.toFixed(0)}%</p>
-              <p className="text-[9px] ds-t3">{isOver ? "lebih" : `sisa Rp ${fmt(sisa)}`}</p>
+              <p className="text-label ds-t3 ff-mono">{isOver ? "lebih" : `sisa Rp ${fmt(sisa)}`}</p>
             </div>
           )}
           <button
@@ -236,7 +236,7 @@ export default function AnalyticsTab({ filteredTransactions, transactions, selec
           <button
             key={key}
             onClick={() => setActiveSection(key)}
-            className={`flex-1 flex items-center justify-center gap-2 text-[9px] font-black uppercase tracking-widest py-2.5 rounded-xl transition-all duration-300 ${
+            className={`flex-1 flex items-center justify-center gap-2 text-label font-black uppercase tracking-widest py-2.5 rounded-xl transition-all duration-300 ${
               activeSection === key
                 ? "text-white shadow-sm"
                 : "ds-t3 hover:ds-t1"
@@ -264,7 +264,7 @@ export default function AnalyticsTab({ filteredTransactions, transactions, selec
             {/* Health grade */}
             <div className="rounded-[24px] p-5 border shadow-sm flex items-center justify-between" style={health.bgStyle}>
               <div>
-                <p className="text-[10px] font-black ds-t3 uppercase tracking-widest mb-1.5">Status Keuangan</p>
+                <p className="text-caption font-black ds-t3 uppercase tracking-widest mb-1.5">Status Keuangan</p>
                 <p className="text-xs font-bold ds-t1 leading-snug pr-4">{health.message}</p>
               </div>
               <div className="shrink-0 w-14 h-14 rounded-2xl bg-white dark:bg-[#121827] shadow-sm flex items-center justify-center text-2xl font-black" style={health.textStyle}>
@@ -276,13 +276,13 @@ export default function AnalyticsTab({ filteredTransactions, transactions, selec
             <div className="bg-white dark:bg-[#121827] rounded-[32px] p-6 shadow-2xl border border-gray-100 dark:border-gray-800/60 flex items-center justify-between relative overflow-hidden">
               <div className="absolute top-0 left-0 right-0 h-1 opacity-60" style={{ background: "linear-gradient(90deg, var(--a3), var(--a2), var(--a3))" }} />
               <div>
-                <p className="text-[10px] font-black ds-t3 uppercase tracking-[0.3em] mb-1">Total Pengeluaran</p>
+                <p className="text-caption font-black ds-t3 uppercase tracking-[0.3em] mb-1">Total Pengeluaran</p>
                 <p className="text-3xl font-black ff-mono tracking-tighter" style={{ color: "var(--a3)" }}>
                   <span className="text-lg mr-0.5">Rp</span>{totalExpense.toLocaleString("id-ID")}
                 </p>
               </div>
               <div className="text-right">
-                <p className="text-[10px] font-black ds-t3 uppercase tracking-widest mb-1">Pemasukan</p>
+                <p className="text-caption font-black ds-t3 uppercase tracking-widest mb-1">Pemasukan</p>
                 <p className="text-lg font-black ff-mono" style={{ color: "var(--income)" }}>Rp {fmt(totalIncome)}</p>
               </div>
             </div>
@@ -299,7 +299,7 @@ export default function AnalyticsTab({ filteredTransactions, transactions, selec
                   </div>
                   <div>
                     <p className="text-xs font-black ds-t1 uppercase tracking-widest">Rincian Kategori</p>
-                    <p className="text-[9px] ds-t3 mt-0.5">{statsData.length} kategori bulan ini</p>
+                    <p className="text-label ds-t3 mt-0.5">{statsData.length} kategori bulan ini</p>
                   </div>
                 </div>
                 <motion.div
@@ -329,7 +329,7 @@ export default function AnalyticsTab({ filteredTransactions, transactions, selec
                             <div className="flex justify-between items-end mb-2">
                               <div>
                                 <p className="font-bold text-sm ds-t1">{item.name}</p>
-                                <p className="text-[10px] font-black ds-t3 mt-0.5 tracking-wider">{pct}%</p>
+                                <p className="text-caption font-black ds-t3 mt-0.5 tracking-wider">{pct}%</p>
                               </div>
                               <p className="font-black text-sm ds-t1 ff-mono">
                                 Rp {item.value.toLocaleString("id-ID")}
@@ -350,7 +350,7 @@ export default function AnalyticsTab({ filteredTransactions, transactions, selec
                         );
                       }) : (
                         <div className="text-center py-10">
-                          <p className="text-[10px] font-black ds-t4 uppercase tracking-[0.4em]">Belum Ada Data</p>
+                          <p className="text-caption font-black ds-t4 uppercase tracking-[0.4em]">Belum Ada Data</p>
                         </div>
                       )}
                     </div>
@@ -377,11 +377,11 @@ export default function AnalyticsTab({ filteredTransactions, transactions, selec
             <div className="bg-white dark:bg-[#121827] border border-gray-100 dark:border-gray-800/60 rounded-[24px] p-5 shadow-sm">
               <div className="flex justify-between items-start mb-4">
                 <div>
-                  <p className="text-[9px] font-black ds-t3 uppercase tracking-widest mb-1">Saldo Dompet</p>
+                  <p className="text-label font-black ds-t3 uppercase tracking-widest mb-1">Saldo Dompet</p>
                   <p className="text-2xl font-black ds-t1 ff-mono">Rp {fmt(balance)}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-[9px] font-black ds-t3 uppercase tracking-widest mb-1">Total Alokasi</p>
+                  <p className="text-label font-black ds-t3 uppercase tracking-widest mb-1">Total Alokasi</p>
                   <p className="text-xl font-black ff-mono" style={{ color: isAlokasiMelebihi ? "var(--a3)" : "var(--a1)" }}>
                     Rp {fmt(totalAlokasi)}
                   </p>
@@ -400,7 +400,7 @@ export default function AnalyticsTab({ filteredTransactions, transactions, selec
                   ? <AlertTriangle size={14} className="shrink-0" style={{ color: "var(--a3)" }} />
                   : <CheckCircle2 size={14} className="shrink-0" style={{ color: "var(--income)" }} />
                 }
-                <p className="text-[10px] font-black" style={{ color: isAlokasiMelebihi ? "var(--a3)" : "var(--income)" }}>
+                <p className="text-caption font-black" style={{ color: isAlokasiMelebihi ? "var(--a3)" : "var(--income)" }}>
                   {isAlokasiMelebihi
                     ? `⚠️ Alokasi melebihi saldo! Kelebihan Rp ${fmt(Math.abs(sisaSaldoSetelah))}`
                     : `Sisa saldo setelah alokasi: Rp ${fmt(sisaSaldoSetelah)}`
@@ -421,7 +421,7 @@ export default function AnalyticsTab({ filteredTransactions, transactions, selec
                 >
                   <AlertTriangle size={18} className="shrink-0 mt-0.5" style={{ color: "var(--a3)" }} />
                   <div>
-                    <p className="text-[10px] font-black uppercase tracking-widest mb-1" style={{ color: "var(--a3)" }}>Peringatan Alokasi</p>
+                    <p className="text-caption font-black uppercase tracking-widest mb-1" style={{ color: "var(--a3)" }}>Peringatan Alokasi</p>
                     <p className="text-xs font-bold leading-relaxed" style={{ color: "color-mix(in srgb, var(--a3) 80%, #fff)" }}>
                       Total alokasi anggaran melebihi saldo dompet saat ini. Sesuaikan limit tiap kategori agar tidak defisit.
                     </p>
@@ -433,15 +433,15 @@ export default function AnalyticsTab({ filteredTransactions, transactions, selec
             {/* Budget per kategori */}
             <div>
               <div className="flex items-center justify-between mb-3">
-                <p className="text-[9px] font-black ds-t3 uppercase tracking-[0.3em]">
+                <p className="text-label font-black ds-t3 uppercase tracking-[0.3em]">
                   Alokasi per Kategori
                 </p>
-                <p className="text-[9px] ds-t3">{allCategories.length} kategori</p>
+                <p className="text-label ds-t3">{allCategories.length} kategori</p>
               </div>
 
               {allCategories.length === 0 ? (
                 <div className="text-center py-16 bg-gray-50/50 dark:bg-gray-900/10 rounded-[28px] border border-dashed border-gray-200 dark:border-gray-800">
-                  <p className="text-[10px] font-black ds-t4 uppercase tracking-[0.4em]">Belum Ada Transaksi Bulan Ini</p>
+                  <p className="text-caption font-black ds-t4 uppercase tracking-[0.4em]">Belum Ada Transaksi Bulan Ini</p>
                 </div>
               ) : (
                 <div className="space-y-2.5">
@@ -493,7 +493,7 @@ export default function AnalyticsTab({ filteredTransactions, transactions, selec
                   <h3 className="text-sm font-black ds-t1 uppercase tracking-widest">
                     Set Limit Anggaran
                   </h3>
-                  <p className="text-[10px] font-bold mt-0.5 uppercase tracking-widest" style={{ color: "var(--a1)" }}>
+                  <p className="text-caption font-bold mt-0.5 uppercase tracking-widest" style={{ color: "var(--a1)" }}>
                     {editingBudget.category}
                   </p>
                 </div>
@@ -507,12 +507,12 @@ export default function AnalyticsTab({ filteredTransactions, transactions, selec
 
               {/* Info penggunaan saat ini */}
               <div className="bg-gray-50 dark:bg-gray-900/40 rounded-2xl p-3 mb-4">
-                <div className="flex justify-between text-[9px] font-black ds-t3 uppercase tracking-widest">
+                <div className="flex justify-between text-label font-black ds-t3 uppercase tracking-widest">
                   <span>Terpakai bulan ini</span>
                   <span className="ff-mono">Rp {fmt(allStatsData.find(s => s.name === editingBudget.category)?.value || 0)}</span>
                 </div>
                 {editingBudget.currentLimit > 0 && (
-                  <div className="flex justify-between text-[9px] font-black ds-t3 uppercase tracking-widest mt-1">
+                  <div className="flex justify-between text-label font-black ds-t3 uppercase tracking-widest mt-1">
                     <span>Limit sekarang</span>
                     <span className="ff-mono">Rp {fmt(editingBudget.currentLimit)}</span>
                   </div>
@@ -520,7 +520,7 @@ export default function AnalyticsTab({ filteredTransactions, transactions, selec
               </div>
 
               <div className="mb-5">
-                <label className="block text-[9px] font-black ds-t3 uppercase tracking-widest mb-2">
+                <label className="block text-label font-black ds-t3 uppercase tracking-widest mb-2">
                   Limit Baru
                 </label>
                 <input
@@ -545,7 +545,7 @@ export default function AnalyticsTab({ filteredTransactions, transactions, selec
                       setIsSavingBudget(false);
                       setEditingBudget(null);
                     }}
-                    className="px-4 py-3.5 font-black text-[10px] uppercase tracking-widest rounded-2xl transition-all border"
+                    className="px-4 py-3.5 font-black text-caption uppercase tracking-widest rounded-2xl transition-all border"
                     style={{ color: "var(--a3)", background: "color-mix(in srgb, var(--a3) 10%, transparent)", borderColor: "color-mix(in srgb, var(--a3) 22%, transparent)" }}
                   >
                     Hapus Limit

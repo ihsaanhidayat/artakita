@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -79,7 +79,7 @@ export default function ShareWallet({ walletId, onClose, onSuccess, onError }) {
           </svg>
         </div>
         <div>
-          <p className="text-[10px] font-black text-orange-600 dark:text-orange-500 uppercase tracking-widest mb-1">
+          <p className="text-caption font-black text-orange-600 dark:text-orange-500 uppercase tracking-widest mb-1">
             Peringatan Keamanan
           </p>
           <p className="text-xs font-bold ds-t2 leading-relaxed">
@@ -91,7 +91,7 @@ export default function ShareWallet({ walletId, onClose, onSuccess, onError }) {
 
       <form onSubmit={handleShareWallet} className="space-y-4">
         <div>
-          <label className="block text-[10px] font-black ds-t3 uppercase tracking-widest mb-2 ml-1">
+          <label className="block text-caption font-black ds-t3 uppercase tracking-widest mb-2 ml-1">
             Pilih Rekan
           </label>
 

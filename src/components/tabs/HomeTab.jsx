@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { memo, useState, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -59,8 +59,8 @@ const FilterBar = memo(function FilterBar({ searchQuery, setSearchQuery, dateRan
 
         {/* Left: label + count — shrink saat filter buka */}
         <div className={`flex items-center gap-1.5 shrink-0 transition-all duration-200 ${open ? "opacity-0 w-0 overflow-hidden" : "opacity-100"}`}>
-          <span className="text-[10px] font-black uppercase tracking-[0.2em] ds-t3 whitespace-nowrap">{HOME.ACTIVITY_LOG}</span>
-          <span className="text-[9px] font-black px-2 py-0.5 rounded-full whitespace-nowrap"
+          <span className="text-caption font-black uppercase tracking-[0.2em] ds-t3 whitespace-nowrap">{HOME.ACTIVITY_LOG}</span>
+          <span className="text-label font-black px-2 py-0.5 rounded-full whitespace-nowrap"
             style={{ background: "var(--bg-3)", border: "1px solid var(--border)", color: "var(--text-3)" }}>
             {totalCount && totalCount > filteredCount ? `${filteredCount} / ${totalCount}` : filteredCount}
           </span>
@@ -82,14 +82,13 @@ const FilterBar = memo(function FilterBar({ searchQuery, setSearchQuery, dateRan
                 <Search size={12} className="ds-t3 shrink-0" />
                 <input type="text" placeholder="Cari..." value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)} autoFocus
-                  className="min-w-0 w-full bg-transparent outline-none text-[12px] ds-t1"
-                  style={{ fontFamily: "var(--ff-sans)" }} />
+                  className="min-w-0 w-full bg-transparent outline-none text-xs ds-t1" />
                 {searchQuery && <button onClick={() => setSearchQuery("")} className="shrink-0 ds-t3"><X size={10} /></button>}
               </div>
               <div className="w-px h-4 shrink-0" style={{ background: "var(--border)" }} />
               {/* Dari */}
               <label className="flex items-center gap-1 shrink-0 px-2.5 cursor-pointer" style={{ flex: 1 }}>
-                <span className="text-[9px] font-black uppercase tracking-wide ds-t3 shrink-0">Dari</span>
+                <span className="text-label font-black uppercase tracking-wide ds-t3 shrink-0">Dari</span>
                 <span className={`text-[11px] font-black ff-mono ${dateRange.from ? "ds-t1" : "ds-t4"}`}>{fmt(dateRange.from)}</span>
                 {dateRange.from && <span onClick={e => { e.preventDefault(); setDateRange(p => ({ ...p, from: "" })) }} className="ds-t3"><X size={8} /></span>}
                 <input type="date" value={dateRange.from ?? ""} onChange={e => setDateRange(p => ({ ...p, from: e.target.value }))} className="sr-only" />
@@ -97,7 +96,7 @@ const FilterBar = memo(function FilterBar({ searchQuery, setSearchQuery, dateRan
               <div className="w-px h-4 shrink-0" style={{ background: "var(--border)" }} />
               {/* Sampai */}
               <label className="flex items-center gap-1 shrink-0 px-2.5 cursor-pointer" style={{ flex: 1 }}>
-                <span className="text-[9px] font-black uppercase tracking-wide ds-t3 shrink-0">Sampai</span>
+                <span className="text-label font-black uppercase tracking-wide ds-t3 shrink-0">Sampai</span>
                 <span className={`text-[11px] font-black ff-mono ${dateRange.to ? "ds-t1" : "ds-t4"}`}>{fmt(dateRange.to)}</span>
                 {dateRange.to && <span onClick={e => { e.preventDefault(); setDateRange(p => ({ ...p, to: "" })) }} className="ds-t3"><X size={8} /></span>}
                 <input type="date" value={dateRange.to ?? ""} min={dateRange.from} onChange={e => setDateRange(p => ({ ...p, to: e.target.value }))} className="sr-only" />
@@ -113,7 +112,7 @@ const FilterBar = memo(function FilterBar({ searchQuery, setSearchQuery, dateRan
         {/* Right: toggle button */}
         <button
           onClick={() => setOpen(p => !p)}
-          className="flex items-center gap-1.5 px-2.5 shrink-0 rounded-full border text-[10px] font-black uppercase tracking-wide transition-all active:scale-95 ml-auto"
+          className="flex items-center gap-1.5 px-2.5 shrink-0 rounded-full border text-caption font-black uppercase tracking-wide transition-all active:scale-95 ml-auto"
           style={{
             height: 32,
             borderColor: open ? "color-mix(in srgb,var(--a2) 40%,transparent)" : active > 0 ? "color-mix(in srgb,var(--a1) 35%,transparent)" : "var(--border)",
@@ -124,7 +123,7 @@ const FilterBar = memo(function FilterBar({ searchQuery, setSearchQuery, dateRan
           <SlidersHorizontal size={11} />
           {open ? "Tutup" : "Filter"}
           {active > 0 && (
-            <span className="w-4 h-4 rounded-full text-[8px] font-black text-black flex items-center justify-center"
+            <span className="w-4 h-4 rounded-full text-2xs font-black text-black flex items-center justify-center"
               style={{ background: "linear-gradient(135deg,var(--a1),var(--a2))" }}>
               {active}
             </span>
@@ -181,7 +180,7 @@ const FotoInline = memo(function FotoInline({ trxId, userId, category, type, onP
               className="flex flex-col gap-1">
               {[["Kamera", Camera, () => camRef.current?.click()], ["Galeri", Image, () => galRef.current?.click()]].map(([label, Icon, onClick]) => (
                 <button key={label} onClick={() => { setIsOpen(false); onClick(); }}
-                  className="flex items-center gap-1.5 px-3 py-2 text-[9px] font-black uppercase tracking-widest whitespace-nowrap rounded-xl"
+                  className="flex items-center gap-1.5 px-3 py-2 text-label font-black uppercase tracking-widest whitespace-nowrap rounded-xl"
                   style={{ background: "var(--bg-2)", border: "1px solid var(--border)", color: "var(--text-1)" }}>
                   <Icon size={11} /> {label}
                 </button>
@@ -253,12 +252,12 @@ const HomeTabComponent = memo(function HomeTab({
       <div className="flex-none">
         <div className="flex justify-between items-start mb-5">
           <div>
-            <h1 className="text-[26px] font-light tracking-[-1.5px] leading-none ds-t1" style={{ fontFamily: "var(--ff-sans)" }}>
+            <h1 className="text-[26px] font-light tracking-[-1.5px] leading-none ds-t1">
               ArtaKita.
             </h1>
             <div className="flex items-center gap-2 mt-1">
               <span className="ds-live-dot" />
-              <p className="text-[10px] font-black tracking-[0.14em] uppercase ds-aurora-text">
+              <p className="text-caption font-black tracking-[0.14em] uppercase ds-aurora-text">
                 {activeWallet?.name}
               </p>
             </div>
@@ -279,9 +278,9 @@ const HomeTabComponent = memo(function HomeTab({
 
         {/* ── Balance Card ────────────────────────────────────────────── */}
         <div className="ds-aurora-card ds-aurora-glow-card p-5 mb-4">
-          <p className="text-[9px] font-black uppercase tracking-[0.28em] mb-2 ds-t3">{HOME.TOTAL_BALANCE}</p>
+          <p className="text-label font-black uppercase tracking-[0.28em] mb-2 ds-t3">{HOME.TOTAL_BALANCE}</p>
           <div className="flex items-baseline gap-1 mb-4">
-            <span className="text-[18px] font-light ds-t3">Rp</span>
+            <span className="text-lg font-light ds-t3">Rp</span>
             <span className="text-[44px] leading-none font-light ds-t1 tracking-[-3px] ff-mono">
               {balance.toLocaleString("id-ID")}
             </span>
@@ -295,7 +294,7 @@ const HomeTabComponent = memo(function HomeTab({
           <BudgetAlert budgets={allBudgets} transactions={transactionsThisMonth} />
 
           {(!isOnline || pendingCount > 0) && (
-            <div className="flex items-center gap-2 px-3 py-2 rounded-xl text-[10px] font-bold mt-2"
+            <div className="flex items-center gap-2 px-3 py-2 rounded-xl text-caption font-bold mt-2"
               style={{
                 background: !isOnline ? "color-mix(in srgb,#f59e0b 8%,transparent)" : "color-mix(in srgb,#3b82f6 8%,transparent)",
                 border: `1px solid ${!isOnline ? "color-mix(in srgb,#f59e0b 25%,transparent)" : "color-mix(in srgb,#3b82f6 25%,transparent)"}`,
@@ -308,7 +307,7 @@ const HomeTabComponent = memo(function HomeTab({
 
           <div className="h-px my-4" style={{ background: "var(--border)" }} />
 
-          <p className="text-[9px] font-black uppercase tracking-[0.2em] mb-3 ds-t3">{HOME.CIRCULATION}</p>
+          <p className="text-label font-black uppercase tracking-[0.2em] mb-3 ds-t3">{HOME.CIRCULATION}</p>
           <div className="grid grid-cols-2 gap-2.5">
             {[
               { key: "income", label: HOME.INCOME, val: filteredIncome, color: "var(--income)" },
@@ -319,7 +318,7 @@ const HomeTabComponent = memo(function HomeTab({
                 className="p-3.5 text-left transition-all active:scale-95">
                 <div className="flex items-center gap-1.5 mb-2">
                   <div className="w-1.5 h-1.5 rounded-full" style={{ background: color }} />
-                  <span className="text-[9px] font-black uppercase tracking-wider ds-t3">{label}</span>
+                  <span className="text-label font-black uppercase tracking-wider ds-t3">{label}</span>
                 </div>
                 <p className="text-[15px] font-light ff-mono tracking-tight" style={{ color }}>{val.toLocaleString("id-ID")}</p>
               </button>
@@ -341,7 +340,7 @@ const HomeTabComponent = memo(function HomeTab({
             <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               className="py-16 text-center rounded-[24px]"
               style={{ border: "1px dashed var(--border)" }}>
-              <p className="text-[10px] font-black uppercase tracking-[0.4em] ds-t4">{HOME.EMPTY}</p>
+              <p className="text-caption font-black uppercase tracking-[0.4em] ds-t4">{HOME.EMPTY}</p>
             </motion.div>
           ) : filteredTransactions.map(trx => {
             const hasPhoto = !!(trx.receipt_url || photoMap[trx.id]);
@@ -390,16 +389,16 @@ const HomeTabComponent = memo(function HomeTab({
                           type="text"
                           value={editData.note}
                           onChange={e => setEditData({ ...editData, note: e.target.value })}
-                          className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-[12px] font-bold text-white outline-none focus:border-[var(--a1)] transition-all placeholder-white/30"
+                          className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-white outline-none focus:border-[var(--a1)] transition-all placeholder-white/30"
                           placeholder="Nama Item..."
                         />
                         <div className="relative w-[110px] shrink-0">
-                          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] font-black text-white/40">Rp</span>
+                          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-caption font-black text-white/40">Rp</span>
                           <input
                             type="text" // Menggunakan text agar bisa menampung huruf 'k' atau 'jt'
                             value={editData.amount}
                             onChange={e => setEditData({ ...editData, amount: e.target.value })}
-                            className="w-full bg-white/5 border border-white/10 rounded-xl pl-7 pr-3 py-2 text-[12px] font-bold text-white outline-none focus:border-[var(--a1)] transition-all ff-mono"
+                            className="w-full bg-white/5 border border-white/10 rounded-xl pl-7 pr-3 py-2 text-xs font-bold text-white outline-none focus:border-[var(--a1)] transition-all ff-mono"
                             placeholder="30k / 3jt"
                           />
                         </div>
@@ -429,7 +428,7 @@ const HomeTabComponent = memo(function HomeTab({
                           type="text"
                           value={editData.category}
                           onChange={e => setEditData({ ...editData, category: e.target.value.toUpperCase() })}
-                          className="w-[65px] shrink-0 rounded-xl px-2 py-1.5 text-[9px] font-black uppercase tracking-widest outline-none focus:border-[var(--a2)] transition-all text-center border"
+                          className="w-[65px] shrink-0 rounded-xl px-2 py-1.5 text-label font-black uppercase tracking-widest outline-none focus:border-[var(--a2)] transition-all text-center border"
                           style={{ background: "color-mix(in srgb, var(--a2) 12%, transparent)", borderColor: "color-mix(in srgb, var(--a2) 28%, transparent)", color: "var(--a2)" }}
                           placeholder="POS"
                         />
@@ -443,7 +442,7 @@ const HomeTabComponent = memo(function HomeTab({
                               <button
                                 key={cat}
                                 onClick={() => setEditData({ ...editData, category: cat })}
-                                className="px-2.5 py-1.5 shrink-0 rounded-xl bg-white/5 text-white/40 border border-white/10 hover:bg-white/10 text-[9px] font-black uppercase tracking-widest transition-colors"
+                                className="px-2.5 py-1.5 shrink-0 rounded-xl bg-white/5 text-white/40 border border-white/10 hover:bg-white/10 text-label font-black uppercase tracking-widest transition-colors"
                               >
                                 {cat}
                               </button>
@@ -456,7 +455,7 @@ const HomeTabComponent = memo(function HomeTab({
                               // Trik agar langsung fokus ke input kategori
                               setTimeout(() => document.getElementById(`cat-input-${trx.id}`)?.focus(), 50);
                             }}
-                            className="px-2.5 py-1.5 shrink-0 rounded-xl bg-white/5 text-white/40 border border-dashed border-white/20 hover:bg-white/10 text-[9px] font-black uppercase tracking-widest transition-colors"
+                            className="px-2.5 py-1.5 shrink-0 rounded-xl bg-white/5 text-white/40 border border-dashed border-white/20 hover:bg-white/10 text-label font-black uppercase tracking-widest transition-colors"
                           >
                             + POS
                           </button>
@@ -466,7 +465,7 @@ const HomeTabComponent = memo(function HomeTab({
                         <div className="flex items-center gap-1 shrink-0">
                           <button
                             onClick={() => { setInlineEditId(null); setCustomCatMode?.(false); }}
-                            className="px-2.5 py-1.5 rounded-xl bg-white/5 text-white/50 hover:bg-white/10 text-[9px] font-black uppercase tracking-widest transition-colors"
+                            className="px-2.5 py-1.5 rounded-xl bg-white/5 text-white/50 hover:bg-white/10 text-label font-black uppercase tracking-widest transition-colors"
                           >
                             Batal
                           </button>
@@ -495,7 +494,7 @@ const HomeTabComponent = memo(function HomeTab({
                               });
                               setInlineEditId(null);
                             }}
-                            className="px-3 py-1.5 rounded-xl text-white text-[9px] font-black uppercase tracking-widest transition-all active:scale-95"
+                            className="px-3 py-1.5 rounded-xl text-white text-label font-black uppercase tracking-widest transition-all active:scale-95"
                             style={{ background: "linear-gradient(135deg, var(--a1), var(--a2))" }}
                           >
                             Simpan
@@ -532,11 +531,11 @@ const HomeTabComponent = memo(function HomeTab({
                         {/* Note + Category */}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-1.5 flex-wrap">
-                            <p className="text-[13px] font-medium truncate leading-snug ds-t1" style={{ fontFamily: "var(--ff-sans)" }}>
+                            <p className="text-[13px] font-bold truncate leading-snug ds-t1">
                               {trx.note}
                             </p>
                             {trx._pending && (
-                              <span className="text-[8px] font-black rounded-full px-1.5 py-0.5 uppercase shrink-0" style={{ color: "#f59e0b", background: "color-mix(in srgb,#f59e0b 10%,transparent)" }}>Menunggu</span>
+                              <span className="text-2xs font-black rounded-full px-1.5 py-0.5 uppercase shrink-0" style={{ color: "#f59e0b", background: "color-mix(in srgb,#f59e0b 10%,transparent)" }}>Menunggu</span>
                             )}
                           </div>
                           {(() => {
@@ -549,7 +548,7 @@ const HomeTabComponent = memo(function HomeTab({
                             ];
                             const theme = colors[(trx.category?.charCodeAt(0) || 0) % colors.length];
                             return (
-                              <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full mt-0.5 inline-block"
+                              <span className="text-label font-black uppercase tracking-wider px-2 py-0.5 rounded-full mt-0.5 inline-block"
                                 style={{
                                   background: theme.bg,
                                   border: `1px solid color-mix(in srgb, ${theme.c} 22%, transparent)`,
@@ -563,15 +562,14 @@ const HomeTabComponent = memo(function HomeTab({
                         </div>
 
                         {/* Amount — prominent + glow */}
-                        <p className={`ff-mono ${trx.type === "income" ? "ds-income-glow" : "ds-expense-glow"}`}
-                          style={{ fontSize: 15, fontWeight: 700, fontFamily: "var(--ff-mono)", letterSpacing: "-0.5px", flexShrink: 0 }}>
+                        <p className={`ff-mono text-[15px] font-bold tracking-[-0.5px] shrink-0 ${trx.type === "income" ? "ds-income-glow" : "ds-expense-glow"}`}>
                           {trx.type === "income" ? "+" : "−"} Rp {Number(trx.amount).toLocaleString("id-ID")}
                         </p>
                       </div>
 
                       {/* Baris 2: Timestamp kiri | Action buttons kanan */}
                       <div className="flex items-center justify-between pl-[52px]">
-                        <span style={{ fontSize: 10, color: "var(--text-3)" }}>
+                        <span className="text-caption ds-t3">
                           {formatDateTime(trx.created_at)}
                         </span>
                         {!trx._pending && (
@@ -624,11 +622,11 @@ const HomeTabComponent = memo(function HomeTab({
                         <span className="text-[11px] font-black text-white uppercase tracking-widest">Hapus Permanen?</span>
                       </div>
                       <div className="flex gap-2">
-                        <button onClick={() => setInlineDeleteId(null)} className="px-3 py-1.5 rounded-[10px] bg-white/20 text-white text-[9px] font-black uppercase tracking-widest hover:bg-white/30 transition-colors">
+                        <button onClick={() => setInlineDeleteId(null)} className="px-3 py-1.5 rounded-[10px] bg-white/20 text-white text-label font-black uppercase tracking-widest hover:bg-white/30 transition-colors">
                           Batal
                         </button>
                         <button onClick={() => { onDeleteTransaction(trx); setInlineDeleteId(null); }}
-                          className="px-3 py-1.5 rounded-[10px] text-[9px] font-black uppercase tracking-widest active:scale-95 transition-all"
+                          className="px-3 py-1.5 rounded-[10px] text-label font-black uppercase tracking-widest active:scale-95 transition-all"
                           style={{ background: "rgba(255,255,255,0.9)", color: "var(--a2)", boxShadow: "0 0 15px color-mix(in srgb, var(--a3) 40%, transparent)" }}>
                           Hapus
                         </button>
@@ -645,7 +643,7 @@ const HomeTabComponent = memo(function HomeTab({
         {hasMore && (
           <div className="flex justify-center pt-2 pb-4">
             <button onClick={loadMore} disabled={isLoading}
-              className="flex items-center gap-2 px-5 py-2.5 font-black text-[9px] uppercase tracking-widest rounded-2xl transition-all disabled:opacity-40 active:scale-95 ds-t3"
+              className="flex items-center gap-2 px-5 py-2.5 font-black text-label uppercase tracking-widest rounded-2xl transition-all disabled:opacity-40 active:scale-95 ds-t3"
               style={{ background: "var(--bg-1)", border: "1px solid var(--border)" }}>
               {isLoading && <Loader2 size={12} className="animate-spin" />}
               {isLoading ? HOME.LOADING : totalCount ? `Muat ${Math.min(15, totalCount - filteredTransactions.length)} lagi` : HOME.LOAD_MORE}

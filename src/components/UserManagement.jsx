@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useState, useEffect, useCallback } from "react";
 
 // Selalu arahkan ke server yang benar — penting untuk akses dari HP/device lain
@@ -27,7 +27,7 @@ const timeAgo = (isoString) => {
 
 // ── Komponen Badge Role ───────────────────────────────────────────────────────
 const RoleBadge = ({ role }) => (
-  <span className={`flex items-center gap-2 text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${
+  <span className={`flex items-center gap-2 text-2xs font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${
     role === "admin"
       ? "bg-amber-500/10 border border-amber-500/20 text-amber-500"
       : "bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 ds-t3"
@@ -40,17 +40,17 @@ const RoleBadge = ({ role }) => (
 // ── Komponen Status Badge ─────────────────────────────────────────────────────
 const StatusBadge = ({ banned, mustChange }) => {
   if (banned) return (
-    <span className="flex items-center gap-2 text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border" style={{ color: "var(--a3)", background: "color-mix(in srgb, var(--a3) 12%, transparent)", borderColor: "color-mix(in srgb, var(--a3) 25%, transparent)" }}>
+    <span className="flex items-center gap-2 text-2xs font-black uppercase tracking-widest px-2 py-0.5 rounded-full border" style={{ color: "var(--a3)", background: "color-mix(in srgb, var(--a3) 12%, transparent)", borderColor: "color-mix(in srgb, var(--a3) 25%, transparent)" }}>
       <ShieldOff size={9} /> Nonaktif
     </span>
   );
   if (mustChange) return (
-    <span className="flex items-center gap-2 text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-orange-500/10 border border-orange-500/20 text-orange-500">
+    <span className="flex items-center gap-2 text-2xs font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-orange-500/10 border border-orange-500/20 text-orange-500">
       <KeyRound size={9} /> Ganti Password
     </span>
   );
   return (
-    <span className="flex items-center gap-2 text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border" style={{ color: "var(--income)", background: "color-mix(in srgb, var(--income) 12%, transparent)", borderColor: "color-mix(in srgb, var(--income) 25%, transparent)" }}>
+    <span className="flex items-center gap-2 text-2xs font-black uppercase tracking-widest px-2 py-0.5 rounded-full border" style={{ color: "var(--income)", background: "color-mix(in srgb, var(--income) 12%, transparent)", borderColor: "color-mix(in srgb, var(--income) 25%, transparent)" }}>
       <ShieldCheck size={9} /> Aktif
     </span>
   );
@@ -236,7 +236,7 @@ export default function UserManagement({ onNotify }) {
             <h3 className="text-sm font-black ds-t1 uppercase tracking-widest">
               Manajemen Pengguna
             </h3>
-            <p className="text-[10px] font-bold ds-t3 mt-0.5">
+            <p className="text-caption font-bold ds-t3 mt-0.5">
               {isExpanded ? `${totalUsers} user terdaftar` : "Admin only"}
             </p>
           </div>
@@ -270,7 +270,7 @@ export default function UserManagement({ onNotify }) {
                 ].map(s => (
                   <div key={s.label} className="rounded-2xl p-3 text-center" style={s.bgStyle}>
                     <p className="text-xl font-black" style={{ color: s.colorVar }}>{s.value}</p>
-                    <p className="text-[9px] font-black ds-t3 uppercase tracking-widest">{s.label}</p>
+                    <p className="text-label font-black ds-t3 uppercase tracking-widest">{s.label}</p>
                   </div>
                 ))}
               </div>
@@ -279,7 +279,7 @@ export default function UserManagement({ onNotify }) {
               <div className="flex gap-2">
                 <button
                   onClick={() => setAddModal({ open: true, username: "", password: "", loading: false })}
-                  className="flex-1 flex items-center justify-center gap-2 py-3 text-white font-black text-[10px] uppercase tracking-widest rounded-2xl transition-all active:scale-95"
+                  className="flex-1 flex items-center justify-center gap-2 py-3 text-white font-black text-caption uppercase tracking-widest rounded-2xl transition-all active:scale-95"
                   style={{ background: "linear-gradient(135deg, var(--a1), var(--a2))" }}
                 >
                   <Plus size={14} /> Tambah User
@@ -330,11 +330,11 @@ export default function UserManagement({ onNotify }) {
                               <RoleBadge role={user.role} />
                               <StatusBadge banned={user.banned} mustChange={user.must_change_password} />
                             </div>
-                            <div className="flex items-center gap-2 text-[9px] ds-t3">
+                            <div className="flex items-center gap-2 text-label ds-t3">
                               <Clock size={9} />
                               <span>Login: {timeAgo(user.last_sign_in_at)}</span>
                             </div>
-                            <div className="text-[9px] ds-t3 mt-0.5">
+                            <div className="text-label ds-t3 mt-0.5">
                               Dibuat: {new Date(user.created_at).toLocaleDateString("id-ID")}
                             </div>
                           </div>
@@ -388,7 +388,7 @@ export default function UserManagement({ onNotify }) {
                   })}
 
                   {users.length === 0 && !isLoading && (
-                    <div className="text-center py-8 text-[10px] font-black ds-t4 uppercase tracking-widest">
+                    <div className="text-center py-8 text-caption font-black ds-t4 uppercase tracking-widest">
                       Belum ada user
                     </div>
                   )}
@@ -423,7 +423,7 @@ export default function UserManagement({ onNotify }) {
               </div>
               <form onSubmit={handleAddUser} className="space-y-4">
                 <div>
-                  <label className="block text-[9px] font-black ds-t3 uppercase tracking-widest mb-1.5">Username</label>
+                  <label className="block text-label font-black ds-t3 uppercase tracking-widest mb-1.5">Username</label>
                   <input
                     type="text" required autoFocus
                     value={addModal.username}
@@ -433,7 +433,7 @@ export default function UserManagement({ onNotify }) {
                   />
                 </div>
                 <div>
-                  <label className="block text-[9px] font-black ds-t3 uppercase tracking-widest mb-1.5">Password Sementara</label>
+                  <label className="block text-label font-black ds-t3 uppercase tracking-widest mb-1.5">Password Sementara</label>
                   <input
                     type="text" required
                     value={addModal.password}
@@ -442,7 +442,7 @@ export default function UserManagement({ onNotify }) {
                     className="w-full bg-gray-50 dark:bg-[#0a0f1c] border border-gray-200 dark:border-gray-800 rounded-2xl py-3 px-4 text-sm font-bold ds-t1 outline-none focus:border-[var(--a1)] transition-all"
                   />
                 </div>
-                <p className="text-[10px] ds-t3 bg-gray-50 dark:bg-gray-900/40 p-3 rounded-xl">
+                <p className="text-caption ds-t3 bg-gray-50 dark:bg-gray-900/40 p-3 rounded-xl">
                   User akan diminta ganti password saat pertama login.
                 </p>
                 <button
@@ -473,7 +473,7 @@ export default function UserManagement({ onNotify }) {
               <div className="flex justify-between items-center mb-6">
                 <div>
                   <h3 className="text-sm font-black ds-t1 uppercase tracking-widest">Reset Password</h3>
-                  <p className="text-[10px] ds-t3 mt-0.5">@{resetModal.username}</p>
+                  <p className="text-caption ds-t3 mt-0.5">@{resetModal.username}</p>
                 </div>
                 <button onClick={() => setResetModal(p => ({ ...p, open: false }))} className="p-2 ds-t3 hover:text-fuchsia-400 bg-gray-50 dark:bg-gray-800 rounded-full transition-colors">
                   <X size={16} />
@@ -481,7 +481,7 @@ export default function UserManagement({ onNotify }) {
               </div>
               <form onSubmit={handleResetPassword} className="space-y-4">
                 <div>
-                  <label className="block text-[9px] font-black ds-t3 uppercase tracking-widest mb-1.5">Password Baru</label>
+                  <label className="block text-label font-black ds-t3 uppercase tracking-widest mb-1.5">Password Baru</label>
                   <input
                     type="text" required autoFocus
                     value={resetModal.password}
@@ -490,7 +490,7 @@ export default function UserManagement({ onNotify }) {
                     className="w-full bg-gray-50 dark:bg-[#0a0f1c] border border-gray-200 dark:border-gray-800 rounded-2xl py-3 px-4 text-sm font-bold ds-t1 outline-none focus:border-[var(--a1)] transition-all"
                   />
                 </div>
-                <p className="text-[10px] ds-t3 bg-orange-500/5 border border-orange-500/20 p-3 rounded-xl flex gap-2">
+                <p className="text-caption ds-t3 bg-orange-500/5 border border-orange-500/20 p-3 rounded-xl flex gap-2">
                   <AlertTriangle size={12} className="text-orange-500 shrink-0 mt-0.5" />
                   User akan diminta ganti password saat login berikutnya.
                 </p>

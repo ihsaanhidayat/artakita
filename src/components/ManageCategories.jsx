@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { supabase } from "@/lib/supabaseClient";
 import { BrainCircuit, ChevronDown, Check, Database } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -130,7 +130,7 @@ export default function ManageCategories() {
           </div>
           <div className="text-left">
             <h3 className="text-sm sm:text-base font-black ds-t1 uppercase tracking-widest">Memori Otak AI</h3>
-            <p className="text-[10px] sm:text-xs font-bold ds-t3 mt-0.5">Automasi & Intervensi Data</p>
+            <p className="text-caption sm:text-xs font-bold ds-t3 mt-0.5">Automasi & Intervensi Data</p>
           </div>
         </div>
         <motion.div animate={{ rotate: isExpanded ? 180 : 0 }} transition={{ duration: 0.3 }} className="bg-gray-50 dark:bg-gray-800 p-2 rounded-full">
@@ -149,7 +149,7 @@ export default function ManageCategories() {
                 </div>
                 
                 <div className="relative z-20">
-                  <label className="block text-[10px] font-black ds-t3 uppercase tracking-[0.2em] mb-1.5 ml-1">Kategori (Dari AI)</label>
+                  <label className="block text-caption font-black ds-t3 uppercase tracking-[0.2em] mb-1.5 ml-1">Kategori (Dari AI)</label>
                   <div className="relative">
                     <button
                       type="button"
@@ -200,7 +200,7 @@ export default function ManageCategories() {
                 </div>
                 
                 <div className="relative z-10 border-t border-gray-200/50 dark:border-gray-800/50 pt-4 mt-2">
-                  <label className="block text-[10px] font-black ds-t3 uppercase tracking-[0.2em] mb-1.5 ml-1">Kosakata Tersimpan (Koma)</label>
+                  <label className="block text-caption font-black ds-t3 uppercase tracking-[0.2em] mb-1.5 ml-1">Kosakata Tersimpan (Koma)</label>
                   <input
                     type="text"
                     placeholder="Pilih kategori di atas untuk memuat kosakata..."
@@ -211,7 +211,7 @@ export default function ManageCategories() {
                   />
                 </div>
                 
-                <button type="submit" disabled={loading || !selectedCat} className="w-full py-4 text-white font-black text-[10px] sm:text-xs uppercase tracking-widest rounded-2xl transition-all flex items-center justify-center gap-2 disabled:opacity-50 relative z-10" style={{ background: "linear-gradient(135deg, var(--a1), var(--a2))" }}>
+                <button type="submit" disabled={loading || !selectedCat} className="w-full py-4 text-white font-black text-caption sm:text-xs uppercase tracking-widest rounded-2xl transition-all flex items-center justify-center gap-2 disabled:opacity-50 relative z-10" style={{ background: "linear-gradient(135deg, var(--a1), var(--a2))" }}>
                   <Check size={16} /> Simpan Perubahan
                 </button>
               </form>

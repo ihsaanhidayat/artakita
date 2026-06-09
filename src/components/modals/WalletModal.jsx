@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { memo, useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Edit3, Check, Plus } from "lucide-react";
@@ -124,7 +124,7 @@ const WalletModal = memo(function WalletModal({
         >
          <button
           onClick={() => setSharingId(null)}
-          className="flex items-center gap-2 text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 hover:ds-aurora-text transition-colors"
+          className="flex items-center gap-2 text-caption font-black text-gray-400 uppercase tracking-widest mb-4 hover:ds-aurora-text transition-colors"
          >
           ← Kembali
          </button>
@@ -162,7 +162,7 @@ const WalletModal = memo(function WalletModal({
 
           <div className="relative z-10 p-4">
            {/* Header label */}
-           <p className="text-white/70 text-[9px] font-black uppercase tracking-[0.2em] mb-1.5">
+           <p className="text-white/70 text-label font-black uppercase tracking-[0.2em] mb-1.5">
             {headerLabel}
            </p>
 
@@ -200,7 +200,7 @@ const WalletModal = memo(function WalletModal({
              >
               <span className="text-white font-black text-lg tracking-tight">{wallet.name}</span>
               {isActive && (
-               <span className="flex items-center gap-1 px-2 py-0.5 bg-white/20 rounded-lg text-white text-[8px] font-black uppercase tracking-widest">
+               <span className="flex items-center gap-1 px-2 py-0.5 bg-white/20 rounded-lg text-white text-2xs font-black uppercase tracking-widest">
                 <div className="w-1 h-1 rounded-full animate-pulse" style={{ background: "var(--income)" }} />
                 Aktif
                </span>
@@ -241,7 +241,7 @@ const WalletModal = memo(function WalletModal({
       <div className="px-4 pt-2 pb-8">
        <button
         onClick={onAddWallet}
-        className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed ds-border ds-t3 hover:ds-aurora-text ds-aurora-border-c font-black text-[10px] uppercase tracking-widest rounded-2xl transition-all"
+        className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed ds-border ds-t3 hover:ds-aurora-text ds-aurora-border-c font-black text-caption uppercase tracking-widest rounded-2xl transition-all"
        >
         <Plus size={14} /> {WALLET.ADD_NEW}
        </button>

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { memo } from "react";
 import { motion } from "framer-motion";
 import { Trash2 } from "lucide-react";
@@ -10,16 +10,18 @@ const SavingsTab = memo(function SavingsTab({
  activeGoalInput, setActiveGoalInput,
  flexibleSavingsAmt, setFlexibleSavingsAmt,
  handleModifySavings, triggerDeleteGoal,
- refreshKey,
+ refreshKey, activeWallet,
 }) {
  return (
  <div className="px-3 pb-32 pt-2">
 
  {/* Header */}
- <div className="flex justify-between items-center mb-5">
- <p className="text-[9px] font-black ds-t3 uppercase tracking-[0.3em]">
- Target Impian
- </p>
+ <div className="mb-5 flex-none">
+ <h2 className="text-[26px] font-light tracking-[-1.5px] leading-none ds-t1">Celengan & Target</h2>
+ <div className="flex items-center gap-2 mt-1">
+  <span className="ds-live-dot" />
+  <p className="text-caption font-black tracking-[0.14em] uppercase ds-aurora-text">{activeWallet?.name}</p>
+ </div>
  </div>
 
  {/* Goal list */}
@@ -43,7 +45,7 @@ const SavingsTab = memo(function SavingsTab({
  <div className="flex justify-between items-start mb-3">
  <div className="min-w-0 flex-1">
  <p className="font-black text-sm ds-t1 truncate">{goal.name}</p>
- <p className="text-[9px] ds-t3 ff-mono mt-0.5">
+ <p className="text-label ds-t3 ff-mono mt-0.5">
  Rp {fmt(goal.current_amount)}
  <span className="ds-t3 mx-1">/</span>
  <span className="font-bold ds-t2">Rp {fmt(goal.target_amount)}</span>
@@ -76,13 +78,13 @@ const SavingsTab = memo(function SavingsTab({
  <div className="flex justify-between items-center">
  <button
  onClick={() => setActiveGoalInput(goal.id)}
- className="text-[9px] font-black ds-aurora-text ds-aurora-bg border ds-aurora-border-c px-3 py-1.5 rounded-lg transition-all uppercase tracking-wider"
+ className="text-label font-black ds-aurora-text ds-aurora-bg border ds-aurora-border-c px-3 py-1.5 rounded-lg transition-all uppercase tracking-wider"
  >
  Mutasi Saldo
  </button>
  <button
  onClick={() => handleModifySavings(goal.id, goal.current_amount, "reset")}
- className="text-[9px] font-black ds-t3 hover:text-fuchsia-400 px-3 py-1.5 rounded-lg transition-all uppercase tracking-wider"
+ className="text-label font-black ds-t3 hover:text-fuchsia-400 px-3 py-1.5 rounded-lg transition-all uppercase tracking-wider"
  >
  Reset
  </button>
@@ -103,14 +105,14 @@ const SavingsTab = memo(function SavingsTab({
  />
  <button
  onClick={() => handleModifySavings(goal.id, goal.current_amount, "add")}
- className="px-3 py-2 font-black text-[9px] uppercase tracking-wider rounded-xl active:scale-95 transition-all"
+ className="px-3 py-2 font-black text-label uppercase tracking-wider rounded-xl active:scale-95 transition-all"
  style={{ background: "var(--income)", color: "#0f172a" }}
  >
  + Tabung
  </button>
  <button
  onClick={() => handleModifySavings(goal.id, goal.current_amount, "subtract")}
- className="px-3 py-2 text-white font-black text-[9px] uppercase tracking-wider rounded-xl active:scale-95 transition-all"
+ className="px-3 py-2 text-white font-black text-label uppercase tracking-wider rounded-xl active:scale-95 transition-all"
  style={{ background: "color-mix(in srgb, var(--a3) 80%, #000)" }}
  >
  - Pakai
@@ -129,7 +131,7 @@ const SavingsTab = memo(function SavingsTab({
 
  {goals.length === 0 && (
  <div className="text-center py-14 ds-bg-1/10 rounded-[28px] border border-dashed ds-border">
- <p className="text-[9px] font-black ds-t3 uppercase tracking-[0.4em]">
+ <p className="text-label font-black ds-t3 uppercase tracking-[0.4em]">
  Belum Ada Target
  </p>
  </div>

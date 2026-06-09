@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { memo, useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Save, Calendar, X } from "lucide-react";
@@ -114,7 +114,7 @@ const EditTrxModal = memo(function EditTrxModal({
        {/* Header */}
        <div className="px-5 py-3.5 flex items-center justify-between" style={{ background: isIncome ? "color-mix(in srgb, var(--income) 10%, transparent)" : "color-mix(in srgb, var(--a3) 6%, transparent)" }}>
         <div className="min-w-0 flex-1">
-         <p className="text-[8px] font-black uppercase tracking-widest" style={{ color: isIncome ? "color-mix(in srgb, var(--income) 70%, transparent)" : "color-mix(in srgb, var(--a3) 70%, transparent)" }}>
+         <p className="text-2xs font-black uppercase tracking-widest" style={{ color: isIncome ? "color-mix(in srgb, var(--income) 70%, transparent)" : "color-mix(in srgb, var(--a3) 70%, transparent)" }}>
           {isIncome ? "Edit Pemasukan" : "Edit Pengeluaran"}
          </p>
          <p className="text-sm font-black truncate mt-0.5" style={{ color: isIncome ? "var(--income)" : "var(--a3)" }}>{data.note || "—"}</p>
@@ -123,7 +123,7 @@ const EditTrxModal = memo(function EditTrxModal({
          <button
           onClick={handleSubmit}
           disabled={isSubmitting}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all disabled:opacity-40"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-black text-caption uppercase tracking-widest transition-all disabled:opacity-40"
           style={isDirty ? { background: "linear-gradient(135deg, var(--a1), var(--a2))", color: "#fff" } : { background: "var(--bg-3)", color: "var(--text-3)" }}
          >
           <Save size={11} />
@@ -143,7 +143,7 @@ const EditTrxModal = memo(function EditTrxModal({
 
         {/* Nominal dengan format ribuan */}
         <div className="py-3 border-b ds-border">
-         <label className="text-[8px] font-black ds-t3 uppercase tracking-widest block mb-1.5">Nominal</label>
+         <label className="text-2xs font-black ds-t3 uppercase tracking-widest block mb-1.5">Nominal</label>
          <input
           type="text" inputMode="decimal"
           value={displayAmount}
@@ -157,7 +157,7 @@ const EditTrxModal = memo(function EditTrxModal({
 
         {/* Catatan */}
         <div className="py-3 border-b ds-border">
-         <label className="text-[8px] font-black ds-t3 uppercase tracking-widest block mb-1.5">Catatan</label>
+         <label className="text-2xs font-black ds-t3 uppercase tracking-widest block mb-1.5">Catatan</label>
          <input
           type="text"
           value={localNote}
@@ -168,7 +168,7 @@ const EditTrxModal = memo(function EditTrxModal({
 
         {/* Kategori */}
         <div className="py-3 border-b ds-border">
-         <label className="text-[8px] font-black ds-t3 uppercase tracking-widest block mb-1.5">Kategori</label>
+         <label className="text-2xs font-black ds-t3 uppercase tracking-widest block mb-1.5">Kategori</label>
          <input
           list="edit-cat-list" type="text"
           value={localCategory}
@@ -184,7 +184,7 @@ const EditTrxModal = memo(function EditTrxModal({
         <div className="py-3 flex items-center justify-between">
          <div className="flex items-center gap-2 ds-t3">
           <Calendar size={13} />
-          <label className="text-[8px] font-black uppercase tracking-widest">Tanggal</label>
+          <label className="text-2xs font-black uppercase tracking-widest">Tanggal</label>
          </div>
          <input
           type="date"

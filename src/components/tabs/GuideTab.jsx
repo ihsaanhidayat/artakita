@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { memo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -308,7 +308,7 @@ const Section = memo(function Section({ section }) {
  </div>
  <div className="flex-1">
  <p className="font-black text-sm ds-t1">{section.title}</p>
- <p className="text-[9px] ds-t3 mt-0.5">{section.items.length} topik</p>
+ <p className="text-label ds-t3 mt-0.5">{section.items.length} topik</p>
  </div>
  <motion.div
  animate={{ rotate: isOpen ? 180 : 0 }}
@@ -354,13 +354,13 @@ const GuideTab = memo(function GuideTab({ onBack }) {
 
  {/* Breadcrumb */}
  <div className="flex items-center justify-between mb-6">
- <span className="text-[10px] font-black ds-t3 uppercase tracking-widest">Panduan</span>
+ <span className="text-caption font-black ds-t3 uppercase tracking-widest">Panduan</span>
  <button
  onClick={onBack}
  className="flex items-center gap-1.5 ds-aurora-text hover:ds-aurora-text active:scale-95 transition-all ds-aurora-bg border ds-aurora-border-c px-3 py-1.5 rounded-xl"
  >
  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
- <span className="text-[9px] font-black uppercase tracking-widest">Lainnya</span>
+ <span className="text-label font-black uppercase tracking-widest">Lainnya</span>
  </button>
  </div>
 
@@ -370,7 +370,7 @@ const GuideTab = memo(function GuideTab({ onBack }) {
  <div className="relative z-10">
  <div className="flex items-center gap-2 mb-2">
  <BookOpen size={20} className="text-white" />
- <p className="text-white/80 text-[10px] font-black uppercase tracking-widest">Panduan Pengguna</p>
+ <p className="text-white/80 text-caption font-black uppercase tracking-widest">Panduan Pengguna</p>
  </div>
  <h2 className="text-2xl font-black text-white tracking-tight mb-1">ArtaKita.</h2>
  <p className="text-white/70 text-xs font-bold">Panduan lengkap penggunaan semua fitur</p>
@@ -381,7 +381,7 @@ const GuideTab = memo(function GuideTab({ onBack }) {
  <div className="bg-amber-500/10 border border-amber-500/20 rounded-[20px] p-4 mb-5 flex items-start gap-3">
  <Zap size={16} className="text-amber-500 shrink-0 mt-0.5" />
  <div>
- <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest mb-1">Mulai Cepat</p>
+ <p className="text-caption font-black text-amber-500 uppercase tracking-widest mb-1">Mulai Cepat</p>
  <p className="text-xs font-bold ds-t1 leading-relaxed">
  Ketik <span className="font-black text-amber-500">50k makan siang</span> di kolom bawah untuk catat pengeluaran, atau <span className="font-black ds-aurora-text">in 5jt gaji</span> untuk pemasukan.
  </p>
@@ -397,10 +397,10 @@ const GuideTab = memo(function GuideTab({ onBack }) {
 
  {/* Footer */}
  <div className="text-center mt-8 space-y-1">
- <p className="text-[10px] ds-t3 font-bold">
+ <p className="text-caption ds-t3 font-bold">
  ArtaKita v2.0.0
  </p>
- <p className="text-[9px] ds-t3">
+ <p className="text-label ds-t3">
  dibuat dengan ♥ oleh MIH
  </p>
  </div>

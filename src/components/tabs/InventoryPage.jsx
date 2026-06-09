@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+﻿import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabaseClient";
 import imageCompression from 'browser-image-compression';
@@ -159,7 +159,7 @@ export default function InventoryPage() {
           placeholder="Cari nama barang..." 
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full bg-[#121827] text-white pl-12 pr-4 py-4 rounded-2xl outline-none border border-gray-800 focus:border-blue-500/50 transition-colors text-sm font-medium"
+          className="w-full bg-[#121827] text-white pl-12 pr-4 py-4 rounded-2xl outline-none border border-gray-800 focus:border-blue-500/50 transition-colors text-sm font-bold"
         />
       </div>
 
@@ -183,10 +183,10 @@ export default function InventoryPage() {
               )}
             </div>
 
-            <div className="space-y-2 text-xs font-medium">
+            <div className="space-y-2 text-xs font-bold">
               <div className="flex items-center gap-3 text-gray-400">
                 <DollarSign size={14} className="text-emerald-500" />
-                <span className="text-gray-200">Rp {Number(item.price).toLocaleString('id-ID')}</span>
+                <span className="text-gray-200 ff-mono">Rp {Number(item.price).toLocaleString('id-ID')}</span>
               </div>
               {item.purchase_date && (
                 <div className="flex items-center gap-3 text-gray-400">
@@ -203,7 +203,7 @@ export default function InventoryPage() {
             </div>
             
             {/* Tombol Hapus Kecil di Kanan Bawah */}
-            <button onClick={() => handleDelete(item.id, item.photo_url)} className="absolute bottom-4 right-4 text-gray-600 hover:text-red-500 text-[10px] font-black uppercase tracking-widest">
+            <button onClick={() => handleDelete(item.id, item.photo_url)} className="absolute bottom-4 right-4 text-gray-600 hover:text-red-500 text-caption font-black uppercase tracking-widest">
               Hapus
             </button>
           </motion.div>
@@ -268,14 +268,14 @@ export default function InventoryPage() {
                 )}
               </label>
 
-              <input type="text" placeholder="Nama Barang *" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full bg-[#121827] text-white p-4 rounded-xl outline-none border border-gray-800 text-sm font-medium" required />
-              
+              <input type="text" placeholder="Nama Barang *" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full bg-[#121827] text-white p-4 rounded-xl outline-none border border-gray-800 text-sm font-bold" required />
+
               <div className="flex gap-2">
-                <input type="text" placeholder="Harga (Rp)" value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} className="flex-1 bg-[#121827] text-white p-4 rounded-xl outline-none border border-gray-800 text-sm font-medium" />
-                <input type="date" value={formData.purchase_date} onChange={e => setFormData({...formData, purchase_date: e.target.value})} className="flex-1 bg-[#121827] text-gray-400 p-4 rounded-xl outline-none border border-gray-800 text-sm font-medium" />
+                <input type="text" placeholder="Harga (Rp)" value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} className="flex-1 bg-[#121827] text-white p-4 rounded-xl outline-none border border-gray-800 text-sm font-bold" />
+                <input type="date" value={formData.purchase_date} onChange={e => setFormData({...formData, purchase_date: e.target.value})} className="flex-1 bg-[#121827] text-gray-400 p-4 rounded-xl outline-none border border-gray-800 text-sm font-bold" />
               </div>
 
-              <input type="text" placeholder="Beli di mana? (Toko/Lokasi)" value={formData.store_name} onChange={e => setFormData({...formData, store_name: e.target.value})} className="w-full bg-[#121827] text-white p-4 rounded-xl outline-none border border-gray-800 text-sm font-medium" />
+              <input type="text" placeholder="Beli di mana? (Toko/Lokasi)" value={formData.store_name} onChange={e => setFormData({...formData, store_name: e.target.value})} className="w-full bg-[#121827] text-white p-4 rounded-xl outline-none border border-gray-800 text-sm font-bold" />
 
               <button type="submit" disabled={isSubmitting} className="w-full bg-blue-600 disabled:bg-gray-800 text-white py-4 mt-2 rounded-xl font-black uppercase tracking-widest flex justify-center items-center gap-2">
                 {isSubmitting ? <><Loader2 size={18} className="animate-spin" /> Menyimpan...</> : "Simpan Barang"}
@@ -307,7 +307,7 @@ export default function InventoryPage() {
               className={`max-w-full max-h-[85vh] rounded-2xl object-contain transition-transform ${isZoomed ? 'cursor-zoom-out' : 'cursor-zoom-in'}`}
             />
             
-            <p className="absolute bottom-10 text-gray-500 text-[10px] font-black tracking-[0.2em] uppercase">
+            <p className="absolute bottom-10 text-gray-500 text-caption font-black tracking-[0.2em] uppercase">
               Ketuk gambar untuk {isZoomed ? 'memperkecil' : 'memperbesar'}
             </p>
           </motion.div>

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useRef, useState } from "react";
 import { Camera, Image, X, Loader2 } from "lucide-react";
 
@@ -62,7 +62,7 @@ export default function PhotoUploadButton({
               <button
                 type="button"
                 onClick={() => galleryRef.current?.click()}
-                className="absolute bottom-2 right-2 flex items-center gap-1 px-2.5 py-1.5 bg-black/60 hover:bg-blue-600 rounded-xl text-white text-[9px] font-black uppercase tracking-widest transition-colors"
+                className="absolute bottom-2 right-2 flex items-center gap-1 px-2.5 py-1.5 bg-black/60 hover:bg-blue-600 rounded-xl text-white text-label font-black uppercase tracking-widest transition-colors"
               >
                 <Camera size={11} /> Ganti
               </button>
@@ -80,7 +80,7 @@ export default function PhotoUploadButton({
             className="h-20 border-2 border-dashed border-gray-200 dark:border-gray-800 rounded-2xl flex flex-col items-center justify-center gap-1.5 text-gray-400 hover:text-blue-500 hover:border-blue-500/50 hover:bg-blue-500/5 transition-all disabled:opacity-50"
           >
             <Camera size={18} />
-            <span className="text-[9px] font-black uppercase tracking-widest">Kamera</span>
+            <span className="text-label font-black uppercase tracking-widest">Kamera</span>
           </button>
 
           {/* Galeri — buka file picker */}
@@ -94,7 +94,7 @@ export default function PhotoUploadButton({
               ? <Loader2 size={18} className="animate-spin" />
               : <Image size={18} />
             }
-            <span className="text-[9px] font-black uppercase tracking-widest">Galeri</span>
+            <span className="text-label font-black uppercase tracking-widest">Galeri</span>
           </button>
         </div>
       )}

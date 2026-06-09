@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Save, Loader2 } from "lucide-react";
@@ -31,7 +31,7 @@ const AddUserModal = memo(function AddUserModal({ isOpen, data, setData, onSubmi
         <button
          onClick={isDirty ? onSubmit : onClose}
          disabled={data?.isLoading}
-         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-black text-[10px] uppercase tracking-widest ml-3 shrink-0 transition-all disabled:opacity-40 ${
+         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-black text-caption uppercase tracking-widest ml-3 shrink-0 transition-all disabled:opacity-40 ${
           isDirty ? "text-white" : "ds-bg-3 ds-t3"
          }`}
          style={isDirty ? { background: "linear-gradient(135deg, var(--a1), var(--a2))" } : undefined}
@@ -42,7 +42,7 @@ const AddUserModal = memo(function AddUserModal({ isOpen, data, setData, onSubmi
        </div>
        <div className="px-5 py-4 space-y-0">
         <div className="border-b ds-border py-3">
-         <label className="text-[8px] font-black ds-t3 uppercase tracking-widest block mb-1.5">Username</label>
+         <label className="text-2xs font-black ds-t3 uppercase tracking-widest block mb-1.5">Username</label>
          <input
           autoFocus type="text"
           placeholder="username"
@@ -52,7 +52,7 @@ const AddUserModal = memo(function AddUserModal({ isOpen, data, setData, onSubmi
          />
         </div>
         <div className="py-3">
-         <label className="text-[8px] font-black ds-t3 uppercase tracking-widest block mb-1.5">Password</label>
+         <label className="text-2xs font-black ds-t3 uppercase tracking-widest block mb-1.5">Password</label>
          <input
           type="password"
           placeholder="Min 6 karakter"

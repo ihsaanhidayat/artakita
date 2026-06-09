@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useState, useEffect, useCallback, useMemo, memo } from "react";
 import { tokenizeInput, classifyFromPatterns, learnFromTransaction } from "@/lib/aiEngine";
 import { motion, AnimatePresence } from "framer-motion";
@@ -58,14 +58,14 @@ const LoginScreen = memo(function LoginScreen({ auth }) {
      <h1 className="text-4xl font-black ds-aurora-text tracking-tight mb-1">
       ArtaKita.
      </h1>
-     <p className="text-[10px] font-bold ds-t3 uppercase tracking-[0.3em]">
+     <p className="text-caption font-bold ds-t3 uppercase tracking-[0.3em]">
       Artaku Artamu
      </p>
     </div>
 
     <form onSubmit={auth.handleLogin} className="space-y-4">
      <div>
-      <label className="block text-[9px] font-black ds-t3 uppercase tracking-widest mb-1.5 ml-1">
+      <label className="block text-label font-black ds-t3 uppercase tracking-widest mb-1.5 ml-1">
        Username / Email
       </label>
       <input
@@ -80,7 +80,7 @@ const LoginScreen = memo(function LoginScreen({ auth }) {
       />
      </div>
      <div>
-      <label className="block text-[9px] font-black ds-t3 uppercase tracking-widest mb-1.5 ml-1">
+      <label className="block text-label font-black ds-t3 uppercase tracking-widest mb-1.5 ml-1">
        Kata Sandi
       </label>
       <input
@@ -129,7 +129,7 @@ const WalletLoader = memo(function WalletLoader() {
   <main className="w-full max-w-lg mx-auto min-h-screen flex items-center justify-center ds-bg-0">
    <div className="flex flex-col items-center gap-4">
     <div className="w-8 h-8 border-2 border-t-transparent rounded-full animate-spin" />
-    <p className="text-[9px] font-black ds-t3 uppercase tracking-widest">Memuat data...</p>
+    <p className="text-label font-black ds-t3 uppercase tracking-widest">Memuat data...</p>
    </div>
   </main>
  );
@@ -869,7 +869,7 @@ export default function Home() {
        </h2>
        <button
         onClick={auth.handleLogout}
-        className="px-3 py-1.5 font-black text-[9px] uppercase tracking-widest rounded-xl border active:scale-95 transition-all"
+        className="px-3 py-1.5 font-black text-label uppercase tracking-widest rounded-xl border active:scale-95 transition-all"
         style={{ background: "color-mix(in srgb, var(--a3) 10%, transparent)", borderColor: "color-mix(in srgb, var(--a3) 25%, transparent)", color: "var(--a3)" }}
        >
         Keluar
@@ -1007,6 +1007,7 @@ export default function Home() {
        filteredTransactions={transactionsThisMonth}
        transactions={allTransactions}
        balance={balance}
+       activeWallet={activeWallet}
       />
      )}
 
@@ -1128,7 +1129,7 @@ export default function Home() {
                   <Icon size={20} strokeWidth={isActive ? 2 : 1.6}
                     className="relative z-10"
                     style={{ color: isActive ? "var(--a1)" : "var(--text-3)" }} />
-                  <span className="text-[8px] font-black uppercase tracking-widest relative z-10"
+                  <span className="text-2xs font-black uppercase tracking-widest relative z-10"
                     style={{ color: isActive ? "var(--a1)" : "var(--text-3)" }}>
                     {label}
                   </span>
@@ -1171,7 +1172,7 @@ export default function Home() {
                   <Icon size={20} strokeWidth={isActive ? 2 : 1.6}
                     className="relative z-10"
                     style={{ color: isActive ? "var(--a1)" : "var(--text-3)" }} />
-                  <span className="text-[8px] font-black uppercase tracking-widest relative z-10"
+                  <span className="text-2xs font-black uppercase tracking-widest relative z-10"
                     style={{ color: isActive ? "var(--a1)" : "var(--text-3)" }}>
                     {label}
                   </span>

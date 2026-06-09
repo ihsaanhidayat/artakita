@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useState, useRef, useCallback, memo, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Send, X, TerminalSquare, Mic, Camera, Calendar, ChevronDown } from "lucide-react";
@@ -515,7 +515,7 @@ const QuickCommandBar = memo(function QuickCommandBar({
               {/* ── Context badge ── */}
               {ctxConfig && (
                 <div className="px-4 pt-3 pb-0">
-                  <span className="text-[8px] font-black uppercase tracking-widest ff-mono px-2.5 py-1 rounded-lg"
+                  <span className="text-2xs font-black uppercase tracking-widest ff-mono px-2.5 py-1 rounded-lg"
                     style={{ color: "var(--a2)", background: "color-mix(in srgb, var(--a2) 12%, transparent)" }}>
                     {ctxConfig.label}
                   </span>
@@ -538,7 +538,7 @@ const QuickCommandBar = memo(function QuickCommandBar({
                           <span className="font-black text-sm" style={{ color: "var(--text-1)" }}>
                             {contextPreview.person}
                           </span>
-                          <span className="text-[9px] font-black px-2 py-0.5 rounded-lg uppercase tracking-widest"
+                          <span className="text-label font-black px-2 py-0.5 rounded-lg uppercase tracking-widest"
                             style={contextPreview.type === "debt"
                               ? { background: "color-mix(in srgb, var(--a3) 15%, transparent)", color: "var(--a3)" }
                               : { background: "color-mix(in srgb, var(--income) 15%, transparent)", color: "var(--income)" }}>
@@ -554,13 +554,13 @@ const QuickCommandBar = memo(function QuickCommandBar({
                           <span className="font-black text-sm" style={{ color: "var(--text-1)" }}>
                             {contextPreview.note}
                           </span>
-                          <span className="text-[9px] font-black px-2 py-0.5 rounded-lg uppercase tracking-widest"
+                          <span className="text-label font-black px-2 py-0.5 rounded-lg uppercase tracking-widest"
                             style={contextPreview.type === "income"
                               ? { background: "color-mix(in srgb, var(--income) 15%, transparent)", color: "var(--income)" }
                               : { background: "color-mix(in srgb, var(--a3) 15%, transparent)", color: "var(--a3)" }}>
                             {contextPreview.type === "income" ? "Masuk" : "Keluar"}
                           </span>
-                          <span className="text-[9px] font-black px-2 py-0.5 rounded-lg uppercase tracking-widest"
+                          <span className="text-label font-black px-2 py-0.5 rounded-lg uppercase tracking-widest"
                             style={{ background: "color-mix(in srgb, var(--a1) 15%, transparent)", color: "var(--a1)" }}>
                             {FREQ_LABELS[contextPreview.frequency] || contextPreview.frequency}
                           </span>
@@ -571,11 +571,11 @@ const QuickCommandBar = memo(function QuickCommandBar({
                       )}
                       {currentContext === "savings" && (
                         <>
-                          <span className="text-[10px]">🎯</span>
+                          <span className="text-caption">🎯</span>
                           <span className="font-black text-sm" style={{ color: "var(--text-1)" }}>
                             {contextPreview.name}
                           </span>
-                          <span className="text-[9px] font-black px-2 py-0.5 rounded-lg uppercase tracking-widest"
+                          <span className="text-label font-black px-2 py-0.5 rounded-lg uppercase tracking-widest"
                             style={{ background: "color-mix(in srgb, var(--income) 15%, transparent)", color: "var(--income)" }}>
                             Target
                           </span>
@@ -589,7 +589,7 @@ const QuickCommandBar = memo(function QuickCommandBar({
                           <span className="font-black text-sm" style={{ color: "var(--text-1)" }}>
                             {contextPreview.name}
                           </span>
-                          <span className="text-[9px] font-black px-2 py-0.5 rounded-lg uppercase tracking-widest border"
+                          <span className="text-label font-black px-2 py-0.5 rounded-lg uppercase tracking-widest border"
                             style={{ color: COND_COLORS[contextPreview.condition], background: `color-mix(in srgb, ${COND_COLORS[contextPreview.condition]} 12%, transparent)`, borderColor: `color-mix(in srgb, ${COND_COLORS[contextPreview.condition]} 25%, transparent)` }}>
                             {COND_LABELS[contextPreview.condition]}
                           </span>
@@ -618,7 +618,7 @@ const QuickCommandBar = memo(function QuickCommandBar({
                     <div className="flex items-center gap-2 px-4 pt-3 pb-1 flex-wrap">
                       {/* Tipe */}
                       <span
-                        className="text-[9px] font-black px-2 py-1 rounded-lg uppercase tracking-widest"
+                        className="text-label font-black px-2 py-1 rounded-lg uppercase tracking-widest"
                         style={preview.type === "income"
                           ? { background: "color-mix(in srgb, var(--income) 15%, transparent)", color: "var(--income)" }
                           : { background: "color-mix(in srgb, var(--a3) 15%, transparent)", color: "var(--a3)" }}
@@ -647,7 +647,7 @@ const QuickCommandBar = memo(function QuickCommandBar({
                           type="button"
                           disabled={!canClick}
                           onClick={() => canClick && setShowCandList(p => !p)}
-                          className={`flex items-center gap-1 text-[9px] font-black px-2.5 py-1 rounded-lg uppercase tracking-widest transition-all ${
+                          className={`flex items-center gap-1 text-label font-black px-2.5 py-1 rounded-lg uppercase tracking-widest transition-all ${
                             (preview.isManual || isExact || canClick)
                               ? "active:scale-95"
                               : "cursor-default"
@@ -689,7 +689,7 @@ const QuickCommandBar = memo(function QuickCommandBar({
                                         : { color: "var(--text-2)" }}
                                     >
                                       {catName}
-                                      {shownCat === catName && <span style={{ color: "var(--a2)" }} className="text-[10px]">✓</span>}
+                                      {shownCat === catName && <span style={{ color: "var(--a2)" }} className="text-caption">✓</span>}
                                     </button>
                                   );
                                 })}
@@ -701,7 +701,7 @@ const QuickCommandBar = memo(function QuickCommandBar({
 
                       {/* Badge tanggal */}
                       {selDate !== TODAY() && (
-                        <span className="text-[9px] font-black text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-1 rounded-lg">
+                        <span className="text-label font-black text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-1 rounded-lg">
                           {dateLabel(selDate)}
                         </span>
                       )}
@@ -721,7 +721,7 @@ const QuickCommandBar = memo(function QuickCommandBar({
                     className="overflow-hidden"
                   >
                     <div className="px-4 pb-2 pt-2 flex items-center gap-3">
-                      <label className="text-[9px] font-black text-white/40 uppercase tracking-widest shrink-0">Tanggal</label>
+                      <label className="text-label font-black text-white/40 uppercase tracking-widest shrink-0">Tanggal</label>
                       <input
                         type="date"
                         value={selDate}
@@ -731,7 +731,7 @@ const QuickCommandBar = memo(function QuickCommandBar({
                       />
                       {selDate !== TODAY() && (
                         <button type="button" onClick={() => { setSelDate(TODAY()); inputRef.current?.focus(); }}
-                          className="text-[9px] font-black text-white/30 hover:text-white uppercase tracking-widest transition-colors shrink-0">
+                          className="text-label font-black text-white/30 hover:text-white uppercase tracking-widest transition-colors shrink-0">
                           Reset
                         </button>
                       )}
@@ -839,7 +839,7 @@ const QuickCommandBar = memo(function QuickCommandBar({
                             // User review dulu, baru Enter untuk submit
                             inputRef.current?.focus();
                           }}
-                          className="flex items-center gap-1.5 px-2.5 py-1.5 active:scale-95 rounded-xl text-[10px] font-black whitespace-nowrap transition-all shrink-0 border"
+                          className="flex items-center gap-1.5 px-2.5 py-1.5 active:scale-95 rounded-xl text-caption font-black whitespace-nowrap transition-all shrink-0 border"
                           style={{ background: "color-mix(in srgb, var(--a2) 12%, transparent)", borderColor: "color-mix(in srgb, var(--a2) 20%, transparent)", color: "var(--a2)" }}
                         >
                           {s.isPosMode ? (
@@ -869,21 +869,21 @@ const QuickCommandBar = memo(function QuickCommandBar({
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0 }}
                       transition={{ duration: 0.15 }}
-                      className="text-[9px] font-black mb-1.5" style={{ color: "var(--a3)" }}
+                      className="text-label font-black mb-1.5" style={{ color: "var(--a3)" }}
                     >
                       ⚠ Format: <span className="text-white/60">50k makan siang</span> atau <span className="text-white/60">in 5jt gaji</span>
                     </motion.p>
                   )}
                 </AnimatePresence>
                 {isContextMode ? (
-                  <p className="text-[9px] text-white/20 font-bold">
+                  <p className="text-label text-white/20 font-bold">
                     {currentContext === "debts" && "cth: hutang ke Budi 500rb · piutang dari Ani 1jt"}
                     {currentContext === "recurring" && "cth: Netflix 59rb bulanan · gaji 5jt bulanan"}
                     {currentContext === "savings" && "cth: nabung laptop 5jt · target HP baru 2jt"}
                     {currentContext === "assets" && "cth: Laptop Dell 8jt baru · iPhone 15jt"}
                   </p>
                 ) : (
-                  <p className="text-[9px] text-white/20 font-bold">
+                  <p className="text-label text-white/20 font-bold">
                     ketik bebas · <span style={{ color: "color-mix(in srgb, var(--income) 50%, transparent)" }}>in</span> = pemasukan
                     {selDate !== TODAY() && <span className="text-amber-400/50"> · {dateLabel(selDate)}</span>}
                   </p>

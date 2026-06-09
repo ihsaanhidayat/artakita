@@ -13,6 +13,11 @@ const config = {
         mono:    ["var(--font-mono)", "monospace"],
         display: ["var(--font-display)", "sans-serif"],
       },
+      fontSize: {
+        '2xs':    ['8px',  { lineHeight: '1.2' }],
+        'label':  ['9px',  { lineHeight: '1.25' }],
+        'caption':['10px', { lineHeight: '1.35' }],
+      },
       colors: {
         aurora: { cyan: "#22d3ee", purple: "#a855f7" },
       },

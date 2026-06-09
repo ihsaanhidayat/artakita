@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { memo, useState, useEffect, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabaseClient";
@@ -16,7 +16,7 @@ const getHealth = (exp, inc) => {
  return { grade: "A", color: "ds-income-glow", barStyle: { background: `linear-gradient(90deg, var(--income), var(--a1))` }, pct: r*100, msg: STATS.GRADE.A };
 };
 
-const StatsTab = memo(function StatsTab({ filteredTransactions, transactions, balance }) {
+const StatsTab = memo(function StatsTab({ filteredTransactions, transactions, balance, activeWallet }) {
  const [section, setSection] = useState("pengeluaran");
  const [catExpanded, setCatExpanded] = useState(false);
  const [allocExpanded, setAllocExpanded] = useState(false);
@@ -94,7 +94,13 @@ const StatsTab = memo(function StatsTab({ filteredTransactions, transactions, ba
  transition={{ duration: 0.12 }}
  className="pt-8 px-3 pb-32 h-[100dvh] overflow-y-auto no-scrollbar w-full" style={{ background: "var(--bg-0)" }}
  >
- <h2 className="text-[22px] font-light tracking-[-1px] mb-5" style={{ color: "var(--text-1)" }}>{STATS.TITLE}</h2>
+ <div className="mb-5 flex-none">
+ <h2 className="text-[26px] font-light tracking-[-1.5px] leading-none ds-t1">{STATS.TITLE}</h2>
+ <div className="flex items-center gap-2 mt-1">
+  <span className="ds-live-dot" />
+  <p className="text-caption font-black tracking-[0.14em] uppercase ds-aurora-text">{activeWallet?.name}</p>
+ </div>
+ </div>
 
  {/* Sub-tab */}
  <div className="flex p-1 rounded-[14px] mb-5" style={{ background: "var(--bg-3)", border: "1px solid var(--border)" }}>
@@ -103,7 +109,7 @@ const StatsTab = memo(function StatsTab({ filteredTransactions, transactions, ba
  { key: "alokasi", label: STATS.TAB_ALLOCATION },
  ].map(({ key, label }) => (
  <button key={key} onClick={() => setSection(key)}
- className={`flex-1 text-[9px] font-black uppercase tracking-widest py-2.5 rounded-xl transition-all duration-200 ${
+ className={`flex-1 text-label font-black uppercase tracking-widest py-2.5 rounded-xl transition-all duration-200 ${
  section === key ? "ds-bg-1 ds-aurora-bg ds-aurora-text shadow-sm" : "ds-t3"
  }`}
  >{label}</button>
@@ -131,7 +137,7 @@ const StatsTab = memo(function StatsTab({ filteredTransactions, transactions, ba
  {health.grade}
  </div>
  <div className="flex-1 min-w-0">
- <p className="text-[9px] font-black ds-t3 uppercase tracking-widest mb-0.5">{STATS.HEALTH_TITLE}</p>
+ <p className="text-label font-black ds-t3 uppercase tracking-widest mb-0.5">{STATS.HEALTH_TITLE}</p>
  <p className="text-xs font-bold ds-t1 leading-snug">{health.msg}</p>
  </div>
  </div>
@@ -139,7 +145,7 @@ const StatsTab = memo(function StatsTab({ filteredTransactions, transactions, ba
  {/* Rasio bar */}
  {totalIncome > 0 && (
  <div className="mb-5">
- <div className="flex justify-between text-[8px] font-black ds-t3 uppercase tracking-widest mb-1.5">
+ <div className="flex justify-between text-2xs font-black ds-t3 uppercase tracking-widest mb-1.5">
  <span>Pengeluaran vs Pemasukan</span>
  <span className={health.color}>{Math.min(100, (totalExpense / totalIncome * 100)).toFixed(0)}%</span>
  </div>
@@ -159,12 +165,12 @@ const StatsTab = memo(function StatsTab({ filteredTransactions, transactions, ba
  <div className="grid grid-cols-2 gap-3">
  <div className="rounded-2xl p-3"
    style={{ background: "color-mix(in srgb, var(--a3) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--a3) 18%, transparent)" }}>
- <p className="text-[8px] font-black uppercase tracking-widest mb-1" style={{ color: "var(--a3)" }}>{STATS.TOTAL_EXPENSE}</p>
+ <p className="text-2xs font-black uppercase tracking-widest mb-1" style={{ color: "var(--a3)" }}>{STATS.TOTAL_EXPENSE}</p>
  <p className="text-base font-black ds-expense-glow ff-mono">Rp {fmt(totalExpense)}</p>
  </div>
  <div className="rounded-2xl p-3"
    style={{ background: "color-mix(in srgb, var(--income) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--income) 18%, transparent)" }}>
- <p className="text-[8px] font-black uppercase tracking-widest mb-1" style={{ color: "var(--income)" }}>{STATS.TOTAL_INCOME}</p>
+ <p className="text-2xs font-black uppercase tracking-widest mb-1" style={{ color: "var(--income)" }}>{STATS.TOTAL_INCOME}</p>
  <p className="text-base font-black ds-income-glow ff-mono">Rp {fmt(totalIncome)}</p>
  </div>
  </div>
@@ -177,7 +183,7 @@ const StatsTab = memo(function StatsTab({ filteredTransactions, transactions, ba
  >
  <p className="text-xs font-black ds-t1 uppercase tracking-widest">{STATS.CATEGORY_DETAIL}</p>
  <div className="flex items-center gap-2">
- <span className="text-[9px] font-black ds-t3">{statsData.length} kategori</span>
+ <span className="text-label font-black ds-t3">{statsData.length} kategori</span>
  <motion.div animate={{ rotate: catExpanded ? 180 : 0 }} transition={{ duration: 0.2 }}><ChevronDown size={16} className="ds-t3" /></motion.div>
  </div>
  </button>
@@ -196,7 +202,7 @@ const StatsTab = memo(function StatsTab({ filteredTransactions, transactions, ba
  <div className="flex justify-between items-end mb-2">
  <div>
  <p className="font-bold text-sm ds-t1">{item.name}</p>
- <p className="text-[9px] font-black ds-t3">{pct.toFixed(1)}%</p>
+ <p className="text-label font-black ds-t3">{pct.toFixed(1)}%</p>
  </div>
  <p className="font-black text-sm ds-t1 ff-mono">Rp {item.value.toLocaleString("id-ID")}</p>
  </div>
@@ -212,7 +218,7 @@ const StatsTab = memo(function StatsTab({ filteredTransactions, transactions, ba
  </div>
  );
  }) : (
- <p className="text-center py-8 text-[9px] font-black ds-t3 uppercase tracking-[0.4em]">{STATS.NO_DATA}</p>
+ <p className="text-center py-8 text-label font-black ds-t3 uppercase tracking-[0.4em]">{STATS.NO_DATA}</p>
  )}
  </div>
  </motion.div>
@@ -232,11 +238,11 @@ const StatsTab = memo(function StatsTab({ filteredTransactions, transactions, ba
  <div className="ds-aurora-card p-5" style={{ border: "1px solid var(--border)" }}>
  <div className="flex justify-between items-start mb-4">
  <div>
- <p className="text-[9px] font-black ds-t3 uppercase tracking-widest mb-1">Saldo Dompet</p>
+ <p className="text-label font-black ds-t3 uppercase tracking-widest mb-1">Saldo Dompet</p>
  <p className="text-2xl font-black ds-t1 ff-mono">Rp {fmt(balance)}</p>
  </div>
  <div className="text-right">
- <p className="text-[9px] font-black ds-t3 uppercase tracking-widest mb-1">{STATS.ALLOCATION}</p>
+ <p className="text-label font-black ds-t3 uppercase tracking-widest mb-1">{STATS.ALLOCATION}</p>
  <p className={`text-xl font-black ff-mono ${isOver ? "ds-expense-glow" : "ds-aurora-text"}`}>Rp {fmt(totalAlokasi)}</p>
  </div>
  </div>
@@ -247,7 +253,7 @@ const StatsTab = memo(function StatsTab({ filteredTransactions, transactions, ba
  {isOver
    ? <AlertTriangle size={14} className="shrink-0" style={{ color: "var(--a3)" }} />
    : <CheckCircle2 size={14} className="shrink-0" style={{ color: "var(--income)" }} />}
- <p className="text-[10px] font-bold" style={{ color: isOver ? "var(--a3)" : "var(--income)" }}>
+ <p className="text-caption font-bold" style={{ color: isOver ? "var(--a3)" : "var(--income)" }}>
  {isOver ? `Alokasi melebihi saldo! Kelebihan Rp ${fmt(Math.abs(sisaSaldo))}` : `${STATS.AFTER_ALLOC}: Rp ${fmt(sisaSaldo)}`}
  </p>
  </div>
@@ -260,7 +266,7 @@ const StatsTab = memo(function StatsTab({ filteredTransactions, transactions, ba
  >
  <p className="text-xs font-black ds-t1 uppercase tracking-widest">{STATS.ALLOCATION}</p>
  <div className="flex items-center gap-2">
- <span className="text-[9px] font-black ds-t3">{allCategories.length} kategori</span>
+ <span className="text-label font-black ds-t3">{allCategories.length} kategori</span>
  <motion.div animate={{ rotate: allocExpanded ? 180 : 0 }} transition={{ duration: 0.2 }}><ChevronDown size={16} className="ds-t3" /></motion.div>
  </div>
  </button>
@@ -273,7 +279,7 @@ const StatsTab = memo(function StatsTab({ filteredTransactions, transactions, ba
  >
  <div className="px-5 pb-5 border-t ds-border space-y-2.5 pt-4">
  {allCategories.length === 0 ? (
- <p className="text-center py-6 text-[9px] font-black ds-t3 uppercase tracking-[0.4em]">{STATS.NO_DATA}</p>
+ <p className="text-center py-6 text-label font-black ds-t3 uppercase tracking-[0.4em]">{STATS.NO_DATA}</p>
  ) : allCategories.map((cat, idx) => {
  const spent = allStatsData.find(s => s.name === cat)?.value || 0;
  const limit = budgetMap[cat] || 0;
@@ -294,7 +300,7 @@ const StatsTab = memo(function StatsTab({ filteredTransactions, transactions, ba
  <div className="flex justify-between items-start mb-2.5">
  <div className="min-w-0 flex-1">
  <p className="font-black text-sm ds-t1">{cat}</p>
- <p className="text-[9px] ds-t3 mt-0.5">
+ <p className="text-label ds-t3 mt-0.5">
  {noLim ? `Terpakai: Rp ${fmt(spent)}` : `Rp ${fmt(spent)} / Rp ${fmt(limit)}`}
  </p>
  </div>
@@ -354,7 +360,7 @@ const StatsTab = memo(function StatsTab({ filteredTransactions, transactions, ba
  <button
  onClick={handleSaveBudget}
  disabled={isSaving || !editVal.trim()}
- className="flex items-center gap-1 px-3 py-2 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all disabled:opacity-40"
+ className="flex items-center gap-1 px-3 py-2 rounded-xl font-black text-label uppercase tracking-widest transition-all disabled:opacity-40"
  style={isDirtyBudget
    ? { background: "linear-gradient(135deg, var(--a1), var(--a2))", color: "#fff" }
    : { background: "var(--bg-3)", color: "var(--text-3)" }}
@@ -364,7 +370,7 @@ const StatsTab = memo(function StatsTab({ filteredTransactions, transactions, ba
  </button>
  {editingBudget.currentLimit > 0 && (
  <button onClick={handleDeleteBudget} disabled={isSaving}
- className="px-3 py-2 rounded-xl font-black text-[9px] uppercase tracking-widest"
+ className="px-3 py-2 rounded-xl font-black text-label uppercase tracking-widest"
  style={{ background: "color-mix(in srgb, var(--a3) 12%, transparent)", color: "var(--a3)" }}>
  Hapus
  </button>

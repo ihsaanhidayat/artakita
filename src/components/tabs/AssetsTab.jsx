@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { memo } from "react";
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -10,7 +10,7 @@ import PhotoUploadButton from "@/components/PhotoUploadButton";
 import {
  Trash2, Edit3, X, Save, Eye,
  Package, Store, Calendar, Tag,
- ChevronDown, Loader2, Wallet
+ ChevronDown, Loader2
 } from "lucide-react";
 
 const CONDITIONS = [
@@ -173,13 +173,11 @@ const AssetsTabComponent = memo(function AssetsTab({ activeWallet, refreshKey })
  <div className="pt-8 px-3 pb-32 h-[100dvh] overflow-y-auto no-scrollbar w-full flex flex-col">
 
  {/* Header */}
- <div className="flex justify-between items-start mb-6 flex-none">
- <div>
- <h2 className="text-xl font-black ds-t1 tracking-tight">Manajemen Aset</h2>
+ <div className="mb-6 flex-none">
+ <h2 className="text-[26px] font-light tracking-[-1.5px] leading-none ds-t1">Manajemen Aset</h2>
  <div className="flex items-center gap-2 mt-1">
- <Wallet size={11} className="ds-aurora-text" />
- <p className="text-[10px] font-black ds-aurora-text uppercase tracking-[0.2em]">{activeWallet?.name}</p>
- </div>
+  <span className="ds-live-dot" />
+  <p className="text-caption font-black tracking-[0.14em] uppercase ds-aurora-text">{activeWallet?.name}</p>
  </div>
  </div>
 
@@ -188,18 +186,18 @@ const AssetsTabComponent = memo(function AssetsTab({ activeWallet, refreshKey })
  <div className="ds-bg-1 border ds-border rounded-[20px] p-4 shadow-sm">
  <div className="flex items-center gap-1.5 mb-1.5" style={{ color: "var(--a2)" }}>
  <Package size={13} />
- <span className="text-[9px] font-black uppercase tracking-widest">Total Aset</span>
+ <span className="text-label font-black uppercase tracking-widest">Total Aset</span>
  </div>
  <p className="font-black text-xl ds-t1">{assets.length}</p>
- <p className="text-[9px] ds-t3 mt-0.5">barang tercatat</p>
+ <p className="text-label ds-t3 mt-0.5">barang tercatat</p>
  </div>
  <div className="ds-bg-1 border ds-border rounded-[20px] p-4 shadow-sm">
  <div className="flex items-center gap-1.5 ds-aurora-text mb-1.5">
  <Tag size={13} />
- <span className="text-[9px] font-black uppercase tracking-widest">Nilai Total</span>
+ <span className="text-label font-black uppercase tracking-widest">Nilai Total</span>
  </div>
  <p className="font-black text-base ds-t1 ff-mono leading-tight">Rp {fmt(totalValue)}</p>
- <p className="text-[9px] ds-t3 mt-0.5">estimasi harga beli</p>
+ <p className="text-label ds-t3 mt-0.5">estimasi harga beli</p>
  </div>
  </div>
 
@@ -216,7 +214,7 @@ const AssetsTabComponent = memo(function AssetsTab({ activeWallet, refreshKey })
  {!isLoading && assets.length === 0 && (
  <div className="text-center py-16 ds-bg-1/10 rounded-[28px] border border-dashed ds-border">
  <Package size={32} className="ds-t3 mx-auto mb-3" />
- <p className="text-[10px] font-black ds-t3 uppercase tracking-[0.4em]">Belum Ada Aset</p>
+ <p className="text-caption font-black ds-t3 uppercase tracking-[0.4em]">Belum Ada Aset</p>
  </div>
  )}
 
@@ -257,11 +255,11 @@ const AssetsTabComponent = memo(function AssetsTab({ activeWallet, refreshKey })
  <p className="font-black text-sm ds-t1 truncate">{asset.name}</p>
  <div className="flex items-center gap-2 mt-0.5 flex-wrap">
  <span
-  className="text-[8px] font-black px-2 py-0.5 rounded-full border uppercase tracking-widest"
+  className="text-2xs font-black px-2 py-0.5 rounded-full border uppercase tracking-widest"
   style={cond.style}
  >{cond.label}</span>
  {asset.price > 0 && (
- <span className="text-[9px] ds-t3 ff-mono">Rp {fmt(asset.price)}</span>
+ <span className="text-label ds-t3 ff-mono">Rp {fmt(asset.price)}</span>
  )}
  </div>
  </div>
@@ -293,7 +291,7 @@ const AssetsTabComponent = memo(function AssetsTab({ activeWallet, refreshKey })
  <div className="flex items-center gap-2">
  <Store size={12} className="ds-t3 shrink-0" />
  <div>
- <p className="text-[8px] font-black ds-t3 uppercase tracking-widest">Toko</p>
+ <p className="text-2xs font-black ds-t3 uppercase tracking-widest">Toko</p>
  <p className="text-xs font-bold ds-t1">{asset.store_name}</p>
  </div>
  </div>
@@ -302,7 +300,7 @@ const AssetsTabComponent = memo(function AssetsTab({ activeWallet, refreshKey })
  <div className="flex items-center gap-2">
  <Calendar size={12} className="ds-t3 shrink-0" />
  <div>
- <p className="text-[8px] font-black ds-t3 uppercase tracking-widest">Tgl Beli</p>
+ <p className="text-2xs font-black ds-t3 uppercase tracking-widest">Tgl Beli</p>
  <p className="text-xs font-bold ds-t1">
  {new Date(asset.purchase_date).toLocaleDateString("id-ID")}
  </p>
@@ -317,7 +315,7 @@ const AssetsTabComponent = memo(function AssetsTab({ activeWallet, refreshKey })
  </p>
  )}
 
- <p className="text-[9px] ds-t3">
+ <p className="text-label ds-t3">
  Ditambahkan: {formatDateTime(asset.created_at)}
  </p>
 
@@ -327,7 +325,7 @@ const AssetsTabComponent = memo(function AssetsTab({ activeWallet, refreshKey })
  {asset.photo_url && (
  <button
  onClick={() => setViewer({ open: true, url: asset.photo_url, label: asset.name })}
- className="flex items-center gap-1.5 px-3 py-2 border font-black text-[9px] uppercase tracking-widest rounded-xl transition-all"
+ className="flex items-center gap-1.5 px-3 py-2 border font-black text-label uppercase tracking-widest rounded-xl transition-all"
  style={{ color: "var(--a2)", background: "color-mix(in srgb, var(--a2) 12%, transparent)", borderColor: "color-mix(in srgb, var(--a2) 25%, transparent)" }}
  >
  <Eye size={12} /> Lihat Foto
@@ -335,7 +333,7 @@ const AssetsTabComponent = memo(function AssetsTab({ activeWallet, refreshKey })
  )}
  <button
  onClick={() => openEdit(asset)}
- className="flex items-center gap-1.5 px-3 py-2 ds-aurora-bg border ds-aurora-border-c ds-aurora-text font-black text-[9px] uppercase tracking-widest rounded-xl transition-all"
+ className="flex items-center gap-1.5 px-3 py-2 ds-aurora-bg border ds-aurora-border-c ds-aurora-text font-black text-label uppercase tracking-widest rounded-xl transition-all"
  >
  <Edit3 size={12} /> Edit
  </button>
@@ -399,7 +397,7 @@ const AssetsTabComponent = memo(function AssetsTab({ activeWallet, refreshKey })
 
  {/* Nama */}
  <div>
- <label className="block text-[9px] font-black ds-t3 uppercase tracking-widest mb-1.5">Nama Barang *</label>
+ <label className="block text-label font-black ds-t3 uppercase tracking-widest mb-1.5">Nama Barang *</label>
  <input
  type="text" required autoFocus
  placeholder="Cth: Laptop Dell XPS, iPhone 15"
@@ -412,7 +410,7 @@ const AssetsTabComponent = memo(function AssetsTab({ activeWallet, refreshKey })
  {/* Toko + Tanggal */}
  <div className="grid grid-cols-2 gap-3">
  <div>
- <label className="block text-[9px] font-black ds-t3 uppercase tracking-widest mb-1.5">Nama Toko</label>
+ <label className="block text-label font-black ds-t3 uppercase tracking-widest mb-1.5">Nama Toko</label>
  <input
  type="text"
  placeholder="Tokopedia, iBox..."
@@ -422,7 +420,7 @@ const AssetsTabComponent = memo(function AssetsTab({ activeWallet, refreshKey })
  />
  </div>
  <div>
- <label className="block text-[9px] font-black ds-t3 uppercase tracking-widest mb-1.5">Tgl Pembelian</label>
+ <label className="block text-label font-black ds-t3 uppercase tracking-widest mb-1.5">Tgl Pembelian</label>
  <input
  type="date"
  value={form.purchase_date}
@@ -434,7 +432,7 @@ const AssetsTabComponent = memo(function AssetsTab({ activeWallet, refreshKey })
 
  {/* Harga */}
  <div>
- <label className="block text-[9px] font-black ds-t3 uppercase tracking-widest mb-1.5">Harga Beli</label>
+ <label className="block text-label font-black ds-t3 uppercase tracking-widest mb-1.5">Harga Beli</label>
  <input
  type="text"
  placeholder="Cth: 5jt, 1.5jt, 500k"
@@ -446,14 +444,14 @@ const AssetsTabComponent = memo(function AssetsTab({ activeWallet, refreshKey })
 
  {/* Kondisi */}
  <div>
- <label className="block text-[9px] font-black ds-t3 uppercase tracking-widest mb-2">Kondisi</label>
+ <label className="block text-label font-black ds-t3 uppercase tracking-widest mb-2">Kondisi</label>
  <div className="grid grid-cols-4 gap-2">
  {CONDITIONS.map(c => (
  <button
  key={c.value}
  type="button"
  onClick={() => setForm(p => ({ ...p, condition: c.value }))}
- className={`py-2 rounded-xl font-black text-[9px] uppercase tracking-widest border transition-all ${
+ className={`py-2 rounded-xl font-black text-label uppercase tracking-widest border transition-all ${
  form.condition !== c.value ? "ds-bg-3 ds-border ds-t3" : ""
  }`}
  style={form.condition === c.value ? c.style : undefined}
@@ -466,7 +464,7 @@ const AssetsTabComponent = memo(function AssetsTab({ activeWallet, refreshKey })
 
  {/* Catatan */}
  <div>
- <label className="block text-[9px] font-black ds-t3 uppercase tracking-widest mb-1.5">Catatan</label>
+ <label className="block text-label font-black ds-t3 uppercase tracking-widest mb-1.5">Catatan</label>
  <textarea
  rows={2}
  placeholder="Serial number, garansi, keterangan lain..."

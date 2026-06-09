@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { memo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Save } from "lucide-react";
@@ -57,7 +57,7 @@ const ModalWrapper = memo(function ModalWrapper({
               <div className={`px-5 py-3.5 flex items-center justify-between ${color.bg} border-b ${color.border}`}>
                 <div className="min-w-0 flex-1">
                   {subtitle && (
-                    <p className={`text-[8px] font-black uppercase tracking-widest mb-0.5 ${color.text} opacity-70`}>
+                    <p className={`text-2xs font-black uppercase tracking-widest mb-0.5 ${color.text} opacity-70`}>
                       {subtitle}
                     </p>
                   )}
@@ -66,7 +66,7 @@ const ModalWrapper = memo(function ModalWrapper({
                 <button
                   onClick={isDirty ? onSave : onClose}
                   disabled={isSaving}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-black text-[10px] uppercase tracking-widest ml-3 shrink-0 transition-all disabled:opacity-40 ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-black text-caption uppercase tracking-widest ml-3 shrink-0 transition-all disabled:opacity-40 ${
                     isDirty ? `${color.btn} text-white shadow-sm` : "bg-gray-100 dark:bg-gray-800 text-gray-400"
                   }`}
                 >
@@ -92,7 +92,7 @@ export default ModalWrapper;
 
 // ── Field components untuk konsistensi ────────────────────────────────────────
 export const FieldLabel = memo(({ children }) => (
-  <label className="block text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1.5">
+  <label className="block text-2xs font-black text-gray-400 uppercase tracking-widest mb-1.5">
     {children}
   </label>
 ));

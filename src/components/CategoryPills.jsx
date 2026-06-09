@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { memo, useState } from "react";
 import { ChevronDown, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -64,7 +64,7 @@ const CategoryPills = memo(function CategoryPills({
                     key={cat}
                     type="button"
                     onClick={() => select(cat)}
-                    className="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
+                    className="px-3 py-1.5 rounded-xl text-caption font-black uppercase tracking-widest transition-all"
                     style={value === cat
                       ? { background: "var(--a2)", color: "#fff" }
                       : { background: "color-mix(in srgb, var(--a2) 8%, transparent)", color: "var(--text-2)" }

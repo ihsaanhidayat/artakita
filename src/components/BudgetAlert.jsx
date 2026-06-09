@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { memo, useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AlertTriangle, X } from "lucide-react";
@@ -73,10 +73,10 @@ const BudgetAlert = function BudgetAlert({ budgets = [], transactions = [] }) {
             >
               <AlertTriangle size={13} className="shrink-0 mt-0.5" style={{ color: accentColor }} />
               <div className="flex-1 min-w-0">
-                <p className="text-[10px] font-black" style={{ color: accentColor }}>
+                <p className="text-caption font-black" style={{ color: accentColor }}>
                   {isOver ? "Anggaran Terlampaui" : "Anggaran Hampir Habis"}
                 </p>
-                <p className="text-[9px] mt-0.5 ds-t3 ff-mono">
+                <p className="text-label mt-0.5 ds-t3 ff-mono">
                   <span className="ds-t2 font-bold">{alert.category_name}</span>
                   {" · "}{alert.pct.toFixed(0)}% terpakai
                   {" · "}Rp {Number(alert.spent).toLocaleString("id-ID")} / Rp {Number(alert.limit_amount).toLocaleString("id-ID")}

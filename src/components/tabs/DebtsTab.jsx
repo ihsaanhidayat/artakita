@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useState, useEffect, useCallback, useMemo, memo } from "react";
 import CategoryPills from "@/components/CategoryPills";
 import { motion, AnimatePresence } from "framer-motion";
@@ -29,13 +29,13 @@ const DebtChart = memo(function DebtChart({ debts, balance }) {
 
  return (
  <div className="ds-bg-1 border ds-border rounded-[24px] p-5 mb-4 shadow-sm">
- <p className="text-[9px] font-black ds-t3 uppercase tracking-[0.3em] mb-4">Ringkasan Visual</p>
+ <p className="text-label font-black ds-t3 uppercase tracking-[0.3em] mb-4">Ringkasan Visual</p>
  <div className="flex items-end gap-2 h-24 mb-3">
  {bars.map((bar, i) => {
  const pct = Math.max((bar.value / maxVal) * 100, 2);
  return (
  <div key={i} className="flex-1 flex flex-col items-center gap-2 h-full justify-end">
- <span className="text-[8px] font-black ds-t3">{fmtShort(bar.value)}</span>
+ <span className="text-2xs font-black ds-t3">{fmtShort(bar.value)}</span>
  <div className="w-full flex items-end" style={{ height: "72px" }}>
  <motion.div
  initial={{ height: 0 }}
@@ -55,15 +55,15 @@ const DebtChart = memo(function DebtChart({ debts, balance }) {
  {bars.map((bar, i) => (
  <div key={i} className="flex items-center gap-1.5">
  <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: bar.colorVar }} />
- <span className="text-[8px] font-black ds-t3 uppercase tracking-wider truncate">{bar.label}</span>
+ <span className="text-2xs font-black ds-t3 uppercase tracking-wider truncate">{bar.label}</span>
  </div>
  ))}
  </div>
  {totalInit > 0 && (
  <div className="mt-3 pt-3 border-t ds-border">
  <div className="flex justify-between mb-1">
- <span className="text-[8px] font-black ds-t3 uppercase tracking-widest">Pelunasan Hutang</span>
- <span className="text-[8px] font-black" style={{ color: "var(--income)" }}>{((terbayar / totalInit) * 100).toFixed(0)}%</span>
+ <span className="text-2xs font-black ds-t3 uppercase tracking-widest">Pelunasan Hutang</span>
+ <span className="text-2xs font-black" style={{ color: "var(--income)" }}>{((terbayar / totalInit) * 100).toFixed(0)}%</span>
  </div>
  <div className="w-full h-1.5 ds-bg-3 rounded-full overflow-hidden">
  <motion.div
@@ -209,7 +209,7 @@ const DebtCard = memo(function DebtCard({
  <p className="font-black text-sm ds-t1 truncate">{d.person_name}</p>
  {/* Badge tipe */}
  <span
- className="flex items-center gap-0.5 text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest shrink-0"
+ className="flex items-center gap-0.5 text-2xs font-black px-2 py-0.5 rounded-full uppercase tracking-widest shrink-0"
  style={isDebt
  ? { background: "color-mix(in srgb, var(--a3) 12%, transparent)", color: "var(--a3)" }
  : { background: "color-mix(in srgb, var(--a1) 12%, transparent)", color: "var(--a1)" }}
@@ -219,13 +219,13 @@ const DebtCard = memo(function DebtCard({
  </span>
  {/* Badge lunas */}
  {isLunas && (
- <span className="flex items-center gap-2 text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest shrink-0 border" style={{ color: "var(--income)", background: "color-mix(in srgb, var(--income) 10%, transparent)", borderColor: "color-mix(in srgb, var(--income) 25%, transparent)" }}>
+ <span className="flex items-center gap-2 text-2xs font-black px-2 py-0.5 rounded-full uppercase tracking-widest shrink-0 border" style={{ color: "var(--income)", background: "color-mix(in srgb, var(--income) 10%, transparent)", borderColor: "color-mix(in srgb, var(--income) 25%, transparent)" }}>
  <CheckCircle2 size={8} /> {DEBT.PAID_BADGE}
  </span>
  )}
  {/* Due date kritis */}
  {dueInfo && !isLunas && (
- <span className="text-[8px] font-black ds-t3" style={dueInfo.style}>{dueInfo.label}</span>
+ <span className="text-2xs font-black ds-t3" style={dueInfo.style}>{dueInfo.label}</span>
  )}
  </div>
 
@@ -267,7 +267,7 @@ const DebtCard = memo(function DebtCard({
  className="space-y-3 mb-3"
  >
  <div>
- <label className="block text-[8px] font-black ds-t3 uppercase tracking-widest mb-1">{DEBT.PERSON_NAME}</label>
+ <label className="block text-2xs font-black ds-t3 uppercase tracking-widest mb-1">{DEBT.PERSON_NAME}</label>
  <input
  autoFocus
  type="text"
@@ -278,7 +278,7 @@ const DebtCard = memo(function DebtCard({
  </div>
  <div className="grid grid-cols-2 gap-2">
  <div>
- <label className="block text-[8px] font-black ds-t3 uppercase tracking-widest mb-1">{DEBT.NOMINAL}</label>
+ <label className="block text-2xs font-black ds-t3 uppercase tracking-widest mb-1">{DEBT.NOMINAL}</label>
  <input
  type="text"
  value={editData.initial_amount ?? ""}
@@ -288,7 +288,7 @@ const DebtCard = memo(function DebtCard({
  />
  </div>
  <div>
- <label className="block text-[8px] font-black ds-t3 uppercase tracking-widest mb-1">{DEBT.DUE_DATE}</label>
+ <label className="block text-2xs font-black ds-t3 uppercase tracking-widest mb-1">{DEBT.DUE_DATE}</label>
  <input
  type="date"
  value={editData.due_date ?? ""}
@@ -297,21 +297,21 @@ const DebtCard = memo(function DebtCard({
  />
  </div>
  </div>
- <p className="text-[8px] ds-t3 ds-bg-3 px-3 py-2 rounded-lg">
+ <p className="text-2xs ds-t3 ds-bg-3 px-3 py-2 rounded-lg">
  Sisa hutang dihitung otomatis: nominal baru − yang sudah dibayar
  </p>
  <div className="flex gap-2">
  <button
  onClick={saveEdit}
  disabled={isEditSaving}
- className="flex-1 flex items-center justify-center gap-1.5 py-2.5 disabled:opacity-50 text-white font-black text-[9px] uppercase tracking-widest rounded-xl transition-all"
+ className="flex-1 flex items-center justify-center gap-1.5 py-2.5 disabled:opacity-50 text-white font-black text-label uppercase tracking-widest rounded-xl transition-all"
  style={{ background: "linear-gradient(135deg, var(--a1), var(--a2))" }}
  >
  <Save size={12} /> {isEditSaving ? "Menyimpan..." : DEBT.SAVE}
  </button>
  <button
  onClick={() => setIsEditMode(false)}
- className="px-4 py-2.5 ds-t3 ds-bg-3 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all"
+ className="px-4 py-2.5 ds-t3 ds-bg-3 rounded-xl font-black text-label uppercase tracking-widest transition-all"
  >
  {DEBT.CANCEL}
  </button>
@@ -325,12 +325,12 @@ const DebtCard = memo(function DebtCard({
  <p className="font-black text-lg ds-t1 ff-mono">
  Rp {fmt(rawAmount)}
  </p>
- <p className="text-[9px] ds-t3 ff-mono">
+ <p className="text-label ds-t3 ff-mono">
  dari Rp {fmt(rawInitial)}
  </p>
  </div>
  <div className="text-right">
- <p className="text-[9px] font-black ds-t3 uppercase tracking-widest">{DEBT.PAID_PERCENT}</p>
+ <p className="text-label font-black ds-t3 uppercase tracking-widest">{DEBT.PAID_PERCENT}</p>
  <p className="font-black text-sm" style={isLunas ? { color: "var(--income)" } : undefined}>
  {progress.toFixed(0)}%
  </p>
@@ -351,8 +351,8 @@ const DebtCard = memo(function DebtCard({
  {d.due_date && (
  <div className="flex items-center gap-1.5 mb-3">
  <Calendar size={11} className="ds-t3" />
- <span className="text-[9px] font-bold ds-t3">Jatuh tempo: </span>
- <span className="text-[9px] font-black ds-t3" style={dueInfo?.style}>
+ <span className="text-label font-bold ds-t3">Jatuh tempo: </span>
+ <span className="text-label font-black ds-t3" style={dueInfo?.style}>
  {dueInfo?.label}
  </span>
  </div>
@@ -375,7 +375,7 @@ const DebtCard = memo(function DebtCard({
  </button>
  <button
  onClick={() => { setIsPayOpen(!isPayOpen); setPayAmount(""); setPayError(""); }}
- className="flex-1 font-black text-[9px] uppercase tracking-widest rounded-xl py-2.5 transition-all active:scale-95 border"
+ className="flex-1 font-black text-label uppercase tracking-widest rounded-xl py-2.5 transition-all active:scale-95 border"
  style={isPayOpen
  ? undefined
  : isDebt
@@ -390,7 +390,7 @@ const DebtCard = memo(function DebtCard({
  {isLunas && (
  <button
  onClick={() => onDelete(d.id)}
- className="w-full py-2 text-[9px] font-black ds-t3 hover:text-fuchsia-400 uppercase tracking-widest transition-colors text-center rounded-xl hover:bg-fuchsia-500/5"
+ className="w-full py-2 text-label font-black ds-t3 hover:text-fuchsia-400 uppercase tracking-widest transition-colors text-center rounded-xl hover:bg-fuchsia-500/5"
  >
  {DEBT.DELETE} Catatan
  </button>
@@ -410,7 +410,7 @@ const DebtCard = memo(function DebtCard({
  {isDebt && (
  <div className="flex items-center gap-1.5 mb-2">
  <Wallet size={11} className="ds-t3" />
- <span className="text-[9px] font-black ds-t3 ff-mono uppercase tracking-widest">
+ <span className="text-label font-black ds-t3 ff-mono uppercase tracking-widest">
  {DEBT.WALLET_BALANCE}: Rp {fmt(balance)}
  </span>
  </div>
@@ -440,7 +440,7 @@ const DebtCard = memo(function DebtCard({
  initial={{ opacity: 0, y: -4 }}
  animate={{ opacity: 1, y: 0 }}
  exit={{ opacity: 0 }}
- className="text-[9px] font-bold mt-2 px-3 py-1.5 rounded-lg" style={{ color: "var(--a3)", background: "color-mix(in srgb, var(--a3) 10%, transparent)" }}
+ className="text-label font-bold mt-2 px-3 py-1.5 rounded-lg" style={{ color: "var(--a3)", background: "color-mix(in srgb, var(--a3) 10%, transparent)" }}
  >
  {payError}
  </motion.p>
@@ -482,7 +482,7 @@ const PaidCard = memo(function PaidCard({ d, payments, isExpanded, onToggle, onD
  <CheckCircle2 size={14} className="shrink-0" style={{ color: "var(--income)" }} />
  <p className="font-black text-sm ds-t1 truncate">{d.person_name}</p>
  <span
- className="text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest"
+ className="text-2xs font-black px-2 py-0.5 rounded-full uppercase tracking-widest"
  style={isDebt
  ? { background: "color-mix(in srgb, var(--a3) 12%, transparent)", color: "var(--a3)" }
  : { background: "color-mix(in srgb, var(--a1) 12%, transparent)", color: "var(--a1)" }}
@@ -491,7 +491,7 @@ const PaidCard = memo(function PaidCard({ d, payments, isExpanded, onToggle, onD
  </span>
  </div>
  <div className="flex items-center gap-2 shrink-0 ml-2">
- <p className="text-[9px] font-black ds-t3 ff-mono">Rp {fmt(d.initial_amount)}</p>
+ <p className="text-label font-black ds-t3 ff-mono">Rp {fmt(d.initial_amount)}</p>
  <motion.div animate={{ rotate: isExpanded ? 180 : 0 }} transition={{ duration: 0.2 }} className="ds-t3">
  <ChevronDown size={14} />
  </motion.div>
@@ -509,7 +509,7 @@ const PaidCard = memo(function PaidCard({ d, payments, isExpanded, onToggle, onD
  className="overflow-hidden"
  >
  <div className="px-5 pb-4 border-t ds-border">
- <p className="text-[8px] font-black ds-t3 uppercase tracking-widest mt-3 mb-2">
+ <p className="text-2xs font-black ds-t3 uppercase tracking-widest mt-3 mb-2">
  {DEBT.PAYMENT_HISTORY}
  </p>
  {payments?.length > 0 ? (
@@ -518,22 +518,22 @@ const PaidCard = memo(function PaidCard({ d, payments, isExpanded, onToggle, onD
  <div key={p.id || i} className="flex justify-between items-center ds-bg-3 rounded-xl px-3 py-2">
  <div className="flex items-center gap-2">
  <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: "var(--income)" }} />
- <span className="text-[9px] font-bold ds-t2">
+ <span className="text-label font-bold ds-t2">
  {new Date(p.created_at).toLocaleDateString("id-ID")}
  </span>
  </div>
- <span className="text-[9px] font-black ff-mono" style={{ color: "var(--income)" }}>
+ <span className="text-label font-black ff-mono" style={{ color: "var(--income)" }}>
  Rp {fmt(p.amount)}
  </span>
  </div>
  ))}
  </div>
  ) : (
- <p className="text-[9px] ds-t3 italic">Tidak ada riwayat pembayaran tersimpan.</p>
+ <p className="text-label ds-t3 italic">Tidak ada riwayat pembayaran tersimpan.</p>
  )}
  <button
  onClick={() => onDelete(d.id)}
- className="w-full mt-3 py-2 text-[9px] font-black ds-t3 hover:text-fuchsia-400 uppercase tracking-widest transition-colors text-center rounded-xl hover:bg-fuchsia-500/5"
+ className="w-full mt-3 py-2 text-label font-black ds-t3 hover:text-fuchsia-400 uppercase tracking-widest transition-colors text-center rounded-xl hover:bg-fuchsia-500/5"
  >
  Hapus Riwayat
  </button>
@@ -645,13 +645,11 @@ const DebtsTabComponent = memo(function DebtsTab({ activeWallet, balance, refres
  <div className="pt-6 px-3 pb-32 h-[100dvh] overflow-y-auto no-scrollbar w-full flex flex-col">
 
  {/* Header */}
- <div className="flex justify-between items-start mb-4 flex-none">
- <div>
- <h2 className="text-xl font-black ds-t1 tracking-tight">{DEBT.TITLE}</h2>
- <div className="flex items-center gap-1.5 mt-0.5">
- <Wallet size={10} className="ds-aurora-text" />
- <p className="text-[9px] font-black ds-aurora-text uppercase tracking-[0.2em]">{activeWallet?.name}</p>
- </div>
+ <div className="mb-4 flex-none">
+ <h2 className="text-[26px] font-light tracking-[-1.5px] leading-none ds-t1">{DEBT.TITLE}</h2>
+ <div className="flex items-center gap-2 mt-1">
+  <span className="ds-live-dot" />
+  <p className="text-caption font-black tracking-[0.14em] uppercase ds-aurora-text">{activeWallet?.name}</p>
  </div>
  </div>
 
@@ -664,10 +662,10 @@ const DebtsTabComponent = memo(function DebtsTab({ activeWallet, balance, refres
  <div key={label} className="ds-bg-1 border ds-border rounded-[20px] p-3.5 shadow-sm">
  <div className="flex items-center gap-1.5 mb-1.5" style={{ color: colorVar }}>
  <Icon size={12} />
- <span className="text-[8px] font-black uppercase tracking-widest">{label}</span>
+ <span className="text-2xs font-black uppercase tracking-widest">{label}</span>
  </div>
  <p className="font-black text-base ds-t1 ff-mono leading-tight">Rp {fmt(value)}</p>
- <p className="text-[8px] ds-t3 mt-0.5">{count} catatan</p>
+ <p className="text-2xs ds-t3 mt-0.5">{count} catatan</p>
  </div>
  ))}
  </div>
@@ -687,7 +685,7 @@ const DebtsTabComponent = memo(function DebtsTab({ activeWallet, balance, refres
  <button
  key={key}
  onClick={() => { setActiveTab(key); setExpandedId(null); }}
- className={`flex-1 flex items-center justify-center gap-2 text-[8px] font-black uppercase tracking-widest py-2 rounded-xl transition-all duration-200 ${
+ className={`flex-1 flex items-center justify-center gap-2 text-2xs font-black uppercase tracking-widest py-2 rounded-xl transition-all duration-200 ${
  activeTab === key
  ? "ds-bg-1 ds-aurora-bg ds-aurora-text ds-t1 shadow-sm"
  : "ds-t3"
@@ -695,7 +693,7 @@ const DebtsTabComponent = memo(function DebtsTab({ activeWallet, balance, refres
  >
  {label}
  {count > 0 && (
- <span className={`text-[9px] font-black px-1 py-0.5 rounded-full ${
+ <span className={`text-label font-black px-1 py-0.5 rounded-full ${
  activeTab === key ? "ds-aurora-bg ds-aurora-text" : "ds-bg-3 ds-t2"
  }`}>
  {count}
@@ -710,7 +708,7 @@ const DebtsTabComponent = memo(function DebtsTab({ activeWallet, balance, refres
  <div className="relative">
  <button
  onClick={() => setIsSortOpen(!isSortOpen)}
- className="flex items-center gap-1.5 px-3 py-2 ds-bg-1 border ds-border rounded-xl text-[8px] font-black ds-t2 uppercase tracking-widest transition-all hover:ds-aurora-border-c"
+ className="flex items-center gap-1.5 px-3 py-2 ds-bg-1 border ds-border rounded-xl text-2xs font-black ds-t2 uppercase tracking-widest transition-all hover:ds-aurora-border-c"
  >
  <ArrowUpDown size={11} />
  </button>
@@ -730,7 +728,7 @@ const DebtsTabComponent = memo(function DebtsTab({ activeWallet, balance, refres
  transition={{ duration: 0.15 }}
  className="absolute right-0 top-full mt-1.5 w-48 ds-bg-1 border ds-border rounded-2xl shadow-xl z-50 overflow-hidden"
  >
- <p className="text-[8px] font-black ds-t3 uppercase tracking-widest px-3 pt-3 pb-1">{DEBT.SORT}</p>
+ <p className="text-2xs font-black ds-t3 uppercase tracking-widest px-3 pt-3 pb-1">{DEBT.SORT}</p>
  {SORT_OPTIONS.map(opt => (
  <button
  key={opt.key}
@@ -759,7 +757,7 @@ const DebtsTabComponent = memo(function DebtsTab({ activeWallet, balance, refres
  <div className="space-y-2.5 flex-1">
  {currentList.length === 0 && (
  <div className="text-center py-14 ds-bg-1/10 rounded-[24px] border border-dashed ds-border">
- <p className="text-[9px] font-black ds-t3 uppercase tracking-[0.4em]">{emptyMsg}</p>
+ <p className="text-label font-black ds-t3 uppercase tracking-[0.4em]">{emptyMsg}</p>
  </div>
  )}
 

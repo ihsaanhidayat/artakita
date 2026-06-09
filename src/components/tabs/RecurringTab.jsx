@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { memo } from "react";
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -7,7 +7,7 @@ import { parseFlexibleNumber, fmt } from "@/lib/utils";
 import {
  Trash2, Edit3, X, Save, RefreshCw,
  ArrowDownCircle, ArrowUpCircle,
- Play, Pause, ChevronDown, Loader2, Wallet, Clock
+ Play, Pause, ChevronDown, Loader2, Clock
 } from "lucide-react";
 
 const FREQ_OPTIONS = [
@@ -195,13 +195,11 @@ const RecurringTabComponent = memo(function RecurringTab({ activeWallet, onNotif
  <div className="pt-8 px-3 pb-32 h-[100dvh] overflow-y-auto no-scrollbar w-full flex flex-col">
 
  {/* Header */}
- <div className="flex justify-between items-start mb-6 flex-none">
- <div>
- <h2 className="text-xl font-black ds-t1 tracking-tight">Transaksi Rutin</h2>
+ <div className="mb-6 flex-none">
+ <h2 className="text-[26px] font-light tracking-[-1.5px] leading-none ds-t1">Transaksi Rutin</h2>
  <div className="flex items-center gap-2 mt-1">
- <Wallet size={11} className="ds-aurora-text" />
- <p className="text-[10px] font-black ds-aurora-text uppercase tracking-[0.2em]">{activeWallet?.name}</p>
- </div>
+  <span className="ds-live-dot" />
+  <p className="text-caption font-black tracking-[0.14em] uppercase ds-aurora-text">{activeWallet?.name}</p>
  </div>
  </div>
 
@@ -216,7 +214,7 @@ const RecurringTabComponent = memo(function RecurringTab({ activeWallet, onNotif
  >
  <Clock size={18} className="text-amber-500 shrink-0" />
  <div>
- <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest">Perlu Dijalankan</p>
+ <p className="text-caption font-black text-amber-500 uppercase tracking-widest">Perlu Dijalankan</p>
  <p className="text-xs font-bold text-amber-400/80">
  {dueTodayCount} transaksi rutin sudah jatuh tempo. Klik "Jalankan" untuk mencatat.
  </p>
@@ -234,7 +232,7 @@ const RecurringTabComponent = memo(function RecurringTab({ activeWallet, onNotif
  ].map(s => (
  <div key={s.label} className="ds-bg-1 border ds-border rounded-[20px] p-3 text-center shadow-sm">
  <p className="text-xl font-black" style={{ color: s.colorVar }}>{s.value}</p>
- <p className="text-[8px] font-black ds-t3 uppercase tracking-widest">{s.label}</p>
+ <p className="text-2xs font-black ds-t3 uppercase tracking-widest">{s.label}</p>
  </div>
  ))}
  </div>
@@ -250,7 +248,7 @@ const RecurringTabComponent = memo(function RecurringTab({ activeWallet, onNotif
  {!isLoading && items.length === 0 && (
  <div className="text-center py-16 ds-bg-1/10 rounded-[28px] border border-dashed ds-border">
  <RefreshCw size={32} className="ds-t3 mx-auto mb-3" />
- <p className="text-[10px] font-black ds-t3 uppercase tracking-[0.4em]">Belum Ada Transaksi Rutin</p>
+ <p className="text-caption font-black ds-t3 uppercase tracking-[0.4em]">Belum Ada Transaksi Rutin</p>
  </div>
  )}
 
@@ -292,13 +290,13 @@ const RecurringTabComponent = memo(function RecurringTab({ activeWallet, onNotif
  <div className="flex items-center gap-2">
  <p className="font-black text-sm ds-t1 truncate">{item.note}</p>
  {!item.is_active && (
- <span className="text-[8px] font-black ds-t3 ds-bg-3px-2 py-0.5 rounded-full uppercase shrink-0">Nonaktif</span>
+ <span className="text-2xs font-black ds-t3 ds-bg-3px-2 py-0.5 rounded-full uppercase shrink-0">Nonaktif</span>
  )}
  </div>
  <div className="flex items-center gap-2 mt-0.5">
- <span className="text-[9px] font-black ds-t3">{freqLabel}</span>
+ <span className="text-label font-black ds-t3">{freqLabel}</span>
  <span className="ds-t3">·</span>
- <span className="text-[9px] font-black ds-t3" style={nextStyle}>{nextLabel}</span>
+ <span className="text-label font-black ds-t3" style={nextStyle}>{nextLabel}</span>
  </div>
  </div>
 
@@ -327,7 +325,7 @@ const RecurringTabComponent = memo(function RecurringTab({ activeWallet, onNotif
  className="overflow-hidden"
  >
  <div className="px-4 pb-4 pt-2 border-t ds-border space-y-3">
- <div className="grid grid-cols-2 gap-2 text-[9px]">
+ <div className="grid grid-cols-2 gap-2 text-label">
  <div>
  <p className="font-black ds-t3 uppercase tracking-widest mb-0.5">Kategori</p>
  <p className="font-bold ds-t1">{item.category}</p>
@@ -359,7 +357,7 @@ const RecurringTabComponent = memo(function RecurringTab({ activeWallet, onNotif
  <button
  onClick={() => handleRunNow(item)}
  disabled={isRunning}
- className="flex items-center gap-1.5 px-3 py-2 ds-aurora-bg border ds-aurora-border-c ds-aurora-text font-black text-[9px] uppercase tracking-widest rounded-xl transition-all disabled:opacity-50"
+ className="flex items-center gap-1.5 px-3 py-2 ds-aurora-bg border ds-aurora-border-c ds-aurora-text font-black text-label uppercase tracking-widest rounded-xl transition-all disabled:opacity-50"
  >
  {isRunning ? <Loader2 size={11} className="animate-spin" /> : <Play size={11} />}
  {isRunning ? "Memproses..." : "Jalankan"}
@@ -369,7 +367,7 @@ const RecurringTabComponent = memo(function RecurringTab({ activeWallet, onNotif
  {/* Toggle aktif */}
  <button
  onClick={() => handleToggle(item)}
- className="flex items-center gap-1.5 px-3 py-2 border font-black text-[9px] uppercase tracking-widest rounded-xl transition-all"
+ className="flex items-center gap-1.5 px-3 py-2 border font-black text-label uppercase tracking-widest rounded-xl transition-all"
  style={item.is_active
  ? undefined
  : { background: "color-mix(in srgb, var(--income) 12%, transparent)", borderColor: "color-mix(in srgb, var(--income) 25%, transparent)", color: "var(--income)" }}
@@ -392,7 +390,7 @@ const RecurringTabComponent = memo(function RecurringTab({ activeWallet, onNotif
  setIsFormOpen(true);
  setExpandedId(null);
  }}
- className="flex items-center gap-1.5 px-3 py-2 ds-bg-3 border ds-border ds-t3 hover:ds-aurora-text font-black text-[9px] uppercase tracking-widest rounded-xl transition-all"
+ className="flex items-center gap-1.5 px-3 py-2 ds-bg-3 border ds-border ds-t3 hover:ds-aurora-text font-black text-label uppercase tracking-widest rounded-xl transition-all"
  >
  <Edit3 size={11} /> Edit
  </button>
@@ -448,7 +446,7 @@ const RecurringTabComponent = memo(function RecurringTab({ activeWallet, onNotif
  { val: "income", label: "Pemasukan", Icon: ArrowDownCircle, activeStyle: { color: "var(--income)", background: "color-mix(in srgb, var(--income) 8%, transparent)", borderColor: "color-mix(in srgb, var(--income) 20%, transparent)" } },
  ].map(({ val, label, Icon, activeStyle }) => (
  <button key={val} type="button" onClick={() => setForm(p => ({ ...p, type: val }))}
- className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest border transition-all"
+ className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-black text-caption uppercase tracking-widest border transition-all"
  style={form.type === val ? activeStyle : { borderColor: "transparent" }}
  >
  <Icon size={13} /> {label}
@@ -458,7 +456,7 @@ const RecurringTabComponent = memo(function RecurringTab({ activeWallet, onNotif
 
  {/* Catatan */}
  <div>
- <label className="block text-[9px] font-black ds-t3 uppercase tracking-widest mb-1.5">Catatan *</label>
+ <label className="block text-label font-black ds-t3 uppercase tracking-widest mb-1.5">Catatan *</label>
  <input type="text" required autoFocus placeholder="Cth: Gaji, Cicilan, Netflix"
  value={form.note} onChange={e => setForm(p => ({ ...p, note: e.target.value }))}
  className="w-full ds-bg-3 border ds-border ds-t1 font-bold text-sm p-4 rounded-2xl outline-none focus:border-[var(--a1)] transition-all placeholder:opacity-40"
@@ -468,14 +466,14 @@ const RecurringTabComponent = memo(function RecurringTab({ activeWallet, onNotif
  {/* Nominal + Kategori */}
  <div className="grid grid-cols-2 gap-3">
  <div>
- <label className="block text-[9px] font-black ds-t3 uppercase tracking-widest mb-1.5">Nominal *</label>
+ <label className="block text-label font-black ds-t3 uppercase tracking-widest mb-1.5">Nominal *</label>
  <input type="text" required placeholder="5jt, 500k..."
  value={form.amount} onChange={e => setForm(p => ({ ...p, amount: e.target.value }))}
  className="w-full ds-bg-3 border ds-border ds-t1 font-bold text-sm p-3 rounded-2xl outline-none focus:border-[var(--a1)] transition-all placeholder:opacity-40"
  />
  </div>
  <div>
- <label className="block text-[9px] font-black ds-t3 uppercase tracking-widest mb-1.5">Kategori *</label>
+ <label className="block text-label font-black ds-t3 uppercase tracking-widest mb-1.5">Kategori *</label>
  <input type="text" required placeholder="Gaji, Tagihan..."
  value={form.category} onChange={e => setForm(p => ({ ...p, category: e.target.value }))}
  className="w-full ds-bg-3 border ds-border ds-t1 font-bold text-sm p-3 rounded-2xl outline-none focus:border-[var(--a1)] transition-all placeholder:opacity-40"
@@ -485,18 +483,18 @@ const RecurringTabComponent = memo(function RecurringTab({ activeWallet, onNotif
 
  {/* Frekuensi */}
  <div>
- <label className="block text-[9px] font-black ds-t3 uppercase tracking-widest mb-2">Frekuensi</label>
+ <label className="block text-label font-black ds-t3 uppercase tracking-widest mb-2">Frekuensi</label>
  <div className="grid grid-cols-3 gap-2">
  {FREQ_OPTIONS.map(f => (
  <button key={f.value} type="button" onClick={() => setForm(p => ({ ...p, frequency: f.value }))}
- className={`py-3 rounded-2xl font-black text-[9px] uppercase tracking-widest border transition-all text-center ${
+ className={`py-3 rounded-2xl font-black text-label uppercase tracking-widest border transition-all text-center ${
  form.frequency === f.value
  ? "ds-aurora-bg ds-aurora-border-c ds-aurora-text shadow-sm"
  : "ds-bg-3 ds-border ds-t3"
  }`}
  >
  <p>{f.label}</p>
- <p className="text-[8px] font-bold normal-case tracking-normal mt-0.5 opacity-70">{f.sub}</p>
+ <p className="text-2xs font-bold normal-case tracking-normal mt-0.5 opacity-70">{f.sub}</p>
  </button>
  ))}
  </div>
@@ -504,7 +502,7 @@ const RecurringTabComponent = memo(function RecurringTab({ activeWallet, onNotif
 
  {/* Next run date */}
  <div>
- <label className="block text-[9px] font-black ds-t3 uppercase tracking-widest mb-1.5">Jadwal Pertama / Berikutnya</label>
+ <label className="block text-label font-black ds-t3 uppercase tracking-widest mb-1.5">Jadwal Pertama / Berikutnya</label>
  <input type="date" required
  value={form.next_run_date}
  onChange={e => setForm(p => ({ ...p, next_run_date: e.target.value }))}

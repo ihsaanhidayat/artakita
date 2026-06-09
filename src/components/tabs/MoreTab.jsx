@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { memo, useState, useCallback, useMemo } from "react";
 import { useLanguage } from "@/hooks/useLanguage";
 import GuideTab from "@/components/tabs/GuideTab";
@@ -28,7 +28,7 @@ const AboutPage = memo(function AboutPage({ onClose }) {
 
  {/* Breadcrumb dengan tombol kembali */}
  <div className="flex items-center justify-between mb-6">
- <span className="text-[10px] font-black ds-t3 uppercase tracking-widest">
+ <span className="text-caption font-black ds-t3 uppercase tracking-widest">
  Tentang Aplikasi
  </span>
  <button
@@ -36,7 +36,7 @@ const AboutPage = memo(function AboutPage({ onClose }) {
  className="flex items-center gap-1.5 ds-aurora-text hover:ds-aurora-text active:scale-95 transition-all ds-aurora-bg border ds-aurora-border-c px-3 py-1.5 rounded-xl"
  >
  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
- <span className="text-[9px] font-black uppercase tracking-widest">Lainnya</span>
+ <span className="text-label font-black uppercase tracking-widest">Lainnya</span>
  </button>
  </div>
 
@@ -46,8 +46,8 @@ const AboutPage = memo(function AboutPage({ onClose }) {
  <div className="absolute -right-8 -top-8 w-32 h-32 rounded-full blur-2xl" style={{ background: "color-mix(in srgb, var(--a2) 20%, transparent)" }} />
  <div className="relative z-10">
  <h3 className="text-3xl font-black tracking-tight mb-1 ds-aurora-text">ArtaKita.</h3>
- <p className="text-[10px] font-bold uppercase tracking-widest mb-3 ds-t3">Artaku Artamu</p>
- <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ds-aurora-bg border ds-aurora-border-c ds-t2">
+ <p className="text-caption font-bold uppercase tracking-widest mb-3 ds-t3">Artaku Artamu</p>
+ <span className="px-3 py-1 rounded-full text-caption font-black uppercase tracking-widest ds-aurora-bg border ds-aurora-border-c ds-t2">
  {ABOUT.VERSION}
  </span>
  </div>
@@ -60,7 +60,7 @@ const AboutPage = memo(function AboutPage({ onClose }) {
 
  {/* Features */}
  <div className="ds-bg-1 rounded-[24px] p-5 border ds-border mb-6 shadow-sm">
- <p className="text-[9px] font-black ds-t3 uppercase tracking-widest mb-3">{ABOUT.FEATURES}</p>
+ <p className="text-label font-black ds-t3 uppercase tracking-widest mb-3">{ABOUT.FEATURES}</p>
  <div className="space-y-2">
  {ABOUT.FEATURE_LIST.map((f, i) => (
  <div key={i} className="flex items-center gap-2.5">
@@ -73,10 +73,10 @@ const AboutPage = memo(function AboutPage({ onClose }) {
 
  {/* Made by */}
  <div className="flex items-center justify-center gap-1.5 mt-4">
- <p className="text-[10px] font-bold ds-t3">Made by MIH with</p>
+ <p className="text-caption font-bold ds-t3">Made by MIH with</p>
  <Heart size={12} className="text-pink-500 fill-pink-500" />
  </div>
- <p className="text-center text-[9px] ds-t3 mt-1">
+ <p className="text-center text-label ds-t3 mt-1">
  Built with Next.js & Supabase
  </p>
  </div>
@@ -107,10 +107,10 @@ const WalletsSavingsPage = memo(function WalletsSavingsPage({
 
  {/* New goal form toggle */}
  <div className="flex justify-between items-center mb-4">
- <p className="text-[9px] font-black ds-t3 uppercase tracking-[0.3em]">Target Impian</p>
+ <p className="text-label font-black ds-t3 uppercase tracking-[0.3em]">Target Impian</p>
  <button
  onClick={() => setIsNewGoalOpen(!isNewGoalOpen)}
- className="px-3 py-1.5 ds-aurora-bg border ds-aurora-border-c ds-aurora-text font-black text-[9px] uppercase tracking-widest rounded-xl transition-all active:scale-95"
+ className="px-3 py-1.5 ds-aurora-bg border ds-aurora-border-c ds-aurora-text font-black text-label uppercase tracking-widest rounded-xl transition-all active:scale-95"
  >
  {isNewGoalOpen ? "Batal" : "+ Target"}
  </button>
@@ -148,7 +148,7 @@ const WalletsSavingsPage = memo(function WalletsSavingsPage({
  className="w-full ds-bg-1 border ds-border rounded-xl py-2.5 px-4 text-xs font-bold ds-t1 outline-none focus:border-[var(--a1)]"
  />
  </div>
- <button type="submit" className="w-full py-2.5 text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-all active:scale-[0.98]" style={{ background: "linear-gradient(135deg, var(--a1), var(--a2))" }}>
+ <button type="submit" className="w-full py-2.5 text-white text-caption font-black uppercase tracking-widest rounded-xl transition-all active:scale-[0.98]" style={{ background: "linear-gradient(135deg, var(--a1), var(--a2))" }}>
  Simpan Target
  </button>
  </motion.form>
@@ -165,7 +165,7 @@ const WalletsSavingsPage = memo(function WalletsSavingsPage({
  <div className="flex justify-between items-start mb-3">
  <div>
  <p className="font-black text-sm ds-t1">{goal.name}</p>
- <p className="text-[9px] ds-t3 mt-0.5">
+ <p className="text-label ds-t3 ff-mono mt-0.5">
  Rp {fmt(goal.current_amount)} / <span className="font-bold">Rp {fmt(goal.target_amount)}</span>
  </p>
  </div>
@@ -190,13 +190,13 @@ const WalletsSavingsPage = memo(function WalletsSavingsPage({
  <div className="flex justify-between items-center">
  <button
  onClick={() => setActiveGoalInput(goal.id)}
- className="text-[9px] font-black ds-aurora-text ds-aurora-bg border ds-aurora-border-c px-3 py-1.5 rounded-lg transition-all uppercase tracking-wider"
+ className="text-label font-black ds-aurora-text ds-aurora-bg border ds-aurora-border-c px-3 py-1.5 rounded-lg transition-all uppercase tracking-wider"
  >
  Mutasi Saldo
  </button>
  <button
  onClick={() => handleModifySavings(goal.id, goal.current_amount, "reset")}
- className="text-[9px] font-black ds-t3 hover:text-fuchsia-400 px-3 py-1.5 rounded-lg transition-all uppercase tracking-wider"
+ className="text-label font-black ds-t3 hover:text-fuchsia-400 px-3 py-1.5 rounded-lg transition-all uppercase tracking-wider"
  >
  Reset
  </button>
@@ -210,8 +210,8 @@ const WalletsSavingsPage = memo(function WalletsSavingsPage({
  onChange={e => setFlexibleSavingsAmt(e.target.value)}
  className="flex-1 ds-bg-3 border ds-border rounded-xl py-2 px-3 text-xs font-bold ds-t1 outline-none focus:border-[var(--a1)]"
  />
- <button onClick={() => handleModifySavings(goal.id, goal.current_amount, "add")} className="px-3 py-2 text-white font-black text-[9px] uppercase tracking-wider rounded-xl shadow-md active:scale-95 transition-all" style={{ background: "var(--income)", color: "#000" }}>+ Tabung</button>
- <button onClick={() => handleModifySavings(goal.id, goal.current_amount, "subtract")} className="px-3 py-2 text-white font-black text-[9px] uppercase tracking-wider rounded-xl shadow-md active:scale-95 transition-all" style={{ background: "color-mix(in srgb, var(--a3) 80%, var(--a2))" }}>- Pakai</button>
+ <button onClick={() => handleModifySavings(goal.id, goal.current_amount, "add")} className="px-3 py-2 text-white font-black text-label uppercase tracking-wider rounded-xl shadow-md active:scale-95 transition-all" style={{ background: "var(--income)", color: "#000" }}>+ Tabung</button>
+ <button onClick={() => handleModifySavings(goal.id, goal.current_amount, "subtract")} className="px-3 py-2 text-white font-black text-label uppercase tracking-wider rounded-xl shadow-md active:scale-95 transition-all" style={{ background: "color-mix(in srgb, var(--a3) 80%, var(--a2))" }}>- Pakai</button>
  <button onClick={() => { setActiveGoalInput(null); setFlexibleSavingsAmt(""); }} className="p-2 ds-t3 hover:ds-t2 text-xs font-bold">Batal</button>
  </motion.div>
  )}
@@ -221,7 +221,7 @@ const WalletsSavingsPage = memo(function WalletsSavingsPage({
 
  {goals.length === 0 && !isNewGoalOpen && (
  <div className="text-center py-12 ds-bg-1/10 rounded-[24px] border border-dashed ds-border">
- <p className="text-[10px] font-black ds-t3 uppercase tracking-[0.4em]">Belum Ada Target</p>
+ <p className="text-caption font-black ds-t3 uppercase tracking-[0.4em]">Belum Ada Target</p>
  </div>
  )}
  </div>
@@ -395,16 +395,20 @@ const MoreTab = memo(function MoreTab({
  transition={{ duration: 0.15 }}
  className="pt-8 px-3 h-[100dvh] overflow-y-auto no-scrollbar w-full flex flex-col"
  >
- <h2 className="text-xl font-black ds-t1 tracking-tight mb-6 flex-none">
- {MORE.TITLE}
- </h2>
+ <div className="mb-6 flex-none">
+ <h2 className="text-[26px] font-light tracking-[-1.5px] leading-none ds-t1">{MORE.TITLE}</h2>
+ <div className="flex items-center gap-2 mt-1">
+  <span className="ds-live-dot" />
+  <p className="text-caption font-black tracking-[0.14em] uppercase ds-aurora-text">{activeWallet?.name}</p>
+ </div>
+ </div>
 
  {/* Menu groups */}
  <div className="space-y-2 flex-1 pb-32">
  {menuGroups.map((group, gi) => (
  <div key={gi}>
  {group.label && (
- <p className="text-[9px] font-black ds-t3 uppercase tracking-[0.3em] mb-2 px-1">
+ <p className="text-label font-black ds-t3 uppercase tracking-[0.3em] mb-2 px-1">
  {group.label}
  </p>
  )}
@@ -422,7 +426,7 @@ const MoreTab = memo(function MoreTab({
  </div>
  <div className="flex-1 min-w-0">
  <p className="text-sm font-light" style={{ color:"var(--text-1)" }}>{item.label}</p>
- <p className="text-[10px] ds-t3 mt-0.5">{item.sub}</p>
+ <p className="text-caption ds-t3 mt-0.5">{item.sub}</p>
  </div>
  {/* Toggle pill ID / EN */}
  <div className="flex items-center ds-bg-3 rounded-xl p-1 gap-1 shrink-0">
@@ -430,7 +434,7 @@ const MoreTab = memo(function MoreTab({
  <button
  key={l}
  onClick={() => setLang(l)}
- className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
+ className={`px-3 py-1.5 rounded-lg text-caption font-black uppercase tracking-widest transition-all ${
  lang === l
  ? "ds-bg-1 ds-aurora-bg ds-aurora-text ds-t1 shadow-sm"
  : "ds-t3 hover:ds-t2"
@@ -455,7 +459,7 @@ const MoreTab = memo(function MoreTab({
  </div>
  <div className="flex-1 min-w-0">
  <p className="text-sm font-light" style={{ color:"var(--text-1)" }}>{item.label}</p>
- <p className="text-[10px] ds-t3 mt-0.5">{item.loading ? (isID ? "Memproses..." : "Processing...") : item.sub}</p>
+ <p className="text-caption ds-t3 mt-0.5">{item.loading ? (isID ? "Memproses..." : "Processing...") : item.sub}</p>
  </div>
  <ChevronRight size={16} className="ds-t3 shrink-0" />
  </button>
@@ -470,11 +474,11 @@ const MoreTab = memo(function MoreTab({
  <div className="fixed bottom-[76px] left-0 right-0 max-w-lg mx-auto px-3 pt-2 pb-4 ds-bg-0 border-t ds-border">
  {/* By author */}
  <div className="flex items-center justify-center gap-1.5 py-3">
- <p className="text-[9px] font-bold ds-t3">
+ <p className="text-label font-bold ds-t3">
  dibuat dengan
  </p>
  <Heart size={10} className="text-pink-500 fill-pink-500" />
- <p className="text-[9px] font-bold ds-t3">
+ <p className="text-label font-bold ds-t3">
  oleh {APP_AUTHOR}
  </p>
  </div>
