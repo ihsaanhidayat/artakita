@@ -49,7 +49,7 @@ const RecurringTabComponent = memo(function RecurringTab({ activeWallet, onNotif
  const [isFormOpen, setIsFormOpen] = useState(false);
  const [editingId, setEditingId] = useState(null);
  const [expandedId, setExpandedId] = useState(null);
- const [deleteModal, setDeleteModal] = useState({ show: false, id: null, note: "" });
+ const [inlineDeleteId, setInlineDeleteId] = useState(null);
  const [isSaving, setIsSaving] = useState(false);
  const [runningId, setRunningId] = useState(null);
 
@@ -178,9 +178,9 @@ const RecurringTabComponent = memo(function RecurringTab({ activeWallet, onNotif
  };
 
  // ── Delete ─────────────────────────────────────────────────────────────
- const confirmDelete = async () => {
- await supabase.from("recurring_transactions").delete().eq("id", deleteModal.id);
- setDeleteModal({ show: false, id: null, note: "" });
+ const confirmDelete = async (id) => {
+ await supabase.from("recurring_transactions").delete().eq("id", id);
+ setInlineDeleteId(null);
  showNotif(RECURRING.DELETED, "success");
  fetchItems();
  };
@@ -267,7 +267,7 @@ const RecurringTabComponent = memo(function RecurringTab({ activeWallet, onNotif
  initial={{ opacity: 0, y: 8 }}
  animate={{ opacity: 1, y: 0 }}
  transition={{ delay: index * 0.04 }}
- className={`ds-bg-1 border rounded-[24px] shadow-sm overflow-hidden transition-all ${
+ className={`relative ds-bg-1 border rounded-[24px] shadow-sm overflow-hidden transition-all ${
  !item.is_active ? "opacity-50 ds-border" : "ds-border"
  }`}
  >
@@ -398,7 +398,7 @@ const RecurringTabComponent = memo(function RecurringTab({ activeWallet, onNotif
 
  {/* Hapus */}
  <button
- onClick={() => setDeleteModal({ show: true, id: item.id, note: item.note })}
+ onClick={() => setInlineDeleteId(item.id)}
  className="p-2 ds-t3 hover:text-fuchsia-400 ds-bg-3 rounded-xl transition-colors ml-auto"
  >
  <Trash2 size={14} />
@@ -407,6 +407,42 @@ const RecurringTabComponent = memo(function RecurringTab({ activeWallet, onNotif
  </div>
  </motion.div>
  )}
+ </AnimatePresence>
+
+ {/* Inline delete confirm overlay */}
+ <AnimatePresence>
+  {inlineDeleteId === item.id && (
+  <motion.div
+   initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }}
+   transition={{ type: "spring", damping: 25, stiffness: 280 }}
+   className="absolute inset-0 z-20 flex items-center justify-between px-5 backdrop-blur-md"
+   style={{
+   background: "color-mix(in srgb, var(--a3) 85%, var(--a2))",
+   borderLeft: "3px solid var(--a3)",
+   boxShadow: "inset 4px 0 20px color-mix(in srgb, var(--a3) 30%, transparent)",
+   }}
+  >
+   <div className="flex items-center gap-2">
+   <Trash2 size={15} className="text-white" />
+   <span className="text-[11px] font-black text-white uppercase tracking-widest">Hapus Permanen?</span>
+   </div>
+   <div className="flex gap-2">
+   <button
+    onClick={() => setInlineDeleteId(null)}
+    className="px-3 py-1.5 rounded-[10px] bg-white/20 text-white text-label font-black uppercase tracking-widest hover:bg-white/30 transition-colors"
+   >
+    Batal
+   </button>
+   <button
+    onClick={() => confirmDelete(item.id)}
+    className="px-3 py-1.5 rounded-[10px] text-label font-black uppercase tracking-widest active:scale-95 transition-all"
+    style={{ background: "rgba(255,255,255,0.9)", color: "var(--a2)" }}
+   >
+    Hapus
+   </button>
+   </div>
+  </motion.div>
+  )}
  </AnimatePresence>
  </motion.div>
  );
@@ -523,29 +559,6 @@ const RecurringTabComponent = memo(function RecurringTab({ activeWallet, onNotif
  )}
  </AnimatePresence>
 
- {/* Delete Modal */}
- <AnimatePresence>
- {deleteModal.show && (
- <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
- className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md p-4"
- >
- <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
- transition={{ type: "spring", damping: 25, stiffness: 300 }}
- className="w-full max-w-sm ds-bg-1 rounded-[32px] p-6 shadow-2xl border border-red-100 text-center"
- >
- <div className="w-14 h-14 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
- <Trash2 className="text-red-500" size={24} />
- </div>
- <h3 className="text-sm font-black ds-t1 uppercase tracking-widest mb-2">{RECURRING.DELETE_TITLE}</h3>
- <p className="text-xs ds-t2 mb-6"><strong>{deleteModal.note}</strong> {RECURRING.DELETE_MSG("")}</p>
- <div className="flex gap-3">
- <button onClick={() => setDeleteModal({ show: false, id: null, note: "" })} className="flex-1 ds-bg-3ds-t1 font-black text-xs uppercase tracking-widest py-3.5 rounded-2xl transition-all">{FORM.CANCEL}</button>
- <button onClick={confirmDelete} className="flex-1 bg-red-600 hover:bg-red-500 text-white font-black text-xs uppercase tracking-widest py-3.5 rounded-2xl transition-all shadow-lg shadow-red-500/30">{FORM.DELETE}</button>
- </div>
- </motion.div>
- </motion.div>
- )}
- </AnimatePresence>
  </div>
  );
 

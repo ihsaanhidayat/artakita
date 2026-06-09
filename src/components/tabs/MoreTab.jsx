@@ -12,7 +12,6 @@ import { MORE, ABOUT, SAVINGS, APP_NAME, APP_TAGLINE, APP_AUTHOR, FORM } from "@
 import { supabase } from "@/lib/supabaseClient";
 import { fmt } from "@/lib/utils";
 import UserManagement from "@/components/UserManagement";
-import DeleteModal from "@/components/DeleteModal";
 
 // ── About Page ────────────────────────────────────────────────────────────────
 const AboutPage = memo(function AboutPage({ onClose }) {
@@ -89,8 +88,9 @@ const WalletsSavingsPage = memo(function WalletsSavingsPage({
  newGoalData, setNewGoalData, handleAddGoal,
  activeGoalInput, setActiveGoalInput,
  flexibleSavingsAmt, setFlexibleSavingsAmt,
- handleModifySavings, triggerDeleteGoal,
+ handleModifySavings,
 }) {
+ const [deleteGoalId, setDeleteGoalId] = useState(null);
  return (
  <motion.div
  initial={{ opacity: 0, x: 40 }}
@@ -160,7 +160,7 @@ const WalletsSavingsPage = memo(function WalletsSavingsPage({
  const pct = Math.min(100, ((goal.current_amount / goal.target_amount) * 100)).toFixed(0);
  const isOpen = activeGoalInput === goal.id;
  return (
- <div key={goal.id} className="ds-bg-1 p-5 rounded-[24px] border ds-border shadow-sm">
+ <div key={goal.id} className="relative overflow-hidden ds-bg-1 p-5 rounded-[24px] border ds-border shadow-sm">
  <div className="flex justify-between items-start mb-3">
  <div>
  <p className="font-black text-sm ds-t1">{goal.name}</p>
@@ -170,7 +170,7 @@ const WalletsSavingsPage = memo(function WalletsSavingsPage({
  </div>
  <div className="flex items-center gap-2">
  <span className="text-xs font-black ds-aurora-text">{pct}%</span>
- <button onClick={() => triggerDeleteGoal(goal.id)} className="p-1.5 ds-t3 hover:text-fuchsia-400 transition-colors">
+ <button onClick={() => setDeleteGoalId(goal.id)} className="p-1.5 ds-t3 hover:text-fuchsia-400 transition-colors">
  <Trash2 size={14} />
  </button>
  </div>
@@ -214,6 +214,46 @@ const WalletsSavingsPage = memo(function WalletsSavingsPage({
  <button onClick={() => { setActiveGoalInput(null); setFlexibleSavingsAmt(""); }} className="p-2 ds-t3 hover:ds-t2 text-xs font-bold">{FORM.CANCEL}</button>
  </motion.div>
  )}
+
+ {/* Inline delete confirm overlay */}
+ <AnimatePresence>
+ {deleteGoalId === goal.id && (
+ <motion.div
+ initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }}
+ transition={{ type: "spring", damping: 25, stiffness: 280 }}
+ className="absolute inset-0 z-20 flex items-center justify-between px-5 backdrop-blur-md rounded-[24px]"
+ style={{
+ background: "color-mix(in srgb, var(--a3) 85%, var(--a2))",
+ borderLeft: "3px solid var(--a3)",
+ boxShadow: "inset 4px 0 20px color-mix(in srgb, var(--a3) 30%, transparent)",
+ }}
+ >
+ <div className="flex items-center gap-2">
+ <Trash2 size={15} className="text-white" />
+ <span className="text-[11px] font-black text-white uppercase tracking-widest">Hapus Permanen?</span>
+ </div>
+ <div className="flex gap-2">
+ <button
+ onClick={() => setDeleteGoalId(null)}
+ className="px-3 py-1.5 rounded-[10px] bg-white/20 text-white text-label font-black uppercase tracking-widest hover:bg-white/30 transition-colors"
+ >
+ {FORM.CANCEL}
+ </button>
+ <button
+ onClick={async () => {
+ await supabase.from("savings_goals").delete().eq("id", goal.id);
+ setGoals(p => p.filter(g => g.id !== goal.id));
+ setDeleteGoalId(null);
+ }}
+ className="px-3 py-1.5 rounded-[10px] text-label font-black uppercase tracking-widest active:scale-95 transition-all"
+ style={{ background: "rgba(255,255,255,0.9)", color: "var(--a2)" }}
+ >
+ Hapus
+ </button>
+ </div>
+ </motion.div>
+ )}
+ </AnimatePresence>
  </div>
  );
  })}
@@ -237,7 +277,6 @@ const MoreTab = memo(function MoreTab({
  const [subPage, setSubPage] = useState(null);
  const [confirmLogout, setConfirmLogout] = useState(false);
  const [isExporting, setIsExporting] = useState(false);
- const [goalDeleteModal, setGoalDeleteModal] = useState({ isOpen: false, id: null });
  const { lang, setLang, isID } = useLanguage();
 
  // ── Export XLSX ────────────────────────────────────────────────────────────
@@ -537,21 +576,6 @@ const MoreTab = memo(function MoreTab({
  )}
  </AnimatePresence>
 
- {/* Goal delete modal */}
- <DeleteModal
- isOpen={goalDeleteModal.isOpen}
- title={SAVINGS.DELETE_TITLE}
- message={SAVINGS.DELETE_MSG}
- confirmLabel={SAVINGS.DELETE_BTN}
- onConfirm={async () => {
- if (goalDeleteModal.id) {
- await supabase.from("savings_goals").delete().eq("id", goalDeleteModal.id);
- setGoals(p => p.filter(g => g.id !== goalDeleteModal.id));
- }
- setGoalDeleteModal({ isOpen: false, id: null });
- }}
- onCancel={() => setGoalDeleteModal({ isOpen: false, id: null })}
- />
  </>
  );
 });

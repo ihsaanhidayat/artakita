@@ -39,10 +39,11 @@ export function useAuth() {
     clearTimeout(idleTimerRef.current);
     clearTimeout(warningTimerRef.current);
 
-    // 2. Clear localStorage
+    // 2. Clear storage
     localStorage.removeItem("arta_active_wallet");
     localStorage.removeItem("arta_trx_cache");
     localStorage.removeItem("arta_pending_queue");
+    sessionStorage.removeItem("arta_last_tab");
 
     // 3. Sign out dari Supabase
     try { await supabase.auth.signOut(); } catch {}

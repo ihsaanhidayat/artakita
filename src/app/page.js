@@ -15,7 +15,7 @@ import { useWallets } from "@/hooks/useWallets";
 
 // Utils
 import { parseFlexibleNumber } from "@/lib/utils";
-import { NAV, HOME, APP_TAGLINE, LOGIN, FORM, TOAST, CONFIRM, MORE, WALLET, SAVINGS } from "@/lib/constants";
+import { NAV, HOME, APP_TAGLINE, LOGIN, FORM, TOAST, MORE, WALLET, SAVINGS } from "@/lib/constants";
 
 // Tab components
 import HomeTab   from "@/components/tabs/HomeTab";
@@ -31,7 +31,6 @@ import WalletModal    from "@/components/modals/WalletModal";
 
 // Shared components
 import Toast    from "@/components/Toast";
-import DeleteModal from "@/components/DeleteModal";
 import QuickCommandBar  from "@/components/QuickCommandBar";
 import UserManagement  from "@/components/UserManagement";
 
@@ -275,7 +274,6 @@ export default function Home() {
  const [isNewGoalOpen,    setIsNewGoalOpen]    = useState(false);
  const [newGoalData,     setNewGoalData]     = useState({ name: "", target: "", current: "" });
  const [isDirtyGoal,     setIsDirtyGoal]     = useState(false);
- const [goalDeleteModal,   setGoalDeleteModal]   = useState({ isOpen: false, goalId: null, goalName: "" });
  const [activeGoalInput,   setActiveGoalInput]   = useState(null);
  const [flexibleSavingsAmt, setFlexibleSavingsAmt] = useState("");
  const [financeRefreshKey, setFinanceRefreshKey] = useState(0);
@@ -283,9 +281,6 @@ export default function Home() {
  // ── Modals ────────────────────────────────────────────────────────────────
  const [editTrxModal,    setEditTrxModal]    = useState({ isOpen: false, data: null });
  const [newWalletName,   setNewWalletName]   = useState("");
- const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
- const [itemToDelete,    setItemToDelete]    = useState(null);
- const [goalDeleteOpen,   setGoalDeleteOpen]   = useState(false);
  const [addUserModal,    setAddUserModal]    = useState({ isOpen: false, username: "", password: "", isLoading: false });
 
  // ── Notification ──────────────────────────────────────────────────────────
@@ -840,7 +835,7 @@ export default function Home() {
  }, [activeTab]);
 
  // ── App class ─────────────────────────────────────────────────────────────
- const appClass = `min-h-screen${isDarkMode ? "" : " light-mode"}`;
+ const appClass = "min-h-screen";
 
  // ── Render guards ─────────────────────────────────────────────────────────
  // Loading — saat init session, jangan tampilkan login screen
@@ -1002,7 +997,7 @@ export default function Home() {
        isSyncing={isSyncing}
        onEditTransaction={trx => setEditTrxModal({ isOpen: true, data: { ...trx } })}
        onSaveTransaction={handleSaveTrxEdit}
-       onDeleteTransaction={trx => { setItemToDelete(trx); setIsDeleteModalOpen(true); }}
+       onDeleteTransaction={trx => deleteTransaction(trx.id)}
       />
      )}
 
@@ -1038,7 +1033,10 @@ export default function Home() {
        flexibleSavingsAmt={flexibleSavingsAmt}
        setFlexibleSavingsAmt={setFlexibleSavingsAmt}
        handleModifySavings={handleModifySavings}
-       triggerDeleteGoal={id => setGoalDeleteModal({ isOpen: true, goalId: id, goalName: goals.find(g => g.id === id)?.name || "" })}
+       onDeleteGoal={async id => {
+        await supabase.from("savings_goals").delete().eq("id", id);
+        setGoals(p => p.filter(g => g.id !== id));
+       }}
       />
      )}
 
@@ -1082,34 +1080,6 @@ export default function Home() {
      existingCategories={existingCategories}
     />
 
-    {/* ── Delete Transaction Modal ── */}
-    <DeleteModal
-     isOpen={isDeleteModalOpen}
-     title={CONFIRM.DELETE_TRX_TITLE}
-     message={CONFIRM.CANT_UNDO}
-     onConfirm={() => {
-      if (itemToDelete) deleteTransaction(itemToDelete.id);
-      setIsDeleteModalOpen(false);
-      setItemToDelete(null);
-     }}
-     onCancel={() => setIsDeleteModalOpen(false)}
-    />
-
-    {/* ── Delete Goal Modal ── */}
-    <DeleteModal
-     isOpen={goalDeleteModal.isOpen}
-     title={SAVINGS.DELETE_TITLE}
-     message={<>Target <strong>"{goalDeleteModal.goalName}"</strong> akan dihapus permanen.</>}
-     confirmLabel={SAVINGS.DELETE_BTN}
-     onConfirm={async () => {
-      if (goalDeleteModal.goalId) {
-       await supabase.from("savings_goals").delete().eq("id", goalDeleteModal.goalId);
-       setGoals(p => p.filter(g => g.id !== goalDeleteModal.goalId));
-      }
-      setGoalDeleteModal({ isOpen: false, goalId: null, goalName: "" });
-     }}
-     onCancel={() => setGoalDeleteModal({ isOpen: false, goalId: null, goalName: "" })}
-    />
 
     {/* ── Bottom Navigation ── */}
 

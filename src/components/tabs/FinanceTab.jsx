@@ -107,7 +107,7 @@ const FinanceTab = memo(function FinanceTab({
  handleAddGoal,
  activeGoalInput, setActiveGoalInput,
  flexibleSavingsAmt, setFlexibleSavingsAmt,
- handleModifySavings, triggerDeleteGoal,
+ handleModifySavings, onDeleteGoal,
 }) {
  const currentRow = ROWS.find(r => r.key === subPage);
 
@@ -200,7 +200,7 @@ const FinanceTab = memo(function FinanceTab({
  flexibleSavingsAmt={flexibleSavingsAmt}
  setFlexibleSavingsAmt={setFlexibleSavingsAmt}
  handleModifySavings={handleModifySavings}
- triggerDeleteGoal={triggerDeleteGoal}
+ onDeleteGoal={onDeleteGoal}
  refreshKey={financeRefreshKey}
  activeWallet={activeWallet}
  />

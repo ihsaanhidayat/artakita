@@ -33,7 +33,7 @@ const AssetsTabComponent = memo(function AssetsTab({ activeWallet, refreshKey })
  const [isFormOpen, setIsFormOpen] = useState(false);
  const [editingId, setEditingId] = useState(null);
  const [expandedId, setExpandedId] = useState(null);
- const [deleteModal, setDeleteModal] = useState({ show: false, id: null, name: "" });
+ const [inlineDeleteId, setInlineDeleteId] = useState(null);
  const [viewer, setViewer] = useState({ open: false, url: null, label: "" });
  const [toast, setToast] = useState({ show: false, msg: "", type: "error" });
 
@@ -151,17 +151,16 @@ const AssetsTabComponent = memo(function AssetsTab({ activeWallet, refreshKey })
  };
 
  // ── Delete ──────────────────────────────────────────────────────────────
- const confirmDelete = async () => {
- if (!deleteModal.id) return;
- const asset = assets.find(a => a.id === deleteModal.id);
+ const confirmDelete = async (id) => {
+ const asset = assets.find(a => a.id === id);
  if (asset?.photo_url) {
  const { data: { session } } = await supabase.auth.getSession();
  if (session) {
  await deletePhoto(`assets/${session.user.id}/${asset.id}.jpg`, supabase).catch(() => {});
  }
  }
- await supabase.from("assets").delete().eq("id", deleteModal.id);
- setDeleteModal({ show: false, id: null, name: "" });
+ await supabase.from("assets").delete().eq("id", id);
+ setInlineDeleteId(null);
  showToast("Aset dihapus.", "success");
  fetchAssets();
  };
@@ -229,7 +228,7 @@ const AssetsTabComponent = memo(function AssetsTab({ activeWallet, refreshKey })
  initial={{ opacity: 0, y: 8 }}
  animate={{ opacity: 1, y: 0 }}
  transition={{ delay: index * 0.04 }}
- className="ds-bg-1 border ds-border rounded-[24px] shadow-sm overflow-hidden"
+ className="ds-bg-1 border ds-border rounded-[24px] shadow-sm overflow-hidden relative"
  >
  {/* Collapsed header */}
  <button
@@ -338,7 +337,7 @@ const AssetsTabComponent = memo(function AssetsTab({ activeWallet, refreshKey })
  <Edit3 size={12} /> Edit
  </button>
  <button
- onClick={() => setDeleteModal({ show: true, id: asset.id, name: asset.name })}
+ onClick={() => setInlineDeleteId(asset.id)}
  className="p-2 ds-t3 hover:text-fuchsia-400 ds-bg-3 rounded-xl transition-colors ml-auto"
  >
  <Trash2 size={14} />
@@ -347,6 +346,42 @@ const AssetsTabComponent = memo(function AssetsTab({ activeWallet, refreshKey })
  </div>
  </motion.div>
  )}
+ </AnimatePresence>
+
+ {/* Inline delete confirm overlay */}
+ <AnimatePresence>
+  {inlineDeleteId === asset.id && (
+  <motion.div
+   initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }}
+   transition={{ type: "spring", damping: 25, stiffness: 280 }}
+   className="absolute inset-0 z-20 flex items-center justify-between px-5 backdrop-blur-md"
+   style={{
+   background: "color-mix(in srgb, var(--a3) 85%, var(--a2))",
+   borderLeft: "3px solid var(--a3)",
+   boxShadow: "inset 4px 0 20px color-mix(in srgb, var(--a3) 30%, transparent)",
+   }}
+  >
+   <div className="flex items-center gap-2">
+   <Trash2 size={15} className="text-white" />
+   <span className="text-[11px] font-black text-white uppercase tracking-widest">Hapus Permanen?</span>
+   </div>
+   <div className="flex gap-2">
+   <button
+    onClick={() => setInlineDeleteId(null)}
+    className="px-3 py-1.5 rounded-[10px] bg-white/20 text-white text-label font-black uppercase tracking-widest hover:bg-white/30 transition-colors"
+   >
+    Batal
+   </button>
+   <button
+    onClick={() => confirmDelete(asset.id)}
+    className="px-3 py-1.5 rounded-[10px] text-label font-black uppercase tracking-widest active:scale-95 transition-all"
+    style={{ background: "rgba(255,255,255,0.9)", color: "var(--a2)" }}
+   >
+    Hapus
+   </button>
+   </div>
+  </motion.div>
+  )}
  </AnimatePresence>
  </motion.div>
  );
@@ -500,33 +535,6 @@ const AssetsTabComponent = memo(function AssetsTab({ activeWallet, refreshKey })
  label={viewer.label}
  />
 
- {/* Delete Modal */}
- <AnimatePresence>
- {deleteModal.show && (
- <motion.div
- initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
- className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md p-4"
- >
- <motion.div
- initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
- transition={{ type: "spring", damping: 25, stiffness: 300 }}
- className="w-full max-w-sm ds-bg-1 rounded-[32px] p-6 shadow-2xl border ds-border text-center"
- >
- <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: "color-mix(in srgb, var(--a3) 15%, transparent)", color: "var(--a3)" }}>
- <Trash2 size={24} />
- </div>
- <h3 className="text-sm font-black ds-t1 uppercase tracking-widest mb-2">Hapus Aset?</h3>
- <p className="text-xs ds-t2 mb-6">
- <strong>{deleteModal.name}</strong> beserta fotonya akan dihapus permanen.
- </p>
- <div className="flex gap-3">
- <button onClick={() => setDeleteModal({ show: false, id: null, name: "" })} className="flex-1 ds-bg-3 ds-t1 font-black text-xs uppercase tracking-widest py-3.5 rounded-2xl transition-all">Batal</button>
- <button onClick={confirmDelete} className="flex-1 text-white font-black text-xs uppercase tracking-widest py-3.5 rounded-2xl transition-all" style={{ background: "color-mix(in srgb, var(--a3) 85%, #000)" }}>Hapus</button>
- </div>
- </motion.div>
- </motion.div>
- )}
- </AnimatePresence>
 
  {/* Toast */}
  <AnimatePresence>

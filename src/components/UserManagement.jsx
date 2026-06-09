@@ -66,7 +66,7 @@ export default function UserManagement({ onNotify }) {
   // Modal states
   const [addModal, setAddModal]           = useState({ open: false, username: "", password: "", loading: false });
   const [resetModal, setResetModal]       = useState({ open: false, userId: null, username: "", password: "", loading: false });
-  const [deleteModal, setDeleteModal]     = useState({ open: false, userId: null, username: "" });
+  const [inlineDeleteId, setInlineDeleteId] = useState(null);
   const [actionLoading, setActionLoading] = useState(null); // userId yang sedang diproses
 
   // Ambil ID user yang sedang login (agar tidak bisa hapus/ban diri sendiri)
@@ -169,18 +169,19 @@ export default function UserManagement({ onNotify }) {
   };
 
   // ── Hapus User ───────────────────────────────────────────────────────────
-  const handleDeleteUser = async () => {
-    setActionLoading(deleteModal.userId);
+  const handleDeleteUser = async (userId) => {
+    const user = users.find(u => u.id === userId);
+    setActionLoading(userId);
     try {
       const res = await fetch(`${getBase()}/api/admin/delete-user`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json", authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}` },
-        body: JSON.stringify({ userId: deleteModal.userId }),
+        body: JSON.stringify({ userId }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      onNotify?.(`User @${deleteModal.username} berhasil dihapus.`, "success");
-      setDeleteModal({ open: false, userId: null, username: "" });
+      onNotify?.(`User @${user?.username} berhasil dihapus.`, "success");
+      setInlineDeleteId(null);
       fetchUsers();
     } catch (err) {
       onNotify?.(err.message, "error");
@@ -313,7 +314,7 @@ export default function UserManagement({ onNotify }) {
                         layout
                         initial={{ opacity: 0, y: 8 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="bg-gray-50 dark:bg-gray-900/40 border rounded-[20px] p-4 transition-all"
+                        className="relative overflow-hidden bg-gray-50 dark:bg-gray-900/40 border rounded-[20px] p-4 transition-all"
                         style={user.banned
                           ? { borderColor: "color-mix(in srgb, var(--a3) 28%, transparent)", opacity: 0.6 }
                           : { borderColor: "rgba(107,114,128,0.15)" }
@@ -373,7 +374,7 @@ export default function UserManagement({ onNotify }) {
 
                               {/* Hapus */}
                               <button
-                                onClick={() => setDeleteModal({ open: true, userId: user.id, username: user.username })}
+                                onClick={() => setInlineDeleteId(user.id)}
                                 disabled={isWorking}
                                 className="p-2 ds-t3 hover:text-fuchsia-400 bg-white dark:bg-gray-800 rounded-xl transition-colors disabled:opacity-40"
                                 title="Hapus User"
@@ -383,6 +384,45 @@ export default function UserManagement({ onNotify }) {
                             </div>
                           )}
                         </div>
+                      {/* Inline delete confirm overlay */}
+                      <AnimatePresence>
+                        {inlineDeleteId === user.id && (
+                          <motion.div
+                            initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }}
+                            transition={{ type: "spring", damping: 25, stiffness: 280 }}
+                            className="absolute inset-0 z-20 flex items-center justify-between px-5 backdrop-blur-md rounded-[20px]"
+                            style={{
+                              background: "color-mix(in srgb, var(--a3) 85%, var(--a2))",
+                              borderLeft: "3px solid var(--a3)",
+                              boxShadow: "inset 4px 0 20px color-mix(in srgb, var(--a3) 30%, transparent)",
+                            }}
+                          >
+                            <div className="flex flex-col gap-0.5">
+                              <div className="flex items-center gap-2">
+                                <Trash2 size={15} className="text-white" />
+                                <span className="text-[11px] font-black text-white uppercase tracking-widest">Hapus Permanen?</span>
+                              </div>
+                              <span className="text-[10px] text-white/70 ml-[23px]">@{user.username}</span>
+                            </div>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => setInlineDeleteId(null)}
+                                className="px-3 py-1.5 rounded-[10px] bg-white/20 text-white text-label font-black uppercase tracking-widest hover:bg-white/30 transition-colors"
+                              >
+                                Batal
+                              </button>
+                              <button
+                                onClick={() => handleDeleteUser(user.id)}
+                                disabled={actionLoading === user.id}
+                                className="px-3 py-1.5 rounded-[10px] text-label font-black uppercase tracking-widest active:scale-95 transition-all disabled:opacity-50"
+                                style={{ background: "rgba(255,255,255,0.9)", color: "var(--a2)" }}
+                              >
+                                {actionLoading === user.id ? "..." : "Hapus"}
+                              </button>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                       </motion.div>
                     );
                   })}
@@ -507,47 +547,6 @@ export default function UserManagement({ onNotify }) {
         )}
       </AnimatePresence>
 
-      {/* ── Modal Konfirmasi Hapus ── */}
-      <AnimatePresence>
-        {deleteModal.open && (
-          <motion.div
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-md p-4"
-          >
-            <motion.div
-              initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="w-full max-w-sm bg-white dark:bg-[#121827] rounded-[32px] p-6 shadow-2xl border ds-border text-center"
-            >
-              <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: "color-mix(in srgb, var(--a3) 15%, transparent)", color: "var(--a3)" }}>
-                <Trash2 size={24} />
-              </div>
-              <h3 className="text-sm font-black ds-t1 uppercase tracking-widest mb-2">
-                Hapus User?
-              </h3>
-              <p className="text-xs ds-t3 mb-6">
-                Akun <strong>@{deleteModal.username}</strong> akan dihapus permanen beserta semua data terkait. Tindakan ini tidak dapat dibatalkan.
-              </p>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setDeleteModal({ open: false, userId: null, username: "" })}
-                  className="flex-1 bg-gray-100 dark:bg-gray-800 ds-t2 font-black text-xs uppercase tracking-widest py-3.5 rounded-2xl transition-all hover:bg-gray-200 dark:hover:bg-gray-700"
-                >
-                  Batal
-                </button>
-                <button
-                  onClick={handleDeleteUser}
-                  disabled={actionLoading === deleteModal.userId}
-                  className="flex-1 disabled:opacity-50 text-white font-black text-xs uppercase tracking-widest py-3.5 rounded-2xl transition-all"
-                  style={{ background: "color-mix(in srgb, var(--a3) 85%, #000)" }}
-                >
-                  {actionLoading === deleteModal.userId ? "Menghapus..." : "Hapus Permanen"}
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
     </div>
   );
