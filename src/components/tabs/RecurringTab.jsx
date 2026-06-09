@@ -9,11 +9,12 @@ import {
  ArrowDownCircle, ArrowUpCircle,
  Play, Pause, ChevronDown, Loader2, Clock
 } from "lucide-react";
+import { RECURRING, FORM, TOAST } from "@/lib/constants";
 
 const FREQ_OPTIONS = [
- { value: "daily", label: "Harian", sub: "Setiap hari" },
- { value: "weekly", label: "Mingguan", sub: "Setiap 7 hari" },
- { value: "monthly", label: "Bulanan", sub: "Setiap bulan" },
+ { value: "daily",   label: RECURRING.FREQ_DAILY,   sub: RECURRING.EVERY_DAY   },
+ { value: "weekly",  label: RECURRING.FREQ_WEEKLY,  sub: RECURRING.EVERY_WEEK  },
+ { value: "monthly", label: RECURRING.FREQ_MONTHLY, sub: RECURRING.EVERY_MONTH },
 ];
 
 const getNextLabel = (dateStr) => {
@@ -23,10 +24,10 @@ const getNextLabel = (dateStr) => {
  today.setHours(0, 0, 0, 0);
  next.setHours(0, 0, 0, 0);
  const diff = Math.ceil((next - today) / (1000 * 60 * 60 * 24));
- if (diff < 0) return "Terlambat";
- if (diff === 0) return "Hari ini";
- if (diff === 1) return "Besok";
- return `${diff} hari lagi`;
+ if (diff < 0) return RECURRING.OVERDUE;
+ if (diff === 0) return RECURRING.TODAY;
+ if (diff === 1) return RECURRING.TOMORROW;
+ return RECURRING.DAYS_LEFT(diff);
 };
 
 const getNextStyle = (dateStr) => {
@@ -88,11 +89,11 @@ const RecurringTabComponent = memo(function RecurringTab({ activeWallet, onNotif
  const handleSave = async (e) => {
  e.preventDefault();
  if (!form.note.trim() || !form.amount || !form.category.trim()) {
- showNotif("Catatan, nominal, dan kategori wajib diisi.");
+ showNotif(RECURRING.VALIDATION_REQUIRED);
  return;
  }
  const parsedAmount = parseFlexibleNumber(form.amount);
- if (parsedAmount <= 0) { showNotif("Nominal harus lebih dari 0."); return; }
+ if (parsedAmount <= 0) { showNotif(RECURRING.VALIDATION_AMOUNT); return; }
 
  setIsSaving(true);
  try {
@@ -116,12 +117,12 @@ const RecurringTabComponent = memo(function RecurringTab({ activeWallet, onNotif
  if (error) throw error;
  }
 
- showNotif(editingId ? "Berhasil diperbarui!" : "Transaksi rutin ditambahkan!", "success");
+ showNotif(editingId ? TOAST.TRX_UPDATED : RECURRING.ADDED, "success");
  resetForm();
  setIsFormOpen(false);
  fetchItems();
  } catch (err) {
- showNotif("Gagal: " + err.message);
+ showNotif(RECURRING.FAIL_PREFIX + err.message);
  } finally {
  setIsSaving(false);
  }
@@ -167,10 +168,10 @@ const RecurringTabComponent = memo(function RecurringTab({ activeWallet, onNotif
  .update({ next_run_date: nextDate.toISOString().slice(0, 10) })
  .eq("id", item.id);
 
- showNotif(`Transaksi "${item.note}" berhasil dicatat!`, "success");
+ showNotif(RECURRING.RUN_OK(item.note), "success");
  fetchItems();
  } catch (err) {
- showNotif("Gagal: " + err.message);
+ showNotif(RECURRING.FAIL_PREFIX + err.message);
  } finally {
  setRunningId(null);
  }
@@ -180,7 +181,7 @@ const RecurringTabComponent = memo(function RecurringTab({ activeWallet, onNotif
  const confirmDelete = async () => {
  await supabase.from("recurring_transactions").delete().eq("id", deleteModal.id);
  setDeleteModal({ show: false, id: null, note: "" });
- showNotif("Dihapus.", "success");
+ showNotif(RECURRING.DELETED, "success");
  fetchItems();
  };
 
@@ -196,7 +197,7 @@ const RecurringTabComponent = memo(function RecurringTab({ activeWallet, onNotif
 
  {/* Header */}
  <div className="mb-6 flex-none">
- <h2 className="text-[26px] font-light tracking-[-1.5px] leading-none ds-t1">Transaksi Rutin</h2>
+ <h2 className="text-[26px] font-light tracking-[-1.5px] leading-none ds-t1">{RECURRING.TITLE}</h2>
  <div className="flex items-center gap-2 mt-1">
   <span className="ds-live-dot" />
   <p className="text-caption font-black tracking-[0.14em] uppercase ds-aurora-text">{activeWallet?.name}</p>
@@ -214,9 +215,9 @@ const RecurringTabComponent = memo(function RecurringTab({ activeWallet, onNotif
  >
  <Clock size={18} className="text-amber-500 shrink-0" />
  <div>
- <p className="text-caption font-black text-amber-500 uppercase tracking-widest">Perlu Dijalankan</p>
+ <p className="text-caption font-black text-amber-500 uppercase tracking-widest">{RECURRING.DUE_ALERT_TITLE}</p>
  <p className="text-xs font-bold text-amber-400/80">
- {dueTodayCount} transaksi rutin sudah jatuh tempo. Klik "Jalankan" untuk mencatat.
+ {RECURRING.DUE_ALERT_DESC(dueTodayCount)}
  </p>
  </div>
  </motion.div>
@@ -226,9 +227,9 @@ const RecurringTabComponent = memo(function RecurringTab({ activeWallet, onNotif
  {/* Summary */}
  <div className="grid grid-cols-3 gap-2 mb-6 flex-none">
  {[
- { label: "Total", value: items.length, colorVar: "var(--a1)" },
- { label: "Aktif", value: items.filter(i => i.is_active).length, colorVar: "var(--income)" },
- { label: "Jatuh Tempo", value: dueTodayCount, colorVar: "#f59e0b" },
+ { label: RECURRING.TOTAL, value: items.length, colorVar: "var(--a1)" },
+ { label: RECURRING.ACTIVE, value: items.filter(i => i.is_active).length, colorVar: "var(--income)" },
+ { label: RECURRING.DUE, value: dueTodayCount, colorVar: "#f59e0b" },
  ].map(s => (
  <div key={s.label} className="ds-bg-1 border ds-border rounded-[20px] p-3 text-center shadow-sm">
  <p className="text-xl font-black" style={{ color: s.colorVar }}>{s.value}</p>
@@ -248,7 +249,7 @@ const RecurringTabComponent = memo(function RecurringTab({ activeWallet, onNotif
  {!isLoading && items.length === 0 && (
  <div className="text-center py-16 ds-bg-1/10 rounded-[28px] border border-dashed ds-border">
  <RefreshCw size={32} className="ds-t3 mx-auto mb-3" />
- <p className="text-caption font-black ds-t3 uppercase tracking-[0.4em]">Belum Ada Transaksi Rutin</p>
+ <p className="text-caption font-black ds-t3 uppercase tracking-[0.4em]">{RECURRING.EMPTY}</p>
  </div>
  )}
 
@@ -290,7 +291,7 @@ const RecurringTabComponent = memo(function RecurringTab({ activeWallet, onNotif
  <div className="flex items-center gap-2">
  <p className="font-black text-sm ds-t1 truncate">{item.note}</p>
  {!item.is_active && (
- <span className="text-2xs font-black ds-t3 ds-bg-3px-2 py-0.5 rounded-full uppercase shrink-0">Nonaktif</span>
+ <span className="text-2xs font-black ds-t3 ds-bg-3px-2 py-0.5 rounded-full uppercase shrink-0">{RECURRING.INACTIVE}</span>
  )}
  </div>
  <div className="flex items-center gap-2 mt-0.5">
@@ -327,15 +328,15 @@ const RecurringTabComponent = memo(function RecurringTab({ activeWallet, onNotif
  <div className="px-4 pb-4 pt-2 border-t ds-border space-y-3">
  <div className="grid grid-cols-2 gap-2 text-label">
  <div>
- <p className="font-black ds-t3 uppercase tracking-widest mb-0.5">Kategori</p>
+ <p className="font-black ds-t3 uppercase tracking-widest mb-0.5">{RECURRING.CATEGORY}</p>
  <p className="font-bold ds-t1">{item.category}</p>
  </div>
  <div>
- <p className="font-black ds-t3 uppercase tracking-widest mb-0.5">Frekuensi</p>
+ <p className="font-black ds-t3 uppercase tracking-widest mb-0.5">{RECURRING.FREQ}</p>
  <p className="font-bold ds-t1">{freqLabel}</p>
  </div>
  <div>
- <p className="font-black ds-t3 uppercase tracking-widest mb-0.5">Jadwal Berikutnya</p>
+ <p className="font-black ds-t3 uppercase tracking-widest mb-0.5">{RECURRING.NEXT_DATE}</p>
  <p className="font-bold ds-t3" style={nextStyle}>
  {item.next_run_date
  ? new Date(item.next_run_date).toLocaleDateString("id-ID")
@@ -343,9 +344,9 @@ const RecurringTabComponent = memo(function RecurringTab({ activeWallet, onNotif
  </p>
  </div>
  <div>
- <p className="font-black ds-t3 uppercase tracking-widest mb-0.5">Status</p>
+ <p className="font-black ds-t3 uppercase tracking-widest mb-0.5">{RECURRING.STATUS}</p>
  <p className="font-bold ds-t3" style={item.is_active ? { color: "var(--income)" } : undefined}>
- {item.is_active ? "Aktif" : "Nonaktif"}
+ {item.is_active ? RECURRING.ACTIVE : RECURRING.INACTIVE}
  </p>
  </div>
  </div>
@@ -360,7 +361,7 @@ const RecurringTabComponent = memo(function RecurringTab({ activeWallet, onNotif
  className="flex items-center gap-1.5 px-3 py-2 ds-aurora-bg border ds-aurora-border-c ds-aurora-text font-black text-label uppercase tracking-widest rounded-xl transition-all disabled:opacity-50"
  >
  {isRunning ? <Loader2 size={11} className="animate-spin" /> : <Play size={11} />}
- {isRunning ? "Memproses..." : "Jalankan"}
+ {isRunning ? FORM.PROCESSING : RECURRING.RUN_NOW}
  </button>
  )}
 
@@ -372,7 +373,7 @@ const RecurringTabComponent = memo(function RecurringTab({ activeWallet, onNotif
  ? undefined
  : { background: "color-mix(in srgb, var(--income) 12%, transparent)", borderColor: "color-mix(in srgb, var(--income) 25%, transparent)", color: "var(--income)" }}
  >
- {item.is_active ? <><Pause size={11} /> Nonaktifkan</> : <><Play size={11} /> Aktifkan</>}
+ {item.is_active ? <><Pause size={11} /> {RECURRING.DEACTIVATE}</> : <><Play size={11} /> {RECURRING.ACTIVATE}</>}
  </button>
 
  {/* Edit */}
@@ -392,7 +393,7 @@ const RecurringTabComponent = memo(function RecurringTab({ activeWallet, onNotif
  }}
  className="flex items-center gap-1.5 px-3 py-2 ds-bg-3 border ds-border ds-t3 hover:ds-aurora-text font-black text-label uppercase tracking-widest rounded-xl transition-all"
  >
- <Edit3 size={11} /> Edit
+ <Edit3 size={11} /> {FORM.EDIT}
  </button>
 
  {/* Hapus */}
@@ -433,7 +434,7 @@ const RecurringTabComponent = memo(function RecurringTab({ activeWallet, onNotif
  <div className="w-10 h-1 ds-bg-3 rounded-full mx-auto mb-1" />
  <div className="flex justify-between items-center">
  <h3 className="text-sm font-black ds-t1 uppercase tracking-widest">
- {"Edit Transaksi Rutin"}
+ {RECURRING.EDIT_TITLE}
  </h3>
  <button type="button" onClick={() => { if (!isSaving) { resetForm(); setIsFormOpen(false); } }} className="p-2 ds-t3 hover:text-fuchsia-400 ds-bg-3 rounded-full transition-colors">
  <X size={18} />
@@ -442,8 +443,8 @@ const RecurringTabComponent = memo(function RecurringTab({ activeWallet, onNotif
 
  {/* Tipe */}
  <div className="flex ds-bg-3 p-2 rounded-2xl">
- {[{ val: "expense", label: "Pengeluaran", Icon: ArrowUpCircle, activeStyle: { color: "var(--a3)", background: "color-mix(in srgb, var(--a3) 8%, transparent)", borderColor: "color-mix(in srgb, var(--a3) 20%, transparent)" } },
- { val: "income", label: "Pemasukan", Icon: ArrowDownCircle, activeStyle: { color: "var(--income)", background: "color-mix(in srgb, var(--income) 8%, transparent)", borderColor: "color-mix(in srgb, var(--income) 20%, transparent)" } },
+ {[{ val: "expense", label: RECURRING.EXPENSE_TYPE, Icon: ArrowUpCircle, activeStyle: { color: "var(--a3)", background: "color-mix(in srgb, var(--a3) 8%, transparent)", borderColor: "color-mix(in srgb, var(--a3) 20%, transparent)" } },
+ { val: "income", label: RECURRING.INCOME_TYPE, Icon: ArrowDownCircle, activeStyle: { color: "var(--income)", background: "color-mix(in srgb, var(--income) 8%, transparent)", borderColor: "color-mix(in srgb, var(--income) 20%, transparent)" } },
  ].map(({ val, label, Icon, activeStyle }) => (
  <button key={val} type="button" onClick={() => setForm(p => ({ ...p, type: val }))}
  className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-black text-caption uppercase tracking-widest border transition-all"
@@ -456,8 +457,8 @@ const RecurringTabComponent = memo(function RecurringTab({ activeWallet, onNotif
 
  {/* Catatan */}
  <div>
- <label className="block text-label font-black ds-t3 uppercase tracking-widest mb-1.5">Catatan *</label>
- <input type="text" required autoFocus placeholder="Cth: Gaji, Cicilan, Netflix"
+ <label className="block text-label font-black ds-t3 uppercase tracking-widest mb-1.5">{RECURRING.NOTE_LABEL} *</label>
+ <input type="text" required autoFocus placeholder={RECURRING.NOTE_HINT}
  value={form.note} onChange={e => setForm(p => ({ ...p, note: e.target.value }))}
  className="w-full ds-bg-3 border ds-border ds-t1 font-bold text-sm p-4 rounded-2xl outline-none focus:border-[var(--a1)] transition-all placeholder:opacity-40"
  />
@@ -466,15 +467,15 @@ const RecurringTabComponent = memo(function RecurringTab({ activeWallet, onNotif
  {/* Nominal + Kategori */}
  <div className="grid grid-cols-2 gap-3">
  <div>
- <label className="block text-label font-black ds-t3 uppercase tracking-widest mb-1.5">Nominal *</label>
- <input type="text" required placeholder="5jt, 500k..."
+ <label className="block text-label font-black ds-t3 uppercase tracking-widest mb-1.5">{RECURRING.AMOUNT} *</label>
+ <input type="text" required placeholder={RECURRING.AMOUNT_HINT}
  value={form.amount} onChange={e => setForm(p => ({ ...p, amount: e.target.value }))}
  className="w-full ds-bg-3 border ds-border ds-t1 font-bold text-sm p-3 rounded-2xl outline-none focus:border-[var(--a1)] transition-all placeholder:opacity-40"
  />
  </div>
  <div>
- <label className="block text-label font-black ds-t3 uppercase tracking-widest mb-1.5">Kategori *</label>
- <input type="text" required placeholder="Gaji, Tagihan..."
+ <label className="block text-label font-black ds-t3 uppercase tracking-widest mb-1.5">{RECURRING.CATEGORY} *</label>
+ <input type="text" required placeholder={RECURRING.CAT_HINT}
  value={form.category} onChange={e => setForm(p => ({ ...p, category: e.target.value }))}
  className="w-full ds-bg-3 border ds-border ds-t1 font-bold text-sm p-3 rounded-2xl outline-none focus:border-[var(--a1)] transition-all placeholder:opacity-40"
  />
@@ -483,7 +484,7 @@ const RecurringTabComponent = memo(function RecurringTab({ activeWallet, onNotif
 
  {/* Frekuensi */}
  <div>
- <label className="block text-label font-black ds-t3 uppercase tracking-widest mb-2">Frekuensi</label>
+ <label className="block text-label font-black ds-t3 uppercase tracking-widest mb-2">{RECURRING.FREQ}</label>
  <div className="grid grid-cols-3 gap-2">
  {FREQ_OPTIONS.map(f => (
  <button key={f.value} type="button" onClick={() => setForm(p => ({ ...p, frequency: f.value }))}
@@ -502,7 +503,7 @@ const RecurringTabComponent = memo(function RecurringTab({ activeWallet, onNotif
 
  {/* Next run date */}
  <div>
- <label className="block text-label font-black ds-t3 uppercase tracking-widest mb-1.5">Jadwal Pertama / Berikutnya</label>
+ <label className="block text-label font-black ds-t3 uppercase tracking-widest mb-1.5">{RECURRING.FIRST_DATE}</label>
  <input type="date" required
  value={form.next_run_date}
  onChange={e => setForm(p => ({ ...p, next_run_date: e.target.value }))}
@@ -514,7 +515,7 @@ const RecurringTabComponent = memo(function RecurringTab({ activeWallet, onNotif
  className="w-full flex items-center justify-center gap-2 py-4 disabled:opacity-50 text-white font-black text-xs uppercase tracking-widest rounded-2xl transition-all"
  style={{ background: "linear-gradient(135deg, var(--a1), var(--a2))" }}
  >
- {isSaving ? <><Loader2 size={16} className="animate-spin" /> Menyimpan...</> : <><Save size={14} /> {"Simpan Perubahan"}</>}
+ {isSaving ? <><Loader2 size={16} className="animate-spin" /> {FORM.SAVING}</> : <><Save size={14} /> {RECURRING.SAVE_CHANGES}</>}
  </button>
  </div>
  </motion.form>
@@ -535,11 +536,11 @@ const RecurringTabComponent = memo(function RecurringTab({ activeWallet, onNotif
  <div className="w-14 h-14 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
  <Trash2 className="text-red-500" size={24} />
  </div>
- <h3 className="text-sm font-black ds-t1 uppercase tracking-widest mb-2">Hapus Jadwal?</h3>
- <p className="text-xs ds-t2 mb-6"><strong>{deleteModal.note}</strong> akan dihapus permanen.</p>
+ <h3 className="text-sm font-black ds-t1 uppercase tracking-widest mb-2">{RECURRING.DELETE_TITLE}</h3>
+ <p className="text-xs ds-t2 mb-6"><strong>{deleteModal.note}</strong> {RECURRING.DELETE_MSG("")}</p>
  <div className="flex gap-3">
- <button onClick={() => setDeleteModal({ show: false, id: null, note: "" })} className="flex-1 ds-bg-3ds-t1 font-black text-xs uppercase tracking-widest py-3.5 rounded-2xl transition-all">Batal</button>
- <button onClick={confirmDelete} className="flex-1 bg-red-600 hover:bg-red-500 text-white font-black text-xs uppercase tracking-widest py-3.5 rounded-2xl transition-all shadow-lg shadow-red-500/30">Hapus</button>
+ <button onClick={() => setDeleteModal({ show: false, id: null, note: "" })} className="flex-1 ds-bg-3ds-t1 font-black text-xs uppercase tracking-widest py-3.5 rounded-2xl transition-all">{FORM.CANCEL}</button>
+ <button onClick={confirmDelete} className="flex-1 bg-red-600 hover:bg-red-500 text-white font-black text-xs uppercase tracking-widest py-3.5 rounded-2xl transition-all shadow-lg shadow-red-500/30">{FORM.DELETE}</button>
  </div>
  </motion.div>
  </motion.div>

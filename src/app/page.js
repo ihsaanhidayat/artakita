@@ -15,7 +15,7 @@ import { useWallets } from "@/hooks/useWallets";
 
 // Utils
 import { parseFlexibleNumber } from "@/lib/utils";
-import { NAV } from "@/lib/constants";
+import { NAV, HOME, APP_TAGLINE, LOGIN, FORM, TOAST, CONFIRM, MORE, WALLET, SAVINGS } from "@/lib/constants";
 
 // Tab components
 import HomeTab   from "@/components/tabs/HomeTab";
@@ -59,20 +59,20 @@ const LoginScreen = memo(function LoginScreen({ auth }) {
       ArtaKita.
      </h1>
      <p className="text-caption font-bold ds-t3 uppercase tracking-[0.3em]">
-      Artaku Artamu
+      {APP_TAGLINE}
      </p>
     </div>
 
     <form onSubmit={auth.handleLogin} className="space-y-4">
      <div>
       <label className="block text-label font-black ds-t3 uppercase tracking-widest mb-1.5 ml-1">
-       Username / Email
+       {LOGIN.USERNAME_LABEL}
       </label>
       <input
        type="text" required autoFocus
        value={auth.authUsername || ""}
        onChange={e => auth.setAuthUsername(e.target.value)}
-       placeholder="Masukkan username atau email"
+       placeholder={LOGIN.USERNAME_HINT}
        className="w-full ds-bg-0 border ds-border rounded-2xl py-3.5 px-4 text-sm font-bold ds-t1 outline-none transition-all ds-t2"
        style={{ "--tw-placeholder-opacity": 0.3 }}
        onFocus={e => e.target.style.borderColor = "color-mix(in srgb, var(--a1) 60%, transparent)"}
@@ -81,7 +81,7 @@ const LoginScreen = memo(function LoginScreen({ auth }) {
      </div>
      <div>
       <label className="block text-label font-black ds-t3 uppercase tracking-widest mb-1.5 ml-1">
-       Kata Sandi
+       {LOGIN.PASSWORD_LABEL}
       </label>
       <input
        type="password" required
@@ -115,7 +115,7 @@ const LoginScreen = memo(function LoginScreen({ auth }) {
        boxShadow: "0 4px 20px color-mix(in srgb, var(--a1) 30%, transparent), 0 0 40px color-mix(in srgb, var(--a2) 15%, transparent)",
       }}
      >
-      {auth.isAuthLoading ? "Memproses..." : "Masuk"}
+      {auth.isAuthLoading ? LOGIN.LOADING : LOGIN.SUBMIT}
      </button>
     </form>
    </motion.div>
@@ -129,7 +129,7 @@ const WalletLoader = memo(function WalletLoader() {
   <main className="w-full max-w-lg mx-auto min-h-screen flex items-center justify-center ds-bg-0">
    <div className="flex flex-col items-center gap-4">
     <div className="w-8 h-8 border-2 border-t-transparent rounded-full animate-spin" />
-    <p className="text-label font-black ds-t3 uppercase tracking-widest">Memuat data...</p>
+    <p className="text-label font-black ds-t3 uppercase tracking-widest">{FORM.LOADING_DATA}</p>
    </div>
   </main>
  );
@@ -263,7 +263,7 @@ export default function Home() {
 
  // ── Filter ────────────────────────────────────────────────────────────────
  const [typeFilter,    setTypeFilter]    = useState("all");
- const [categoryFilter,  setCategoryFilter]  = useState("Semua");
+ const [categoryFilter,  setCategoryFilter]  = useState(HOME.ALL_CATEGORIES);
  const [searchQuery,   setSearchQuery]   = useState("");
  const [quickTimeFilter, setQuickTimeFilter] = useState("month");
  const [dateRange,    setDateRange]    = useState({ from: "", to: "" });
@@ -482,7 +482,7 @@ export default function Home() {
  );
 
  const dynamicCategories = useMemo(() =>
-  ["Semua", ...existingCategories],
+  [HOME.ALL_CATEGORIES, ...existingCategories],
   [existingCategories]
  );
 
@@ -499,7 +499,7 @@ export default function Home() {
     : (t.type === "expense" || !t.type);
 
    // Kategori
-   const matchCat = categoryFilter === "Semua" ? true : t.category === categoryFilter;
+   const matchCat = categoryFilter === HOME.ALL_CATEGORIES ? true : t.category === categoryFilter;
 
    // Search
    const sl = searchQuery.toLowerCase();
@@ -674,7 +674,7 @@ export default function Home() {
    let finalNote = parsedNote || raw;
 
    if (!amount || amount <= 0) {
-    showNotification("Nominal tidak ditemukan. Cth: rokok 25k", "error");
+    showNotification(TOAST.FORMAT_ERROR, "error");
     return;
    }
 
@@ -708,7 +708,7 @@ export default function Home() {
    const dateToUse = customDate || (parsedDate ? parsedDate.toISOString() : null);
 
    await addTransaction(finalNote, amount, category, type, receiptFile, dateToUse);
-   showNotification("Transaksi berhasil dicatat! ✨", "success");
+   showNotification(TOAST.TRX_ADDED, "success");
 
    // Learn dari transaksi ini
    if (categoryId && activeWallet?.user_id) {
@@ -727,7 +727,7 @@ export default function Home() {
     }, 300);
    }
   } catch (err) {
-   showNotification("Gagal: " + err.message, "error");
+   showNotification(TOAST.FAIL_PREFIX + err.message, "error");
   } finally {
    setIsSmartLoading(false);
   }
@@ -799,7 +799,7 @@ export default function Home() {
   let nextAmt = 0;
   if (mode !== "reset") {
    const parsed = parseFlexibleNumber(flexibleSavingsAmt);
-   if (parsed <= 0) { showNotification("Masukkan nominal yang valid", "error"); return; }
+   if (parsed <= 0) { showNotification(SAVINGS.INVALID_AMOUNT, "error"); return; }
    nextAmt = mode === "add" ? Number(currentAmt) + parsed : Math.max(0, Number(currentAmt) - parsed);
   }
   const { error } = await supabase.from("savings_goals").update({ current_amount: nextAmt }).eq("id", id);
@@ -824,7 +824,7 @@ export default function Home() {
    showNotification(`Akses untuk @${addUserModal.username} berhasil dibuat!`, "success");
    setAddUserModal({ isOpen: false, username: "", password: "", isLoading: false });
   } catch (err) {
-   showNotification("Gagal: " + err.message, "error");
+   showNotification(TOAST.FAIL_PREFIX + err.message, "error");
    setAddUserModal(p => ({ ...p, isLoading: false }));
   }
  }, [addUserModal, showNotification]);
@@ -870,14 +870,14 @@ export default function Home() {
       {/* Header + Logout kanan atas */}
       <div className="flex items-center justify-between mb-6">
        <h2 className="text-xl font-black ds-t1 tracking-tight">
-        Manajemen Pengguna
+        {MORE.USER_MGMT}
        </h2>
        <button
         onClick={auth.handleLogout}
         className="px-3 py-1.5 font-black text-label uppercase tracking-widest rounded-xl border active:scale-95 transition-all"
         style={{ background: "color-mix(in srgb, var(--a3) 10%, transparent)", borderColor: "color-mix(in srgb, var(--a3) 25%, transparent)", color: "var(--a3)" }}
        >
-        Keluar
+        {MORE.LOGOUT_SHORT}
        </button>
       </div>
       <UserManagement onNotify={showNotification} />
@@ -899,16 +899,16 @@ export default function Home() {
         <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--a1)" }}><rect width="20" height="14" x="2" y="5" rx="2"/><path d="M2 10h20"/></svg>
        </div>
        <h2 className="text-xl font-light tracking-tight mb-2" style={{ color:"var(--text-1)" }}>
-        Buat Rekening Pertama
+        {WALLET.SETUP_TITLE}
        </h2>
        <p className="text-sm mb-6 leading-relaxed" style={{ color:"var(--text-2)" }}>
-        Selamat datang! Buat rekening untuk mulai mencatat keuangan kamu.
+        {WALLET.SETUP_DESC}
        </p>
        <form onSubmit={handleCreateWallet} className="space-y-3">
         <input
          type="text"
          required
-         placeholder="Nama rekening (Cth: BSI Ihsan)"
+         placeholder={WALLET.NAME_HINT}
          value={newWalletName}
          onChange={e => setNewWalletName(e.target.value)}
          className="w-full ds-bg-0 border ds-border rounded-2xl py-3.5 px-4 text-sm font-bold ds-t1 outline-none focus:border-[var(--a1)] transition-all placeholder:opacity-40"
@@ -918,14 +918,14 @@ export default function Home() {
          className="w-full py-3.5 text-white text-xs font-black uppercase tracking-widest rounded-2xl transition-all"
          style={{ background: "linear-gradient(135deg, var(--a1), var(--a2))" }}
         >
-         Buat Rekening
+         {WALLET.CREATE}
         </button>
        </form>
        <button
         onClick={auth.handleLogout}
         className="mt-4 text-xs font-bold ds-t3 hover:text-fuchsia-400 transition-colors"
        >
-        Keluar
+        {MORE.LOGOUT_SHORT}
        </button>
       </div>
      </main>
@@ -1085,8 +1085,8 @@ export default function Home() {
     {/* ── Delete Transaction Modal ── */}
     <DeleteModal
      isOpen={isDeleteModalOpen}
-     title="Hapus Transaksi?"
-     message="Tindakan ini permanen dan tidak dapat dibatalkan."
+     title={CONFIRM.DELETE_TRX_TITLE}
+     message={CONFIRM.CANT_UNDO}
      onConfirm={() => {
       if (itemToDelete) deleteTransaction(itemToDelete.id);
       setIsDeleteModalOpen(false);
@@ -1098,9 +1098,9 @@ export default function Home() {
     {/* ── Delete Goal Modal ── */}
     <DeleteModal
      isOpen={goalDeleteModal.isOpen}
-     title="Hapus Target Impian?"
+     title={SAVINGS.DELETE_TITLE}
      message={<>Target <strong>"{goalDeleteModal.goalName}"</strong> akan dihapus permanen.</>}
-     confirmLabel="Hapus Target"
+     confirmLabel={SAVINGS.DELETE_BTN}
      onConfirm={async () => {
       if (goalDeleteModal.goalId) {
        await supabase.from("savings_goals").delete().eq("id", goalDeleteModal.goalId);

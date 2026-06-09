@@ -36,3 +36,5 @@ export const TOAST     = C.TOAST;
 export const CONFIRM   = C.CONFIRM;
 export const CMD       = C.CMD;
 export const LANG      = C.LANG;
+export const SAVINGS   = C.SAVINGS;
+export const GUIDE     = C.GUIDE;
