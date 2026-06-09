@@ -26,7 +26,7 @@ export default function ManageCategories() {
   // =========================================================================
   // 🤖 AI CORE: BATCH UPSERT (100% ANTI 409 CONFLICT)
   // =========================================================================
-  const runAmbientAI = async () => {
+  async function runAmbientAI() {
     try {
       const { data: trxData } = await supabase.from('transactions').select('note, category');
       if (!trxData || trxData.length === 0) return;
@@ -34,9 +34,9 @@ export default function ManageCategories() {
       // 1. Ambil data kategori & kunci yang sudah ada (untuk filter lokal)
       const { data: dbCats } = await supabase.from('user_categories').select('id, name');
       const { data: dbKeys } = await supabase.from('ai_keywords').select('category_id, keyword');
-      
-      const catMap = new Map(dbCats.map(c => [c.name.toLowerCase().trim(), c.id]));
-      const existingKeys = new Set(dbKeys.map(k => `${k.category_id}-${k.keyword.toLowerCase()}`));
+
+      const catMap = new Map((dbCats || []).map(c => [c.name.toLowerCase().trim(), c.id]));
+      const existingKeys = new Set((dbKeys || []).map(k => `${k.category_id}-${k.keyword.toLowerCase()}`));
 
       const finalKeywordsToInsert = [];
 
@@ -83,7 +83,7 @@ export default function ManageCategories() {
     }
   };
 
-  const fetchAiBrainData = async () => {
+  async function fetchAiBrainData() {
     const { data: cats } = await supabase.from('user_categories').select('*').order('name', { ascending: true });
     const { data: keys } = await supabase.from('ai_keywords').select('*');
 

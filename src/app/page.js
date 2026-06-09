@@ -239,6 +239,7 @@ export default function Home() {
  const { wallets, addWallet } = useWallets();
  const [activeWallet, setActiveWallet] = useState(null);
  const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
+ const [isNewWalletOpen, setIsNewWalletOpen] = useState(false);
 
  // ── Financial Data ────────────────────────────────────────────────────────
  const {
@@ -602,57 +603,6 @@ export default function Home() {
   return cat.name.trim().toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
  }, [aiKeywords, userCategories]);
 
- // ── Simpan keyword ke DB background ───────────────────────────────────────
- const learnKeyword = useCallback(async (note, categoryName) => {
-  try {
-   const stopWords = new Set(["beli","bayar","untuk","ke","di","dari","dan","atau","dengan","yang","nya","ini","itu"]);
-   // Semua lowercase tanpa terkecuali
-   const normalNote = note.toLowerCase().replace(/[^a-z0-9\s]/g, "");
-   const words = normalNote.split(/\s+/).filter(w => w.length > 2 && !stopWords.has(w));
-   // Kategori juga normalize: Title Case
-   const normalCat = categoryName.trim().toLowerCase()
-    .replace(/\w/g, c => c.toUpperCase());
-
-   // Pastikan kategori ada — ilike agar tidak case sensitive
-   let { data: catData } = await supabase
-    .from("user_categories").select("id, name").ilike("name", normalCat).single();
-   if (!catData) {
-    const { data: newCat } = await supabase
-     .from("user_categories")
-     .insert([{ name: normalCat }])
-     .select("id, name").single();
-    catData = newCat;
-   }
-   if (!catData) return;
-
-   // Upsert keyword — lowercase, update frekuensi
-   for (const word of words) {
-    // Cek apakah sudah ada
-    const { data: existing } = await supabase
-     .from("ai_keywords")
-     .select("id, frequency")
-     .eq("category_id", catData.id)
-     .eq("keyword", word) // sudah lowercase
-     .single();
-
-    if (existing) {
-     // Update frekuensi
-     await supabase.from("ai_keywords")
-      .update({ frequency: (existing.frequency || 1) + 1 })
-      .eq("id", existing.id);
-    } else {
-     await supabase.from("ai_keywords")
-      .insert([{ category_id: catData.id, keyword: word, frequency: 1 }]);
-    }
-   }
-
-   // Refresh
-   const { data: fresh } = await supabase.from("ai_keywords").select("*");
-   if (fresh) setAiKeywords(fresh);
-  } catch (err) {
-   console.error("learnKeyword error:", err.message);
-  }
- }, []);
 
  const handleSmartSubmit = useCallback(async (command, receiptFile = null, customDate = null) => {
   if (!command?.trim()) return;
@@ -971,6 +921,7 @@ export default function Home() {
      {activeTab === "home" && (
       <HomeTab
        key="home"
+       session={auth.session}
        isDarkMode={isDarkMode}
        setIsDarkMode={setIsDarkMode}
        activeWallet={activeWallet}
@@ -1069,6 +1020,55 @@ export default function Home() {
      onAddWallet={() => { setIsWalletModalOpen(false); setIsNewWalletOpen(true); }}
      onNotify={showNotification}
     />
+
+
+    {/* ── New Wallet Modal ── */}
+    <AnimatePresence>
+     {isNewWalletOpen && (
+      <>
+       <motion.div
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+        onClick={() => setIsNewWalletOpen(false)}
+        className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-md"
+       />
+       <motion.div
+        initial={{ opacity: 0, scale: 0.94, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.94, y: 20 }}
+        transition={{ type: "spring", stiffness: 400, damping: 30 }}
+        className="fixed inset-x-4 top-[50%] -translate-y-[50%] z-[101] max-w-sm mx-auto ds-bg-1 rounded-[32px] shadow-2xl border ds-border p-6"
+       >
+        <h2 className="text-lg font-light tracking-tight mb-2 ds-t1">{WALLET.SETUP_TITLE}</h2>
+        <p className="text-sm mb-5 leading-relaxed ds-t3">{WALLET.SETUP_DESC}</p>
+        <form onSubmit={handleCreateWallet} className="space-y-3">
+         <input
+          type="text" required autoFocus
+          placeholder={WALLET.NAME_HINT}
+          value={newWalletName}
+          onChange={e => setNewWalletName(e.target.value)}
+          className="w-full ds-bg-0 border ds-border rounded-2xl py-3.5 px-4 text-sm font-bold ds-t1 outline-none focus:border-[var(--a1)] transition-all placeholder:opacity-40"
+         />
+         <div className="flex gap-2">
+          <button
+           type="button"
+           onClick={() => setIsNewWalletOpen(false)}
+           className="flex-1 py-3.5 ds-bg-3 ds-t2 text-xs font-black uppercase tracking-widest rounded-2xl transition-all active:scale-95"
+          >
+           {FORM.CANCEL}
+          </button>
+          <button
+           type="submit"
+           className="flex-1 py-3.5 text-white text-xs font-black uppercase tracking-widest rounded-2xl transition-all active:scale-95"
+           style={{ background: "linear-gradient(135deg, var(--a1), var(--a2))" }}
+          >
+           {WALLET.CREATE}
+          </button>
+         </div>
+        </form>
+       </motion.div>
+      </>
+     )}
+    </AnimatePresence>
 
 
     {/* ── Edit Transaction Modal ── */}

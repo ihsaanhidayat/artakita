@@ -164,7 +164,7 @@ export function useAuth() {
   }, []);
 
   // ── Check profile ─────────────────────────────────────────────────────
-  const checkProfileStatus = async (userId) => {
+  async function checkProfileStatus(userId) {
     try {
       const { data } = await supabase
         .from("profiles")
@@ -175,7 +175,7 @@ export function useAuth() {
         setForcePasswordModal({ isOpen: true, newPassword: "" });
       }
     } catch {}
-  };
+  }
 
   // ── Login — tanpa reload, update state langsung ───────────────────────
   const handleLogin = useCallback(async (e) => {

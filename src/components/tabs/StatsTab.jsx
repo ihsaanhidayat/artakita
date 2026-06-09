@@ -352,7 +352,6 @@ const StatsTab = memo(function StatsTab({ filteredTransactions, transactions, ba
  value={editVal ?? ""}
  onChange={e => { setEditVal(e.target.value); setIsDirtyBudget(true); }}
  onKeyDown={e => { if (e.key === "Enter") handleSaveBudget(); }}
- onBlur={e => { const p = parseFlexibleNumber(e.target.value); if (p > 0) setEditVal(p.toLocaleString("id-ID")); }}
  className="flex-1 ds-bg-3 rounded-xl px-3 py-2 text-sm font-bold ds-t1 outline-none ds-border"
  onFocus={e => e.target.style.borderColor = "color-mix(in srgb, var(--a1) 60%, transparent)"}
  onBlur={e => { e.target.style.borderColor = ""; const p = parseFlexibleNumber(e.target.value); if (p > 0) setEditVal(p.toLocaleString("id-ID")); }}

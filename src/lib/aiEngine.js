@@ -300,10 +300,10 @@ export async function learnFromTransaction(supabase, userId, note, categoryId, b
       // Update frequency + typical_amount (rolling average)
       const newFreq = existing.frequency + boost;
       const updates = { frequency: newFreq, last_used: item.last_used };
-      if (item.amount && item.amount > 0) {
-        const prevAmt = existing.typical_amount || item.amount;
+      if (amount && amount > 0) {
+        const prevAmt = existing.typical_amount || amount;
         // Weighted average: lebih berat ke yang lebih sering
-        updates.typical_amount = Math.round((prevAmt * existing.frequency + item.amount * boost) / newFreq);
+        updates.typical_amount = Math.round((prevAmt * existing.frequency + amount * boost) / newFreq);
       }
       await supabase.from("user_patterns")
         .update(updates)
@@ -335,16 +335,10 @@ export async function learnFromTransaction(supabase, userId, note, categoryId, b
  * User mengganti kategori setelah submit → downvote pattern lama
  */
 export async function negativeLearn(supabase, userId, note, wrongCategoryId) {
-  if (!note || !wrongCategoryId) return;
+  if (!note || !wrongCategoryId || !userId) return;
   const cleanNote = note.toLowerCase().trim();
-  
-  await supabase.from("user_patterns")
-    .update({ frequency: supabase.rpc("greatest", [1]) }) // floor at 1
-    .eq("user_id", userId)
-    .eq("phrase", cleanNote)
-    .eq("category_id", wrongCategoryId);
-  
-  // Simpler: just decrement
+
+  // Decrement frequency (floor at 1) untuk pattern yang salah
   const { data } = await supabase.from("user_patterns")
     .select("id, frequency")
     .eq("user_id", userId)

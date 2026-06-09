@@ -3,8 +3,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabaseClient";
 import imageCompression from 'browser-image-compression';
 import { 
-  Eye, Search, X, Calendar, MapPin, 
-  DollarSign, Plus, ChevronUp, Image as ImageIcon, Loader2 
+  Eye, Search, X, Calendar, MapPin,
+  DollarSign, Plus, ChevronUp, Image as ImageIcon, Loader2, Archive
 } from "lucide-react";
 
 const ITEMS_PER_PAGE = 5;

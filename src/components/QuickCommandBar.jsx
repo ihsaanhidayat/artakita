@@ -3,7 +3,7 @@ import { useState, useRef, useCallback, memo, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Send, X, TerminalSquare, Mic, Camera, Calendar, ChevronDown } from "lucide-react";
 import { parseFlexibleNumber } from "@/lib/utils";
-import { tokenizeInput, getSuggestions } from "@/lib/aiEngine";
+import { tokenizeInput } from "@/lib/aiEngine";
 
 const TODAY = () => new Date().toISOString().slice(0, 10);
 
@@ -232,6 +232,8 @@ const QuickCommandBar = memo(function QuickCommandBar({
   const [showCal, setShowCal] = useState(false);
   const [selCategory, setSelCategory] = useState(null); // user pilih dari candidates
   const [showCandList, setShowCandList] = useState(false);
+  const [inputError, setInputError] = useState(false);
+  const [hasTriedOnce, setHasTriedOnce] = useState(false);
   const recognitionRef = useRef(null);
   const inputRef = useRef(null);
   const camRef = useRef(null);
@@ -249,13 +251,6 @@ const QuickCommandBar = memo(function QuickCommandBar({
     if (!isContextMode || !inputText.trim()) return null;
     return parseByContext(currentContext, inputText);
   }, [isContextMode, currentContext, inputText]);
-
-  // Category yang dipakai: user pilih > manual pos > AI > Lainnya
-  const activeCategory = (typeof selCategory === "string" ? selCategory : selCategory?.name)
-    || preview?.manualCategory
-    || preview?.aiCategory
-    || preview?.category
-    || "Lainnya";
 
   // Reset selCategory dan error saat input berubah
   useEffect(() => {
@@ -353,9 +348,6 @@ const QuickCommandBar = memo(function QuickCommandBar({
     setShowCal(false);
     setSelCategory(null);
   }, []);
-
-  const [inputError, setInputError] = useState(false);
-  const [hasTriedOnce, setHasTriedOnce] = useState(false);
 
   const handleSubmit = useCallback(async (e) => {
     e?.preventDefault();
