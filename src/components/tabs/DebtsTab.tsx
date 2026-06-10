@@ -527,7 +527,10 @@ const DebtsTabComponent = memo(function DebtsTab({ activeWallet, balance, refres
       <AnimatePresence>
         {toast.show && (
           <motion.div initial={{ opacity: 0, y: -40, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -20, scale: 0.9 }} className="fixed top-6 left-0 right-0 z-[50] flex justify-center px-4 pointer-events-none">
-            <div className={`flex items-center gap-3 px-5 py-3.5 rounded-full shadow-2xl backdrop-blur-xl border ${toast.type === "error" ? "bg-red-500/10 border-red-500/20 text-red-500" : "bg-green-500/10 border-green-500/20 text-green-500"}`}>
+            <div className="flex items-center gap-3 px-5 py-3.5 rounded-full shadow-2xl backdrop-blur-xl border"
+              style={toast.type === "error"
+                ? { background: "color-mix(in srgb, var(--a3) 12%, transparent)", borderColor: "color-mix(in srgb, var(--a3) 25%, transparent)", color: "var(--a3)" }
+                : { background: "color-mix(in srgb, var(--income) 12%, transparent)", borderColor: "color-mix(in srgb, var(--income) 25%, transparent)", color: "var(--income)" }}>
               <span className="text-xs font-bold tracking-wide">{toast.msg}</span>
             </div>
           </motion.div>

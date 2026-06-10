@@ -136,7 +136,7 @@ export default function ManageCategories() {
   };
 
   return (
-    <div className="bg-white dark:bg-[#121827] rounded-[32px] p-6 sm:p-8 shadow-2xl shadow-blue-500/5 border border-gray-100 dark:border-gray-800/60 w-full transition-all">
+    <div className="ds-bg-1 rounded-[32px] p-6 sm:p-8 shadow-sm border ds-border w-full transition-all">
       <button onClick={() => setIsExpanded(!isExpanded)} className="w-full flex justify-between items-center outline-none group">
         <div className="flex items-center gap-4">
           <div className="p-3 text-white rounded-2xl shadow-lg group-hover:scale-105 transition-transform" style={{ background: "linear-gradient(135deg, var(--a1), var(--a2))", boxShadow: "0 8px 24px color-mix(in srgb, var(--a1) 30%, transparent)" }}>
@@ -147,7 +147,7 @@ export default function ManageCategories() {
             <p className="text-caption sm:text-xs font-bold ds-t3 mt-0.5">Automasi & Intervensi Data</p>
           </div>
         </div>
-        <motion.div animate={{ rotate: isExpanded ? 180 : 0 }} transition={{ duration: 0.3 }} className="bg-gray-50 dark:bg-gray-800 p-2 rounded-full">
+        <motion.div animate={{ rotate: isExpanded ? 180 : 0 }} transition={{ duration: 0.3 }} className="ds-bg-3 p-2 rounded-full">
           <ChevronDown size={20} className="ds-t3 group-hover:text-[var(--a1)] transition-colors" />
         </motion.div>
       </button>
@@ -156,7 +156,7 @@ export default function ManageCategories() {
         {isExpanded && (
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
             <div className="pt-8">
-              <form onSubmit={handleUpdateMemory} className="flex flex-col gap-5 bg-gray-50/80 dark:bg-gray-900/40 p-5 sm:p-6 rounded-[24px] border border-gray-100 dark:border-gray-800/50 relative overflow-hidden">
+              <form onSubmit={handleUpdateMemory} className="flex flex-col gap-5 ds-bg-3 p-5 sm:p-6 rounded-[24px] border ds-border relative overflow-hidden">
                 <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
                   <Database size={100} />
                 </div>
@@ -167,7 +167,7 @@ export default function ManageCategories() {
                     <button
                       type="button"
                       onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                      className="w-full bg-white dark:bg-[#0a0f1c] border border-gray-200 dark:border-gray-800 rounded-2xl py-3.5 px-4 text-left text-sm font-bold ds-t1 shadow-sm flex justify-between items-center outline-none focus:border-[var(--a1)] hover:border-[var(--a1)] transition-all"
+                      className="w-full ds-bg-0 border ds-border rounded-2xl py-3.5 px-4 text-left text-sm font-bold ds-t1 flex justify-between items-center outline-none focus:border-[var(--a1)] hover:border-[var(--a1)] transition-all"
                     >
                       {selectedCat ? (
                         <span className="ds-t1">{selectedCat.name}</span>
@@ -184,7 +184,7 @@ export default function ManageCategories() {
                           animate={{ opacity: 1, y: 0, scale: 1 }}
                           exit={{ opacity: 0, y: -10, scale: 0.98 }}
                           transition={{ duration: 0.15 }}
-                          className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#121827] border border-gray-100 dark:border-gray-800 rounded-2xl shadow-2xl overflow-hidden z-[99]"
+                          className="absolute top-full left-0 right-0 mt-2 ds-bg-1 border ds-border rounded-2xl shadow-xl overflow-hidden z-[99]"
                         >
                           <div className="max-h-56 overflow-y-auto no-scrollbar py-2">
                             {categories.length === 0 ? (
@@ -195,7 +195,7 @@ export default function ManageCategories() {
                                   key={cat.id}
                                   type="button"
                                   onClick={() => handleSelectCategory(cat)}
-                                  className="w-full text-left px-5 py-3.5 text-sm font-bold transition-all border-l-4"
+                                  className="w-full text-left px-5 py-3.5 text-sm font-bold ds-t1 transition-all border-l-4"
                                   style={selectedCat?.id === cat.id
                                     ? { color: "var(--a1)", background: "color-mix(in srgb, var(--a1) 10%, transparent)", borderLeftColor: "var(--a1)" }
                                     : { borderLeftColor: "transparent" }
@@ -212,7 +212,7 @@ export default function ManageCategories() {
                   </div>
                 </div>
 
-                <div className="relative z-10 border-t border-gray-200/50 dark:border-gray-800/50 pt-4 mt-2">
+                <div className="relative z-10 border-t ds-border pt-4 mt-2">
                   <label className="block text-caption font-black ds-t3 uppercase tracking-[0.2em] mb-1.5 ml-1">Kosakata Tersimpan (Koma)</label>
                   <input
                     type="text"
@@ -220,7 +220,7 @@ export default function ManageCategories() {
                     value={keywordsInput}
                     onChange={e => setKeywordsInput(e.target.value)}
                     disabled={!selectedCat}
-                    className="w-full bg-white dark:bg-[#0a0f1c] border border-gray-200 dark:border-gray-800 rounded-2xl py-3.5 px-4 ds-t1 outline-none focus:border-[var(--a1)] text-sm font-bold shadow-sm transition-all disabled:opacity-50"
+                    className="w-full ds-bg-0 border ds-border rounded-2xl py-3.5 px-4 ds-t1 outline-none focus:border-[var(--a1)] text-sm font-bold transition-all disabled:opacity-50"
                   />
                 </div>
 
