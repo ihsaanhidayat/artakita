@@ -31,16 +31,33 @@ export const useFinData = (walletId: string | null): UseFinDataReturn => {
     if (!walletId) return;
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
-        .from("transactions")
-        .select("id, wallet_id, user_id, note, amount, category, type, created_at, receipt_url, debt_id")
-        .eq("wallet_id", walletId)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      const result = (data || []) as Transaction[];
+      // Parallel: recent 500 rows for display, all rows (type+amount only) for accurate balance
+      const [displayRes, balanceRes] = await Promise.all([
+        supabase
+          .from("transactions")
+          .select("id, wallet_id, user_id, note, amount, category, type, created_at, receipt_url, debt_id")
+          .eq("wallet_id", walletId)
+          .order("created_at", { ascending: false })
+          .limit(500),
+        supabase
+          .from("transactions")
+          .select("type, amount")
+          .eq("wallet_id", walletId),
+      ]);
+      if (displayRes.error) throw displayRes.error;
+
+      const result = (displayRes.data || []) as Transaction[];
       setAllTransactions(result);
-      recalc(result);
       updateCache(result.slice(0, 100));
+
+      let inc = 0, exp = 0;
+      ((balanceRes.data || []) as { type: string; amount: number }[]).forEach(t => {
+        if (t.type === "income") inc += Number(t.amount);
+        else exp += Number(t.amount);
+      });
+      setTotalIncome(inc);
+      setTotalExpense(exp);
+      setBalance(inc - exp);
     } catch (err) {
       console.error("Gagal fetch:", (err as Error).message);
       if (!navigator.onLine) {
@@ -148,8 +165,11 @@ export const useFinData = (walletId: string | null): UseFinDataReturn => {
           created_at: pending.createdAt,
           _pending: true,
         };
-        setAllTransactions(prev => [optimistic, ...prev]);
-        recalc([optimistic, ...allTransactions]);
+        setAllTransactions(prev => {
+          const updated = [optimistic, ...prev];
+          recalc(updated);
+          return updated;
+        });
         return optimistic;
       }
       throw new Error(error.message || "Gagal menyimpan transaksi");
@@ -175,7 +195,7 @@ export const useFinData = (walletId: string | null): UseFinDataReturn => {
       return updated;
     });
     return data;
-  }, [walletId, allTransactions, addToQueue, recalc]);
+  }, [walletId, addToQueue, recalc]);
 
   const deleteTransaction = useCallback(async (id: string): Promise<void> => {
     const trx = allTransactions.find(t => t.id === id);

@@ -24,6 +24,7 @@ export function useAuth(): UseAuthReturn {
   const idleTimerRef    = useRef<ReturnType<typeof setTimeout> | null>(null);
   const warningTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isLoggingOut    = useRef(false);
+  const lastActivityRef = useRef<number>(0);
 
   const cleanLogout = useCallback(async (silent = false): Promise<void> => {
     if (isLoggingOut.current) return;
@@ -116,7 +117,6 @@ export function useAuth(): UseAuthReturn {
     const startTimers = (): void => {
       if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
       if (warningTimerRef.current) clearTimeout(warningTimerRef.current);
-      setSessionWarning(false);
 
       warningTimerRef.current = setTimeout(() => {
         setSessionWarning(true);
@@ -127,8 +127,12 @@ export function useAuth(): UseAuthReturn {
       }, IDLE_TIMEOUT);
     };
 
+    // Throttled to max once/second — mousemove fires 60×/s and recreating timers on every event wastes CPU
     const resetOnActivity = (): void => {
-      if (sessionWarning) setSessionWarning(false);
+      const now = Date.now();
+      if (now - lastActivityRef.current < 1000) return;
+      lastActivityRef.current = now;
+      setSessionWarning(false);
       startTimers();
     };
 
@@ -141,7 +145,7 @@ export function useAuth(): UseAuthReturn {
       if (warningTimerRef.current) clearTimeout(warningTimerRef.current);
       events.forEach(ev => window.removeEventListener(ev, resetOnActivity));
     };
-  }, [session, cleanLogout, sessionWarning]);
+  }, [session, cleanLogout]);
 
   const extendSession = useCallback((): void => {
     setSessionWarning(false);

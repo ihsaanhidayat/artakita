@@ -277,26 +277,21 @@ export default function Home() {
     const uid = auth.session.user.id;
 
     const fetchAll = async (): Promise<void> => {
-      const [{ data: cats }, { data: keys }, { data: profile }] = await Promise.all([
+      const [{ data: cats }, { data: keys }, { data: profile }, { data: ptData }] = await Promise.all([
         supabase.from("user_categories").select("*").order("name", { ascending: true }),
-        supabase.from("ai_keywords").select("*"),
+        supabase.from("ai_keywords").select("*").limit(1000),
         supabase.from("profiles").select("role").eq("id", uid).single(),
+        supabase.from("user_patterns")
+          .select("phrase, frequency, typical_amount, category_id, user_categories(id, name)")
+          .eq("user_id", uid)
+          .order("frequency", { ascending: false })
+          .limit(300),
       ]);
       if (cats) setUserCategories(cats as UserCategory[]);
       if (keys) setAiKeywords(keys as AiKeyword[]);
-
-      const { count: ptCount } = await supabase
-        .from("user_patterns").select("id", { count: "exact", head: true })
-        .eq("user_id", uid);
-      if ((ptCount ?? 0) === 0) {
+      if (!ptData?.length) {
         setTimeout(() => { void seedUserPatterns(uid); }, 1000);
       }
-      const { data: ptData } = await supabase
-        .from("user_patterns")
-        .select("phrase, frequency, typical_amount, category_id, user_categories(id, name)")
-        .eq("user_id", uid)
-        .order("frequency", { ascending: false })
-        .limit(300);
       if (ptData) {
         setUserPatterns((ptData as unknown as Array<{
           phrase: string; frequency: number; typical_amount: number | null;
@@ -348,7 +343,7 @@ export default function Home() {
             for (let i = 0; i < toInsert.length; i += 50) {
               await supabase.from("ai_keywords").upsert(toInsert.slice(i, i + 50), { onConflict: "category_id,keyword", ignoreDuplicates: true });
             }
-            const { data: freshKeys } = await supabase.from("ai_keywords").select("*");
+            const { data: freshKeys } = await supabase.from("ai_keywords").select("*").limit(1000);
             if (freshKeys) setAiKeywords(freshKeys as AiKeyword[]);
           }
         } catch (err) { console.error("AI mining error:", (err as Error).message); }
