@@ -13,8 +13,13 @@ export const useFinData = (walletId: string | null): UseFinDataReturn => {
   const [isLoading, setIsLoading]             = useState(false);
   const [displayCount, setDisplayCount]       = useState(DISPLAY_PAGE);
 
+  // Hoist refs before useOfflineSync so onSyncComplete can reference them cleanly
+  const fetchAllRef          = useRef<() => Promise<void>>(async () => {});
+  const allTransactionsRef   = useRef<Transaction[]>([]);
+
+  const onSyncComplete = useCallback(() => { void fetchAllRef.current(); }, []);
   const { isOnline, isSyncing, pendingCount, addToQueue, syncQueue, updateCache, getCached } =
-    useOfflineSync(walletId, () => { void fetchAll(); });
+    useOfflineSync(walletId, onSyncComplete);
 
   const recalc = useCallback((data: Transaction[]): void => {
     let inc = 0, exp = 0;
@@ -69,6 +74,10 @@ export const useFinData = (walletId: string | null): UseFinDataReturn => {
     }
   }, [walletId, updateCache, getCached, recalc]);
 
+  // Keep refs in sync with latest values
+  useEffect(() => { fetchAllRef.current = fetchAll; }, [fetchAll]);
+  useEffect(() => { allTransactionsRef.current = allTransactions; }, [allTransactions]);
+
   useEffect(() => {
     if (!walletId) return;
     const cached = getCached();
@@ -77,9 +86,6 @@ export const useFinData = (walletId: string | null): UseFinDataReturn => {
     setDisplayCount(DISPLAY_PAGE);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [walletId]);
-
-  const fetchAllRef = useRef(fetchAll);
-  useEffect(() => { fetchAllRef.current = fetchAll; }, [fetchAll]);
 
   useEffect(() => {
     if (!walletId) return;
@@ -94,7 +100,7 @@ export const useFinData = (walletId: string | null): UseFinDataReturn => {
           .on("postgres_changes", {
             event: "*", schema: "public", table: "transactions",
             filter: `wallet_id=eq.${walletId}`,
-          }, () => { if (active) fetchAllRef.current?.(); })
+          }, () => { if (active) void fetchAllRef.current(); })
           .subscribe();
       } catch {
         // Channel already exists — ignore
@@ -198,7 +204,8 @@ export const useFinData = (walletId: string | null): UseFinDataReturn => {
   }, [walletId, addToQueue, recalc]);
 
   const deleteTransaction = useCallback(async (id: string): Promise<void> => {
-    const trx = allTransactions.find(t => t.id === id);
+    // Read from ref — avoids capturing stale allTransactions in deps
+    const trx = allTransactionsRef.current.find(t => t.id === id);
     if (trx?.receipt_url && !trx._pending) {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
@@ -218,7 +225,7 @@ export const useFinData = (walletId: string | null): UseFinDataReturn => {
       recalc(updated);
       return updated;
     });
-  }, [allTransactions, recalc]);
+  }, [recalc]);
 
   const updateTransaction = useCallback(async (
     id: string,

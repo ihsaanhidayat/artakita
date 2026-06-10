@@ -7,9 +7,6 @@ export const useWallets = (): UseWalletsReturn => {
 
   useEffect(() => {
     const fetchWallets = async (): Promise<void> => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
       const { data } = await supabase
         .from("wallets")
         .select("*")

@@ -204,7 +204,13 @@ export default function Home() {
 
   // ── Wallet ────────────────────────────────────────────────────────────────
   const { wallets, addWallet } = useWallets();
-  const [activeWallet, setActiveWallet]         = useState<ActiveWallet | null>(null);
+  const [activeWallet, setActiveWallet] = useState<ActiveWallet | null>(() => {
+    if (typeof window === "undefined") return null;
+    try {
+      const saved = localStorage.getItem("arta_active_wallet");
+      return saved ? JSON.parse(saved) as ActiveWallet : null;
+    } catch { return null; }
+  });
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
   const [isNewWalletOpen, setIsNewWalletOpen]     = useState(false);
 
@@ -277,10 +283,16 @@ export default function Home() {
     const uid = auth.session.user.id;
 
     const fetchAll = async (): Promise<void> => {
-      const [{ data: cats }, { data: keys }, { data: profile }, { data: ptData }] = await Promise.all([
+      // Phase 1: role check only — unlocks the dashboard as fast as possible
+      const { data: profile } = await supabase
+        .from("profiles").select("role").eq("id", uid).single();
+      if ((profile as { role?: string } | null)?.role === "admin") setIsAdmin(true);
+      setIsRoleLoading(false);
+
+      // Phase 2: AI/category data — loads in background, dashboard already visible
+      const [{ data: cats }, { data: keys }, { data: ptData }] = await Promise.all([
         supabase.from("user_categories").select("*").order("name", { ascending: true }),
         supabase.from("ai_keywords").select("*").limit(1000),
-        supabase.from("profiles").select("role").eq("id", uid).single(),
         supabase.from("user_patterns")
           .select("phrase, frequency, typical_amount, category_id, user_categories(id, name)")
           .eq("user_id", uid)
@@ -302,8 +314,6 @@ export default function Home() {
           frequency: p.frequency, typical_amount: p.typical_amount ?? null,
         })));
       }
-      if ((profile as { role?: string } | null)?.role === "admin") setIsAdmin(true);
-      setIsRoleLoading(false);
 
       setTimeout(async () => {
         try {
@@ -351,15 +361,12 @@ export default function Home() {
     };
 
     void fetchAll();
+    // Fallback: ensure loading screen is always cleared even if profile query fails
     const timeout = setTimeout(() => setIsRoleLoading(false), 3000);
     return () => clearTimeout(timeout);
-  }, [auth.session]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const saved = localStorage.getItem("arta_active_wallet");
-    if (saved) { try { setActiveWallet(JSON.parse(saved) as ActiveWallet); } catch {} }
-  }, []);
+  // auth.session?.user?.id is stable across token refreshes — avoids re-running 3 queries every ~30 min
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [auth.session?.user?.id]);
 
   useEffect(() => {
     if (activeWallet || isAdmin) return;
