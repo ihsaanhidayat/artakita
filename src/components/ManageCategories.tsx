@@ -45,7 +45,7 @@ export default function ManageCategories() {
 
   async function runAmbientAI(): Promise<void> {
     try {
-      const { data: trxData } = await supabase.from('transactions').select('note, category');
+      const { data: trxData } = await supabase.from('transactions').select('note, category').limit(500);
       if (!trxData || trxData.length === 0) return;
 
       const { data: dbCats } = await supabase.from('user_categories').select('id, name');
@@ -99,7 +99,7 @@ export default function ManageCategories() {
 
   async function fetchAiBrainData(): Promise<void> {
     const { data: cats } = await supabase.from('user_categories').select('*').order('name', { ascending: true });
-    const { data: keys } = await supabase.from('ai_keywords').select('*');
+    const { data: keys } = await supabase.from('ai_keywords').select('*').limit(1000);
 
     if (cats && keys) {
       const combinedData: CategoryEntry[] = (cats as DbCategory[]).map(c => {

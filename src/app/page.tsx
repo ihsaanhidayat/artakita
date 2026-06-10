@@ -382,22 +382,21 @@ export default function Home() {
     localStorage.setItem("arta_active_wallet", JSON.stringify(activeWallet));
   }, [activeWallet]);
 
-  useEffect(() => {
-    const fetch = async (): Promise<void> => {
-      const { data } = await supabase.from("budgets").select("*").eq("month_year", new Date().toISOString().slice(0, 7));
-      if (data) setAllBudgets(data as Budget[]);
-    };
-    void fetch();
+  const fetchBudgets = useCallback(async (): Promise<void> => {
+    const { data } = await supabase.from("budgets").select("*").eq("month_year", new Date().toISOString().slice(0, 7));
+    if (data) setAllBudgets(data as Budget[]);
   }, []);
 
-  useEffect(() => {
-    if (activeTab !== "finance" && activeTab !== "more") return;
-    const fetch = async (): Promise<void> => {
-      const { data } = await supabase.from("savings_goals").select("*").order("created_at", { ascending: true });
-      if (data) setGoals(data as SavingsGoal[]);
-    };
-    void fetch();
-  }, [activeTab, financeRefreshKey]);
+  useEffect(() => { void fetchBudgets(); }, [fetchBudgets]);
+
+  const fetchGoals = useCallback(async (): Promise<void> => {
+    const { data } = await supabase.from("savings_goals").select("*").order("created_at", { ascending: true });
+    if (data) setGoals(data as SavingsGoal[]);
+  }, []);
+
+  // Load once on mount; refresh only when a mutation bumps financeRefreshKey
+  useEffect(() => { void fetchGoals(); }, [fetchGoals]);
+  useEffect(() => { if (financeRefreshKey > 0) void fetchGoals(); }, [financeRefreshKey, fetchGoals]);
 
   // ── Derived Data ──────────────────────────────────────────────────────────
 
@@ -792,6 +791,8 @@ export default function Home() {
               transactions={allTransactions}
               balance={balance}
               activeWallet={activeWallet}
+              allBudgets={allBudgets}
+              onBudgetsChange={fetchBudgets}
             />
           )}
           {activeTab === "finance" && (

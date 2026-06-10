@@ -1,5 +1,5 @@
 "use client";
-import { memo, useState, useEffect, useCallback, useMemo } from "react";
+import { memo, useState, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabaseClient";
 import { parseFlexibleNumber, fmt, CHART_COLORS } from "@/lib/utils";
@@ -33,6 +33,8 @@ interface StatsTabProps {
   transactions: Transaction[];
   balance: number;
   activeWallet: ActiveWallet | null;
+  allBudgets: DbBudget[];
+  onBudgetsChange: () => void;
 }
 
 // ── Health helper ─────────────────────────────────────────────────────────────
@@ -49,24 +51,16 @@ const getHealth = (exp: number, inc: number): HealthResult => {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-const StatsTab = memo(function StatsTab({ filteredTransactions, transactions, balance, activeWallet }: StatsTabProps) {
+const StatsTab = memo(function StatsTab({ filteredTransactions, transactions, balance, activeWallet, allBudgets, onBudgetsChange }: StatsTabProps) {
   const [section,       setSection]       = useState("pengeluaran");
   const [catExpanded,   setCatExpanded]   = useState(false);
   const [allocExpanded, setAllocExpanded] = useState(false);
-  const [budgets,       setBudgets]       = useState<DbBudget[]>([]);
   const [editingBudget, setEditingBudget] = useState<EditingBudget | null>(null);
   const [editVal,       setEditVal]       = useState("");
   const [isSaving,      setIsSaving]      = useState(false);
   const [isDirtyBudget, setIsDirtyBudget] = useState(false);
 
   const currentMonth = new Date().toISOString().slice(0, 7);
-
-  const fetchBudgets = useCallback(async (): Promise<void> => {
-    const { data } = await supabase.from("budgets").select("*").eq("month_year", currentMonth);
-    if (data) setBudgets(data as DbBudget[]);
-  }, [currentMonth]);
-
-  useEffect(() => { void fetchBudgets(); }, [fetchBudgets]);
 
   const { statsData, totalExpense, totalIncome, health } = useMemo(() => {
     const safe = Array.isArray(filteredTransactions) ? filteredTransactions : [];
@@ -94,10 +88,10 @@ const StatsTab = memo(function StatsTab({ filteredTransactions, transactions, ba
       return acc;
     }, []).sort((a, b) => b.value - a.value);
     const cats = allData.map(s => s.name);
-    const bMap = budgets.reduce<Record<string, number>>((acc, b) => { acc[b.category_name] = Number(b.limit_amount); return acc; }, {});
+    const bMap = allBudgets.reduce<Record<string, number>>((acc, b) => { acc[b.category_name] = Number(b.limit_amount); return acc; }, {});
     const totAlok = cats.reduce((sum, cat) => sum + (bMap[cat] || 0), 0);
     return { allStatsData: allData, allCategories: cats, budgetMap: bMap, totalAlokasi: totAlok, sisaSaldo: balance - totAlok, isOver: totAlok > balance };
-  }, [transactions, budgets, balance]);
+  }, [transactions, allBudgets, balance]);
 
   const handleSaveBudget = useCallback(async (): Promise<void> => {
     if (!editingBudget) return;
@@ -107,19 +101,19 @@ const StatsTab = memo(function StatsTab({ filteredTransactions, transactions, ba
       const { data: ex } = await supabase.from("budgets").select("id").eq("category_name", editingBudget.category).eq("month_year", currentMonth).single();
       if (ex) await supabase.from("budgets").update({ limit_amount: newLimit }).eq("id", (ex as { id: string }).id);
       else await supabase.from("budgets").insert([{ category_name: editingBudget.category, limit_amount: newLimit, month_year: currentMonth }]);
-      await fetchBudgets();
+      onBudgetsChange();
       setEditingBudget(null); setEditVal(""); setIsDirtyBudget(false);
     } finally { setIsSaving(false); }
-  }, [editingBudget, editVal, currentMonth, fetchBudgets]);
+  }, [editingBudget, editVal, currentMonth, onBudgetsChange]);
 
   const handleDeleteBudget = useCallback(async (): Promise<void> => {
     if (!editingBudget) return;
     setIsSaving(true);
     const { data: ex } = await supabase.from("budgets").select("id").eq("category_name", editingBudget.category).eq("month_year", currentMonth).single();
     if (ex) await supabase.from("budgets").delete().eq("id", (ex as { id: string }).id);
-    await fetchBudgets();
+    onBudgetsChange();
     setEditingBudget(null); setIsSaving(false);
-  }, [editingBudget, currentMonth, fetchBudgets]);
+  }, [editingBudget, currentMonth, onBudgetsChange]);
 
   return (
     <motion.div key="stats" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.12 }}
