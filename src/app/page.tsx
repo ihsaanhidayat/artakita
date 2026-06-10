@@ -187,13 +187,17 @@ export default function Home() {
   const [mounted, setMounted]       = useState(false);
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
     if (typeof window === "undefined") return true;
-    const saved = localStorage.getItem("arta_theme");
-    return saved !== null ? saved === "dark" : true;
+    try {
+      const saved = localStorage.getItem("arta_theme");
+      return saved !== null ? saved === "dark" : true;
+    } catch { return true; }
   });
   const [activeTab, setActiveTab] = useState<TabId>(() => {
     if (typeof window === "undefined") return "home";
-    const saved = sessionStorage.getItem("arta_last_tab");
-    return (saved && ["home","stats","finance","more"].includes(saved)) ? saved as TabId : "home";
+    try {
+      const saved = sessionStorage.getItem("arta_last_tab");
+      return (saved && ["home","stats","finance","more"].includes(saved)) ? saved as TabId : "home";
+    } catch { return "home"; }
   });
 
   const [financeSubPage, setFinanceSubPage] = useState<FinanceSubPage>(null);
@@ -253,7 +257,7 @@ export default function Home() {
   useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
-    if (typeof window !== "undefined") sessionStorage.setItem("arta_last_tab", activeTab);
+    if (typeof window !== "undefined") try { sessionStorage.setItem("arta_last_tab", activeTab); } catch {}
   }, [activeTab]);
 
   useEffect(() => {

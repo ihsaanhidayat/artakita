@@ -32,10 +32,12 @@ export function useAuth(): UseAuthReturn {
     if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
     if (warningTimerRef.current) clearTimeout(warningTimerRef.current);
 
-    localStorage.removeItem("arta_active_wallet");
-    localStorage.removeItem("arta_trx_cache");
-    localStorage.removeItem("arta_pending_queue");
-    sessionStorage.removeItem("arta_last_tab");
+    try {
+      localStorage.removeItem("arta_active_wallet");
+      localStorage.removeItem("arta_trx_cache");
+      localStorage.removeItem("arta_pending_queue");
+      sessionStorage.removeItem("arta_last_tab");
+    } catch {}
 
     try { await supabase.auth.signOut(); } catch {}
 

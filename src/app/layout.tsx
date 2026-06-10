@@ -34,6 +34,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="id" className="dark" suppressHydrationWarning>
       <body className={`${dmSans.variable} ${dmMono.variable}`} style={{ background: "var(--bg-0)", color: "var(--text-1)", fontFamily: "var(--ff-sans)" }}>
         {children}
+        <script dangerouslySetInnerHTML={{ __html: `if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js')}` }} />
       </body>
     </html>
   );
